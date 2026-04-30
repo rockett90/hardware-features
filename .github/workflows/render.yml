@@ -1,0 +1,67 @@
+name: Render Schematic
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  render:
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/render')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Get PR branch
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            core.setOutput('ref', pr.data.head.ref);
+            core.setOutput('sha', pr.data.head.sha);
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.ref }}
+          fetch-depth: 0
+
+      - name: Install KiCad CLI
+        run: |
+          sudo add-apt-repository --yes ppa:kicad/kicad-8-releases
+          sudo apt-get update
+          sudo apt-get install --yes kicad
+
+      - name: Find and render schematics
+        run: |
+          mkdir -p render-output
+          find features/ -name "*.kicad_sch" | while read sch; do
+            feature=$(echo "$sch" | cut -d'/' -f2)
+            mkdir -p "render-output/$feature"
+            kicad-cli sch export svg \
+              --output "render-output/$feature" \
+              "$sch"
+          done
+
+      - name: Commit rendered SVGs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add render-output/
+          git diff --cached --quiet || git commit -m "chore: render schematics [skip ci]"
+          git push
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ Schematics rendered. SVGs committed to `render-output/`.'
+            });

@@ -1,0 +1,36 @@
+name: Post gate checklist
+on:
+  pull_request:
+    types: [opened]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            let file = '';
+            if      (/^signoff\/.*\/cdr/.test(branch))  file = 'checklists/gates/cdr-checklist.md';
+            else if (/^signoff\/.*\/trr/.test(branch))  file = 'checklists/gates/trr-checklist.md';
+            else if (/^release-please--/.test(branch))  file = 'checklists/gates/release-checklist.md';
+            else if (/^library\//.test(branch))         file = 'checklists/library/component-addition.md';
+            if (!file) return;
+            let body;
+            try {
+              body = require('fs').readFileSync(file, 'utf8');
+            } catch (e) {
+              core.warning(`Checklist file not found: ${file}`);
+              return;
+            }
+            if (!body.trim()) { core.warning(`Checklist empty: ${file}`); return; }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body,
+            });

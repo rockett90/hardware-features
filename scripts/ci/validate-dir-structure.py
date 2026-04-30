@@ -28,7 +28,8 @@ if len(features) > 1:
     errors.append(f"❌ PR touches multiple features: {', '.join(sorted(features))}")
 
 if errors:
-    for e in errors: print(e)
+    for e in errors:
+        print(e)
     sys.exit(1)
 
 print("✅ Directory structure valid")

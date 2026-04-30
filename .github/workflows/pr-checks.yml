@@ -7,6 +7,8 @@ jobs:
   validate-branch-name:
     name: Validate branch name
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - run: bash scripts/ci/validate-branch-name.sh "${{ github.head_ref }}"
@@ -14,6 +16,8 @@ jobs:
   validate-dir-structure:
     name: Validate directory structure
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,6 +30,8 @@ jobs:
   validate-pr-title:
     name: Validate PR title
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

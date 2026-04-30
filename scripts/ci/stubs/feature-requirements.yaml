@@ -1,0 +1,8 @@
+feature: FEATURE_NAME
+created-at-gate: pdr
+last-updated: YYYY-MM-DD
+requirements:
+  - id: REQ-001
+    description: "[Replace with first requirement]"
+    category: performance
+    verification-method: test

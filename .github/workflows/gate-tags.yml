@@ -1,0 +1,111 @@
+name: Gate tags and library.lock
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  cdr-gate:
+    if: github.event.pull_request.merged == true &&
+        startsWith(github.event.pull_request.head.ref, 'signoff/') &&
+        contains(github.event.pull_request.head.ref, '/cdr')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: cdr-gate-${{ github.event.pull_request.head.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Extract feature name
+        id: feature
+        run: |
+          REF="${{ github.event.pull_request.head.ref }}"
+          FEATURE=$(echo "$REF" | sed 's|^signoff/||;s|/cdr.*$||')
+          echo "name=$FEATURE" >> $GITHUB_OUTPUT
+
+      - name: Create CDR gate tag
+        run: |
+          git tag "cdr/${{ steps.feature.outputs.name }}/approved"
+          git push origin "cdr/${{ steps.feature.outputs.name }}/approved"
+
+      - name: Create library.lock
+        run: |
+          FEATURE="${{ steps.feature.outputs.name }}"
+          mkdir -p "features/$FEATURE/reviews"
+          LIB_SHA=$(git log -1 --format="%H" -- library/ 2>/dev/null \
+            || git rev-parse HEAD)
+          FEA_SHA=$(git log -1 --format="%H" -- "features/$FEATURE/" 2>/dev/null \
+            || git rev-parse HEAD)
+          cat > "features/$FEATURE/reviews/library.lock" <<EOF
+          # Created automatically by CI at CDR gate. Do not edit manually.
+          library-submodule-commit: $LIB_SHA
+          feature-commit: $FEA_SHA
+          locked-at-gate: cdr
+          locked-date: $(date +%Y-%m-%d)
+          EOF
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "features/$FEATURE/reviews/library.lock"
+          git commit -m "chore($FEATURE): create library.lock at CDR gate [skip ci]"
+          git pull --rebase origin main
+          git push origin main
+
+  trr-gate:
+    if: github.event.pull_request.merged == true &&
+        startsWith(github.event.pull_request.head.ref, 'signoff/') &&
+        contains(github.event.pull_request.head.ref, '/trr')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: trr-gate-${{ github.event.pull_request.head.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract feature name
+        id: feature
+        run: |
+          REF="${{ github.event.pull_request.head.ref }}"
+          FEATURE=$(echo "$REF" | sed 's|^signoff/||;s|/trr.*$||')
+          echo "name=$FEATURE" >> $GITHUB_OUTPUT
+
+      - name: Calculate next rc tag
+        id: rc
+        run: |
+          FEATURE="${{ steps.feature.outputs.name }}"
+          VERSION=$(python3 -c "
+          import json, sys
+          try:
+            d = json.load(open('.github/release-please-manifest.json'))
+            print(d.get('features/' + sys.argv[1], '1.0.0'))
+          except: print('1.0.0')
+          " "$FEATURE")
+          LAST=$(git tag -l "${FEATURE}-v${VERSION}-rc.*" | sort -V | tail -1)
+          if [[ -z "$LAST" ]]; then N=1
+          else N=$(( ${LAST##*.} + 1 )); fi
+          echo "tag=${FEATURE}-v${VERSION}-rc.${N}" >> $GITHUB_OUTPUT
+
+      - name: Create and push rc tag
+        run: |
+          git tag "${{ steps.rc.outputs.tag }}"
+          git push origin "${{ steps.rc.outputs.tag }}"
+
+      - name: Create GitHub Pre-Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createRelease({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              tag_name:   '${{ steps.rc.outputs.tag }}',
+              name:       '${{ steps.rc.outputs.tag }}',
+              prerelease: true,
+              draft:      false,
+              body:       'IVV baseline. Not for production. Created automatically at TRR gate.',
+            });

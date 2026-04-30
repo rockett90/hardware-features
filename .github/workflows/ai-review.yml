@@ -1,0 +1,218 @@
+name: AI schematic review
+on:
+  pull_request:
+    types: [ready_for_review]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  ai-review:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: ai-review-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    env:
+      PRIMARY_MODEL: claude-sonnet-4-6
+      FALLBACK_MODEL: gpt-4.1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Check for KiCad files
+        id: kicad
+        run: |
+          KICAD_FILES=$(git diff --name-only \
+            "origin/${{ github.base_ref }}...HEAD" | \
+            grep -E '\.(kicad_sch|kicad_pcb)$' || true)
+          if [[ -z "$KICAD_FILES" ]]; then
+            echo "has_kicad=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_kicad=true" >> $GITHUB_OUTPUT
+            { echo "files<<EOF"; echo "$KICAD_FILES"; echo "EOF"; } \
+              >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get feature name
+        id: feature
+        if: steps.kicad.outputs.has_kicad == 'true'
+        run: |
+          FEATURE=$(echo "${{ steps.kicad.outputs.files }}" | \
+            grep "^features/" | head -1 | cut -d'/' -f2)
+          echo "name=$FEATURE" >> $GITHUB_OUTPUT
+
+      - name: Install kicad-happy system dependencies
+        if: steps.kicad.outputs.has_kicad == 'true'
+        run: sudo apt-get install -y ngspice poppler-utils
+        # ngspice: enables SPICE simulation in kicad-happy analysis
+        # poppler-utils: enables PDF datasheet processing
+
+      - name: Run kicad-happy analysis
+        id: kh
+        if: steps.kicad.outputs.has_kicad == 'true'
+        uses: aklofas/kicad-happy@v1
+
+      - name: Read review context
+        if: steps.kicad.outputs.has_kicad == 'true'
+        run: |
+          read_or_empty() { cat "$1" 2>/dev/null || echo "(not available)"; }
+          {
+            echo "=== REVIEW INSTRUCTIONS ==="
+            read_or_empty .github/agents/instructions/schematic-review.md
+            echo "=== REQUIREMENTS ==="
+            read_or_empty "features/${{ steps.feature.outputs.name }}/requirements/feature-requirements.yaml"
+            echo "=== INTERFACE REQUIREMENTS ==="
+            read_or_empty "features/${{ steps.feature.outputs.name }}/requirements/interface-requirements.yaml"
+            echo "=== COMPANY STANDARDS ==="
+            read_or_empty .github/agents/context/company-standards.md
+            echo "=== KICAD-HAPPY REPORT ==="
+            read_or_empty "${{ steps.kh.outputs.report-path }}"
+          } > /tmp/review-context.txt
+
+      - name: Call GitHub Models API
+        if: steps.kicad.outputs.has_kicad == 'true'
+        env:
+          GITHUB_TOKEN:      ${{ github.token }}
+          KH_STATUS:         ${{ steps.kh.outputs.status }}
+          KH_CRITICAL_COUNT: ${{ steps.kh.outputs.critical-count }}
+          PRIMARY_MODEL:     ${{ env.PRIMARY_MODEL }}
+          FALLBACK_MODEL:    ${{ env.FALLBACK_MODEL }}
+        run: |
+          node - <<'JSEOF'
+          const fs    = require('fs');
+          const https = require('https');
+
+          const contextText   = fs.readFileSync('/tmp/review-context.txt', 'utf8');
+          const token         = process.env.GITHUB_TOKEN;
+          const primaryModel  = process.env.PRIMARY_MODEL;
+          const fallbackModel = process.env.FALLBACK_MODEL;
+          const khStatus      = process.env.KH_STATUS    || 'unknown';
+          const khCritical    = process.env.KH_CRITICAL_COUNT || '0';
+
+          const prompt = `You are reviewing a hardware schematic.
+
+          kicad-happy deterministic analysis result: ${khStatus}
+          Critical findings from deterministic analysis: ${khCritical}
+
+          Context (review instructions, requirements, company standards, full kicad-happy analysis report):
+          ${contextText}
+
+          Produce a structured review following the instructions.
+          Every finding must reference a specific designator, net name, or REQ-ID. No generic advice.
+          Use CRITICAL for findings that must be resolved before merge.
+          Use ADVISORY for findings that may be dismissed with reasoning.`;
+
+          function callModel(model) {
+            return new Promise((resolve, reject) => {
+              const body = JSON.stringify({
+                model,
+                messages:   [{ role: 'user', content: prompt }],
+                max_tokens: 2000,
+              });
+              const req = https.request({
+                hostname: 'models.inference.ai.azure.com',
+                path:     '/chat/completions',
+                method:   'POST',
+                headers:  {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type':  'application/json',
+                  'Content-Length': Buffer.byteLength(body),
+                },
+              }, res => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                  if (res.statusCode === 429 || res.statusCode === 404) {
+                    reject({ retryable: true, code: res.statusCode, body: data });
+                  } else if (res.statusCode !== 200) {
+                    reject({ retryable: false, code: res.statusCode, body: data });
+                  } else {
+                    resolve(JSON.parse(data).choices[0].message.content);
+                  }
+                });
+              });
+              req.on('error', err => reject({ retryable: false, body: err.message }));
+              req.write(body);
+              req.end();
+            });
+          }
+
+          async function main() {
+            let review, modelUsed;
+            try {
+              review    = await callModel(primaryModel);
+              modelUsed = primaryModel;
+            } catch (err) {
+              if (err.retryable) {
+                console.log(`Primary model ${primaryModel} unavailable (${err.code}), falling back to ${fallbackModel}`);
+                try {
+                  review    = await callModel(fallbackModel);
+                  modelUsed = `${fallbackModel} (fallback — ${primaryModel} unavailable)`;
+                } catch (err2) {
+                  review    = `AI review unavailable: ${err2.body || err2}`;
+                  modelUsed = 'none';
+                }
+              } else {
+                review    = `AI review unavailable: HTTP ${err.code}\n${err.body}`;
+                modelUsed = 'none';
+              }
+            }
+            fs.writeFileSync('/tmp/ai-review.txt',    review);
+            fs.writeFileSync('/tmp/model-used.txt',   modelUsed);
+          }
+
+          main().catch(e => {
+            fs.writeFileSync('/tmp/ai-review.txt',  `AI review unavailable: ${e}`);
+            fs.writeFileSync('/tmp/model-used.txt', 'none');
+          });
+          JSEOF
+
+      - name: Post AI review comment
+        if: steps.kicad.outputs.has_kicad == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs         = require('fs');
+            const aiReview   = fs.readFileSync('/tmp/ai-review.txt',  'utf8');
+            const modelUsed  = fs.readFileSync('/tmp/model-used.txt', 'utf8').trim();
+            const khStatus   = '${{ steps.kh.outputs.status }}';
+            const khCritical = '${{ steps.kh.outputs.critical-count }}';
+            const prNumber   = context.payload.pull_request.number;
+
+            const body = [
+              '## 🤖 AI Schematic Review',
+              '',
+              `**Model:** \`${modelUsed}\``,
+              `**kicad-happy:** ${khStatus} — ${khCritical} critical finding(s)`,
+              '',
+              '> ⚠️ Critical findings must be resolved or explicitly',
+              '> dismissed with reasoning before this PR can merge.',
+              '',
+              aiReview,
+              '',
+              '---',
+              '*To re-run: convert to Draft then back to Ready for Review.*',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.startsWith('## 🤖 AI Schematic Review')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: prNumber, body,
+              });
+            }

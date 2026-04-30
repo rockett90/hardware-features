@@ -1,0 +1,5 @@
+*.bak
+*-backups/
+fp-info-cache
+.DS_Store
+Thumbs.db

@@ -1,0 +1,32 @@
+name: Gate Check
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [main]
+
+jobs:
+  gate-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check gate PR checklist completion
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const branch = pr.head.ref;
+            const body = pr.body || '';
+
+            const isGatePR = branch.startsWith('signoff/');
+            if (!isGatePR) {
+              console.log('Not a gate PR — skipping checklist check.');
+              return;
+            }
+
+            const unchecked = (body.match(/- \[ \]/g) || []).length;
+            if (unchecked > 0) {
+              core.setFailed(`Gate PR has ${unchecked} unchecked item(s) in the checklist. All items must be checked before merge.`);
+            } else {
+              console.log('All checklist items checked ✅');
+            }

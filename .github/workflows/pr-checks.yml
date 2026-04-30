@@ -1,0 +1,43 @@
+name: PR checks
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches: [main]
+jobs:
+  validate-branch-name:
+    name: Validate branch name
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/ci/validate-branch-name.sh "${{ github.head_ref }}"
+
+  validate-dir-structure:
+    name: Validate directory structure
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+            > changed_files.txt
+          python3 scripts/ci/validate-dir-structure.py < changed_files.txt
+
+  validate-pr-title:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --save-dev @commitlint/cli @commitlint/config-conventional
+      - run: |
+          echo "${{ github.event.pull_request.title }}" \
+            | npx commitlint --config .github/commitlint.config.js

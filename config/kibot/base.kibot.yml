@@ -1,0 +1,36 @@
+kibot:
+  version: 1
+global:
+  out_dir: fab
+preflight:
+  run_erc: true
+  run_drc: false
+  ignore_unconnected: false
+outputs:
+  - name: schematic_svg
+    comment: Schematic SVG for PR renders
+    type: svg_sch_print
+    dir: fab
+    options:
+      output: '%f-schematic.svg'
+  - name: schematic_pdf
+    comment: Schematic PDF
+    type: pdf_sch_print
+    dir: fab
+    options:
+      output: '%f-schematic.pdf'
+  - name: bom
+    comment: Bill of materials
+    type: bom
+    dir: fab
+    options:
+      output: '%f-bom.csv'
+      ref_separator: ','
+      group_fields: ['Value', 'Footprint', 'MPN']
+      columns:
+        - field: Refs
+        - field: Quantity
+        - field: Value
+        - field: Footprint
+        - field: MPN
+        - field: Datasheet

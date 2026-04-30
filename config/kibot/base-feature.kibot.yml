@@ -1,0 +1,3 @@
+# Copied per feature by init-feature.sh
+import:
+  - file: ../../config/kibot/base.kibot.yml

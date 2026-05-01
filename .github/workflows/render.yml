@@ -79,7 +79,7 @@ jobs:
             -v "$PWD:/repo" \
             -w "/repo/${{ steps.find.outputs.feature_dir }}" \
             "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
-            kibot -c .kibot.yml schematic_svg 2>&1 || true
+            kibot -c "/repo/${{ steps.find.outputs.feature_dir }}/.kibot.yml" schematic_svg 2>&1 || true
           SVG_COUNT=$(find "${{ steps.find.outputs.feature_dir }}/fab" \
             -name "*.svg" 2>/dev/null | wc -l)
           if [[ "$SVG_COUNT" -eq 0 ]]; then

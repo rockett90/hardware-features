@@ -10,7 +10,7 @@ jobs:
     if: github.event.issue.pull_request != null &&
         contains(github.event.comment.body, '/render')
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     concurrency:
       group: render-pr-${{ github.event.issue.number }}
       cancel-in-progress: true
@@ -49,6 +49,9 @@ jobs:
           ref:        ${{ steps.pr.outputs.ref }}
           submodules: recursive
           fetch-depth: 0
+
+      - name: Install analysis tools
+        run: sudo apt-get install -y --no-install-recommends ngspice poppler-utils
 
       - name: Find all changed features
         id: find
@@ -109,17 +112,18 @@ jobs:
                 all_pages: true
                 output: "%f-%i.%x"
             - name: schematic_diff
-              comment: "Visual diff vs base branch"
+              comment: "Visual diff vs base branch (red=removed, green=added)"
               type: diff
               dir: fab
               options:
                 pcb: false
                 old: origin/${BASE_REF}
                 old_type: git
-                new: HEAD
-                new_type: git
+                new: ""
+                new_type: current
                 only_different: true
                 diff_mode: red_green
+                dpi: 300
                 force_checkout: true
           KIBOT_EOF
 
@@ -153,6 +157,58 @@ jobs:
           echo "features_no_svg=${features_no_svg}"   >> $GITHUB_OUTPUT
           echo "features_no_diff=${features_no_diff}" >> $GITHUB_OUTPUT
 
+      - name: Run kicad-happy analysis per feature
+        id: kicad_happy
+        if: steps.find.outputs.has_any_feature == 'true'
+        env:
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+          GITHUB_BASE_REF: ${{ steps.pr.outputs.base_ref }}
+        run: |
+          happy_reports=""   # comma-separated "feature:path" pairs
+
+          while IFS= read -r FEATURE; do
+            [[ -z "$FEATURE" ]] && continue
+
+            SCH_FILE="features/${FEATURE}/${FEATURE}.kicad_sch"
+            if [[ ! -f "$SCH_FILE" ]]; then
+              echo "⚠️  kicad-happy: skipping ${FEATURE} — schematic not found at ${SCH_FILE}"
+              continue
+            fi
+
+            echo "▶  kicad-happy analysis: ${FEATURE}"
+            REPORT_DIR="$RUNNER_TEMP/kicad-happy-${FEATURE}"
+            mkdir -p "$REPORT_DIR"
+
+            # Run kicad-happy action inline
+            INPUT_SCHEMATIC="$SCH_FILE" \
+            INPUT_PCB="" \
+            INPUT_SEVERITY="all" \
+            INPUT_DERATING_PROFILE="commercial" \
+            INPUT_SPICE="true" \
+            INPUT_DATASHEETS_DIR="" \
+            DIGIKEY_CLIENT_ID="" \
+            DIGIKEY_CLIENT_SECRET="" \
+            MOUSER_SEARCH_API_KEY="" \
+            ELEMENT14_API_KEY="" \
+            INPUT_DIFF_BASE="true" \
+            GITHUB_BASE_REF="${BASE_REF}" \
+            GITHUB_OUTPUT="$REPORT_DIR/action.output" \
+            ACTION_PATH="$RUNNER_TEMP/kicad-happy-action" \
+            bash "$RUNNER_TEMP/kicad-happy-action/action/entrypoint.sh" 2>&1 | tail -20 || true
+
+            REPORT_PATH=$(grep "^report-path=" "$REPORT_DIR/action.output" 2>/dev/null | cut -d= -f2 || true)
+            if [[ -n "$REPORT_PATH" && -f "$REPORT_PATH" ]]; then
+              happy_reports="${happy_reports}${FEATURE}:${REPORT_PATH},"
+              echo "✅  kicad-happy report: ${REPORT_PATH}"
+            else
+              echo "⚠️  kicad-happy: no report produced for ${FEATURE}"
+            fi
+
+          done <<< "${{ steps.find.outputs.features }}"
+
+          happy_reports="${happy_reports%,}"
+          echo "happy_reports=${happy_reports}" >> $GITHUB_OUTPUT
+
       - name: Upload SVG artifacts
         if: steps.find.outputs.has_any_feature == 'true'
         uses: actions/upload-artifact@v4
@@ -173,8 +229,11 @@ jobs:
 
       - name: Post PR comment
         uses: actions/github-script@v7
+        env:
+          HAPPY_REPORTS: ${{ steps.kicad_happy.outputs.happy_reports }}
         with:
           script: |
+            const fs    = require('fs');
             const runUrl  = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const sha     = '${{ steps.pr.outputs.sha }}'.slice(0, 7);
             const ts      = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
@@ -184,11 +243,23 @@ jobs:
             const featuresNoPro  = '${{ steps.kibot.outputs.features_no_pro }}';
             const featuresNoSvg  = '${{ steps.kibot.outputs.features_no_svg }}';
             const featuresNoDiff = '${{ steps.kibot.outputs.features_no_diff }}';
+            const happyReports   = process.env.HAPPY_REPORTS || '';
 
             const toSet = s => new Set(s ? s.split(',').filter(Boolean) : []);
             const noPro  = toSet(featuresNoPro);
             const noSvg  = toSet(featuresNoSvg);
             const noDiff = toSet(featuresNoDiff);
+
+            // Parse kicad-happy reports map: "feature:path,feature:path"
+            const happyMap = {};
+            for (const entry of happyReports.split(',').filter(Boolean)) {
+              const idx = entry.indexOf(':');
+              if (idx > 0) {
+                const feat = entry.slice(0, idx);
+                const path = entry.slice(idx + 1);
+                try { happyMap[feat] = fs.readFileSync(path, 'utf8').trim(); } catch {}
+              }
+            }
 
             let body = '## 📐 Schematic Render\n\n';
 
@@ -197,18 +268,24 @@ jobs:
             } else {
               const features = featuresList ? featuresList.split(',').filter(Boolean) : [];
               for (const f of features) {
-                body += `### \`${f}\`\n`;
+                body += `### \`${f}\`\n\n`;
                 if (noPro.has(f)) {
-                  body += `⚠️ \`features/${f}/${f}.kicad_pro\` not found — skipped\n`;
+                  body += `⚠️ \`features/${f}/${f}.kicad_pro\` not found — add the KiCad project file to enable rendering\n\n`;
                 } else {
                   body += noSvg.has(f)
                     ? '⚠️ SVG render failed — check workflow logs\n'
-                    : '✅ SVG render complete\n';
+                    : '✅ SVG render complete (all pages)\n';
                   body += noDiff.has(f)
                     ? '⚠️ Visual diff not generated — check workflow logs\n'
-                    : '✅ Visual diff generated\n';
+                    : '✅ Visual diff generated (red = removed, green = added)\n';
+
+                  if (happyMap[f]) {
+                    body += '\n<details>\n<summary>📋 Design analysis & change summary</summary>\n\n';
+                    body += happyMap[f] + '\n';
+                    body += '</details>\n';
+                  }
+                  body += '\n';
                 }
-                body += '\n';
               }
               body += `📥 [Download SVGs & Diffs from workflow artifacts](${runUrl})\n\n`;
               body += '---\n';

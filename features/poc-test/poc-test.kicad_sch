@@ -6,8 +6,8 @@
 	(paper "A5")
 	(title_block
 		(title "Test Current Sink")
-		(date "2026-04-30")
-		(rev "1")
+		(date "2026-05-01")
+		(rev "2")
 		(company "Test Company")
 	)
 	(lib_symbols
@@ -798,7 +798,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "100R"
+		(property "Value" "220R"
 			(at 125.73 76.1999 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -879,7 +879,7 @@
 				)
 			)
 		)
-		(property "Value" "1k"
+		(property "Value" "2k2"
 			(at 78.74 53.34 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -1029,14 +1029,27 @@
 				)
 			)
 		)
-		(pin "1"
-			(uuid "6b3f0b73-a172-4ff8-826f-810bf5fa7fdd")
+		(property "ki_keywords" "NPN Transistor"
+			(at 99.06 64.77 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
 		)
-		(pin "2"
-			(uuid "1c5e9cf7-2214-4f8b-b22f-0e50f53ae478")
-		)
-		(pin "3"
-			(uuid "85de429b-8fa2-4f06-9369-28b5ee70f5d3")
+		(property "ki_fp_filters" "Diodes*DFN1006*"
+			(at 99.06 64.77 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
 		)
 		(instances
 			(project "poc-test"
@@ -1047,201 +1060,4 @@
 			)
 		)
 	)
-	(symbol
-		(lib_id "Device:C_Small")
-		(at 107.95 74.93 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "6e1e67dd-2eca-451a-9d27-ed8cd6e47719")
-		(property "Reference" "C1"
-			(at 110.49 73.6662 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "1nF"
-			(at 110.49 76.2062 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 107.95 74.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 107.95 74.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Unpolarized capacitor, small symbol"
-			(at 107.95 74.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "d296ba80-bd66-4a90-8ef9-4183d7f4bf6a")
-		)
-		(pin "2"
-			(uuid "4f5ac8d8-2ae3-4f59-8e92-56a8a8b744fe")
-		)
-		(instances
-			(project "poc-test"
-				(path "/d56f88c0-57bc-445a-b022-9faabb5ff772"
-					(reference "C1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Transistor_BJT:BC846BLP4")
-		(at 120.65 55.88 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "fdad0077-c9fa-4c2d-8e64-0b892e4575b8")
-		(property "Reference" "Q1"
-			(at 125.984 54.61 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "BC846BLP4"
-			(at 125.984 57.15 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Package_DFN_QFN:Diodes_DFN1006-3"
-			(at 125.73 57.785 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-					(italic yes)
-				)
-				(justify left)
-			)
-		)
-		(property "Datasheet" "https://www.diodes.com/datasheet/download/BC846BLP4.pdf"
-			(at 120.65 55.88 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Description" "0.1A Ic, 65V Vce, NPN Transistor, DFN1006-3"
-			(at 120.65 55.88 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Sim.Device" "NPN"
-			(at 120.65 55.88 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Sim.Pins" "1=B 2=E 3=C"
-			(at 120.65 55.88 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "2a747693-8516-46c5-8f6b-5ebd1c99c33f")
-		)
-		(pin "2"
-			(uuid "c99208ca-05b9-449d-be2b-ffa2168013bc")
-		)
-		(pin "3"
-			(uuid "cac84b9a-e7d2-4137-8153-b5c4ef4feed5")
-		)
-		(instances
-			(project "poc-test"
-				(path "/d56f88c0-57bc-445a-b022-9faabb5ff772"
-					(reference "Q1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(sheet_instances
-		(path "/"
-			(page "1")
-		)
-	)
-	(embedded_fonts no)
 )

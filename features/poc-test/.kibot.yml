@@ -1,0 +1,9 @@
+kibot:
+  version: 1
+outputs:
+  - name: schematic_svg
+    comment: "Export schematic as SVG"
+    type: svg_sch_print
+    dir: fab
+    options:
+      output: "%f.svg"

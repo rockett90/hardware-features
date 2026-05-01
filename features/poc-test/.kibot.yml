@@ -7,3 +7,4 @@ outputs:
     dir: fab
     options:
       output: "%f.svg"
+      source: poc-test.kicad_sch

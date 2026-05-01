@@ -48,64 +48,173 @@ jobs:
         with:
           ref:        ${{ steps.pr.outputs.ref }}
           submodules: recursive
+          fetch-depth: 0
 
-      - name: Find changed feature
+      - name: Find all changed features
         id: find
         run: |
           # Must use steps.pr.outputs.base_ref — github.base_ref
           # is empty in issue_comment events.
           git fetch origin "${{ steps.pr.outputs.base_ref }}"
-          FEATURE=$(git diff --name-only \
+          FEATURES=$(git diff --name-only \
             "origin/${{ steps.pr.outputs.base_ref }}...HEAD" | \
             grep "^features/" | grep "\.kicad_sch$" | \
-            head -1 | cut -d'/' -f2 || true)
-          if [[ -z "$FEATURE" ]]; then
-            # Fallback: find the first feature dir that contains a .kibot.yml
-            FEATURE=$(find features -maxdepth 2 -name ".kibot.yml" 2>/dev/null | \
-              head -1 | cut -d'/' -f2 || true)
-          fi
-          if [[ -z "$FEATURE" ]]; then
-            echo "has_feature=false" >> $GITHUB_OUTPUT
+            cut -d'/' -f2 | sort -u || true)
+          if [[ -z "$FEATURES" ]]; then
+            echo "has_any_feature=false" >> $GITHUB_OUTPUT
+            echo "features="             >> $GITHUB_OUTPUT
           else
-            echo "has_feature=true"              >> $GITHUB_OUTPUT
-            echo "feature=$FEATURE"              >> $GITHUB_OUTPUT
-            echo "feature_dir=features/$FEATURE" >> $GITHUB_OUTPUT
+            echo "has_any_feature=true"  >> $GITHUB_OUTPUT
+            # Encode as newline-separated list in output
+            {
+              echo "features<<EOF"
+              echo "$FEATURES"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
           fi
 
-      - name: Run KiBot SVG render
+      - name: Run KiBot per feature
         id: kibot
-        if: steps.find.outputs.has_feature == 'true'
+        if: steps.find.outputs.has_any_feature == 'true'
+        env:
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
         run: |
-          docker run --rm \
-            -v "$PWD:/repo" \
-            -w "/repo/${{ steps.find.outputs.feature_dir }}" \
-            "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
-            kibot -c "/repo/${{ steps.find.outputs.feature_dir }}/.kibot.yml" schematic_svg 2>&1 || true
-          SVG_COUNT=$(find "${{ steps.find.outputs.feature_dir }}/fab" \
-            -name "*.svg" 2>/dev/null | wc -l)
-          if [[ "$SVG_COUNT" -eq 0 ]]; then
-            echo "no_svg=true"  >> $GITHUB_OUTPUT
-          else
-            echo "no_svg=false" >> $GITHUB_OUTPUT
-          fi
+          features_list=""
+          features_no_pro=""
+          features_no_svg=""
+          features_no_diff=""
+
+          while IFS= read -r FEATURE; do
+            [[ -z "$FEATURE" ]] && continue
+
+            features_list="${features_list}${FEATURE},"
+
+            PRO_FILE="features/${FEATURE}/${FEATURE}.kicad_pro"
+            if [[ ! -f "$PRO_FILE" ]]; then
+              echo "⚠️  Skipping ${FEATURE}: ${PRO_FILE} not found"
+              features_no_pro="${features_no_pro}${FEATURE},"
+              continue
+            fi
+
+            # Write inline kibot config to repo root (maps to /repo inside container)
+            cat > "$PWD/kibot-render.yml" <<KIBOT_EOF
+          kibot:
+            version: 1
+          outputs:
+            - name: schematic_svg
+              comment: "Export schematic as SVG (all pages)"
+              type: svg_sch_print
+              dir: fab
+              options:
+                all_pages: true
+                output: "%f-%i.%x"
+            - name: schematic_diff
+              comment: "Visual diff vs base branch"
+              type: diff
+              dir: fab
+              options:
+                pcb: false
+                old: origin/${BASE_REF}
+                old_type: git
+                new: HEAD
+                new_type: git
+                only_different: true
+                diff_mode: red_green
+                force_checkout: true
+          KIBOT_EOF
+
+            echo "▶  Rendering feature: ${FEATURE}"
+            docker run --rm \
+              -v "$PWD:/repo" \
+              -w "/repo/features/${FEATURE}" \
+              "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
+              kibot -c /repo/kibot-render.yml schematic_svg schematic_diff 2>&1 || true
+
+            SVG_COUNT=$(find "features/${FEATURE}/fab" -name "*.svg" 2>/dev/null | wc -l)
+            DIFF_COUNT=$(find "features/${FEATURE}/fab" -name "*.pdf" 2>/dev/null | wc -l)
+
+            if [[ "$SVG_COUNT" -eq 0 ]]; then
+              features_no_svg="${features_no_svg}${FEATURE},"
+            fi
+            if [[ "$DIFF_COUNT" -eq 0 ]]; then
+              features_no_diff="${features_no_diff}${FEATURE},"
+            fi
+
+          done <<< "${{ steps.find.outputs.features }}"
+
+          # Strip trailing commas
+          features_list="${features_list%,}"
+          features_no_pro="${features_no_pro%,}"
+          features_no_svg="${features_no_svg%,}"
+          features_no_diff="${features_no_diff%,}"
+
+          echo "features_list=${features_list}"       >> $GITHUB_OUTPUT
+          echo "features_no_pro=${features_no_pro}"   >> $GITHUB_OUTPUT
+          echo "features_no_svg=${features_no_svg}"   >> $GITHUB_OUTPUT
+          echo "features_no_diff=${features_no_diff}" >> $GITHUB_OUTPUT
+
+      - name: Upload SVG artifacts
+        if: steps.find.outputs.has_any_feature == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name:              schematic-svgs-pr${{ github.event.issue.number }}
+          path:              features/*/fab/*.svg
+          retention-days:    90
+          if-no-files-found: warn
+
+      - name: Upload diff PDF artifacts
+        if: steps.find.outputs.has_any_feature == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name:              schematic-diffs-pr${{ github.event.issue.number }}
+          path:              features/*/fab/*.pdf
+          retention-days:    90
+          if-no-files-found: warn
 
       - name: Post PR comment
         uses: actions/github-script@v7
         with:
           script: |
-            const runUrl     = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const sha        = '${{ steps.pr.outputs.sha }}'.slice(0,7);
-            const ts         = new Date().toISOString().slice(0,16).replace('T',' ') + ' UTC';
-            const hasFeature = '${{ steps.find.outputs.has_feature }}' === 'true';
-            const noSvg      = '${{ steps.kibot.outputs.no_svg }}' !== 'false';
-            let body;
-            if (!hasFeature) {
-              body = '## 📐 Schematic Render\nNo KiCad schematic changes found in this PR.';
-            } else if (noSvg) {
-              body = `## 📐 Schematic Render\n⚠️ KiBot did not produce an SVG. Check the [workflow run](${runUrl}) for errors.\n\n*Commit: \`${sha}\` — ${ts}*`;
+            const runUrl  = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const sha     = '${{ steps.pr.outputs.sha }}'.slice(0, 7);
+            const ts      = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+
+            const hasAnyFeature  = '${{ steps.find.outputs.has_any_feature }}' === 'true';
+            const featuresList   = '${{ steps.kibot.outputs.features_list }}';
+            const featuresNoPro  = '${{ steps.kibot.outputs.features_no_pro }}';
+            const featuresNoSvg  = '${{ steps.kibot.outputs.features_no_svg }}';
+            const featuresNoDiff = '${{ steps.kibot.outputs.features_no_diff }}';
+
+            const toSet = s => new Set(s ? s.split(',').filter(Boolean) : []);
+            const noPro  = toSet(featuresNoPro);
+            const noSvg  = toSet(featuresNoSvg);
+            const noDiff = toSet(featuresNoDiff);
+
+            let body = '## 📐 Schematic Render\n\n';
+
+            if (!hasAnyFeature) {
+              body += 'No KiCad schematic changes found in this PR.';
             } else {
-              body = `## 📐 Schematic Render\n✅ Render complete for \`${{ steps.find.outputs.feature }}\`\n\n📥 [Download SVG from workflow artifacts](${runUrl})\n\n*Commit: \`${sha}\` — ${ts}*`;
+              const features = featuresList ? featuresList.split(',').filter(Boolean) : [];
+              for (const f of features) {
+                body += `### \`${f}\`\n`;
+                if (noPro.has(f)) {
+                  body += `⚠️ \`features/${f}/${f}.kicad_pro\` not found — skipped\n`;
+                } else {
+                  body += noSvg.has(f)
+                    ? '⚠️ SVG render failed — check workflow logs\n'
+                    : '✅ SVG render complete\n';
+                  body += noDiff.has(f)
+                    ? '⚠️ Visual diff not generated — check workflow logs\n'
+                    : '✅ Visual diff generated\n';
+                }
+                body += '\n';
+              }
+              body += `📥 [Download SVGs & Diffs from workflow artifacts](${runUrl})\n\n`;
+              body += '---\n';
+              body += `*Commit: \`${sha}\` — ${ts} · [Workflow run](${runUrl})*`;
             }
+
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner, repo: context.repo.repo,
               issue_number: context.issue.number,
@@ -124,13 +233,3 @@ jobs:
                 issue_number: context.issue.number, body,
               });
             }
-
-      - name: Upload SVG artifact
-        if: steps.find.outputs.has_feature == 'true' &&
-            steps.kibot.outputs.no_svg == 'false'
-        uses: actions/upload-artifact@v4
-        with:
-          name:              schematic-renders-pr${{ github.event.issue.number }}
-          path:              features/${{ steps.find.outputs.feature }}/fab/*.svg
-          retention-days:    90
-          if-no-files-found: warn

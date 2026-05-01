@@ -51,7 +51,20 @@ jobs:
           fetch-depth: 0
 
       - name: Install analysis tools
-        run: sudo apt-get install -y --no-install-recommends ngspice poppler-utils
+        run: |
+          sudo apt-get install -y --no-install-recommends ngspice poppler-utils python3-pip
+          # Clone kicad-happy action and install its Python dependencies
+          git clone --depth=1 https://github.com/aklofas/kicad-happy.git \
+            "$RUNNER_TEMP/kicad-happy-action"
+          if [[ -f "$RUNNER_TEMP/kicad-happy-action/requirements.txt" ]]; then
+            pip3 install -q -r "$RUNNER_TEMP/kicad-happy-action/requirements.txt"
+          fi
+          # Install dependencies for the action scripts themselves
+          for req in \
+            "$RUNNER_TEMP/kicad-happy-action/skills/kicad/requirements.txt" \
+            "$RUNNER_TEMP/kicad-happy-action/action/requirements.txt"; do
+            [[ -f "$req" ]] && pip3 install -q -r "$req" || true
+          done
 
       - name: Find all changed features
         id: find
@@ -162,16 +175,15 @@ jobs:
         if: steps.find.outputs.has_any_feature == 'true'
         env:
           BASE_REF: ${{ steps.pr.outputs.base_ref }}
-          GITHUB_BASE_REF: ${{ steps.pr.outputs.base_ref }}
         run: |
-          happy_reports=""   # comma-separated "feature:path" pairs
+          happy_reports=""
 
           while IFS= read -r FEATURE; do
             [[ -z "$FEATURE" ]] && continue
 
             SCH_FILE="features/${FEATURE}/${FEATURE}.kicad_sch"
             if [[ ! -f "$SCH_FILE" ]]; then
-              echo "⚠️  kicad-happy: skipping ${FEATURE} — schematic not found at ${SCH_FILE}"
+              echo "⚠️  kicad-happy: skipping ${FEATURE} — schematic not found"
               continue
             fi
 
@@ -179,27 +191,42 @@ jobs:
             REPORT_DIR="$RUNNER_TEMP/kicad-happy-${FEATURE}"
             mkdir -p "$REPORT_DIR"
 
-            # Run kicad-happy action inline
-            INPUT_SCHEMATIC="$SCH_FILE" \
-            INPUT_PCB="" \
-            INPUT_SEVERITY="all" \
-            INPUT_DERATING_PROFILE="commercial" \
-            INPUT_SPICE="true" \
-            INPUT_DATASHEETS_DIR="" \
-            DIGIKEY_CLIENT_ID="" \
-            DIGIKEY_CLIENT_SECRET="" \
-            MOUSER_SEARCH_API_KEY="" \
-            ELEMENT14_API_KEY="" \
-            INPUT_DIFF_BASE="true" \
-            GITHUB_BASE_REF="${BASE_REF}" \
-            GITHUB_OUTPUT="$REPORT_DIR/action.output" \
-            ACTION_PATH="$RUNNER_TEMP/kicad-happy-action" \
-            bash "$RUNNER_TEMP/kicad-happy-action/action/entrypoint.sh" 2>&1 | tail -20 || true
+            # Run kicad-happy entrypoint with correct env
+            # GITHUB_BASE_REF must be set — it is empty on issue_comment events
+            # INPUT_DIFF_BASE=true enables the component/net change diff
+            env -i \
+              HOME="$HOME" \
+              PATH="$PATH" \
+              GITHUB_TOKEN="${GITHUB_TOKEN}" \
+              GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
+              GITHUB_SERVER_URL="${GITHUB_SERVER_URL}" \
+              GITHUB_RUN_ID="${GITHUB_RUN_ID}" \
+              GITHUB_SHA="${GITHUB_SHA}" \
+              GITHUB_BASE_REF="${BASE_REF}" \
+              GITHUB_OUTPUT="$REPORT_DIR/action.output" \
+              GITHUB_STEP_SUMMARY="/dev/null" \
+              INPUT_SCHEMATIC="${SCH_FILE}" \
+              INPUT_PCB="" \
+              INPUT_SEVERITY="all" \
+              INPUT_DERATING_PROFILE="commercial" \
+              INPUT_SPICE="true" \
+              INPUT_DATASHEETS_DIR="" \
+              INPUT_DIFF_BASE="true" \
+              DIGIKEY_CLIENT_ID="" \
+              DIGIKEY_CLIENT_SECRET="" \
+              MOUSER_SEARCH_API_KEY="" \
+              ELEMENT14_API_KEY="" \
+              ACTION_PATH="$RUNNER_TEMP/kicad-happy-action" \
+              bash "$RUNNER_TEMP/kicad-happy-action/action/entrypoint.sh" 2>&1 | tail -30 || true
 
-            REPORT_PATH=$(grep "^report-path=" "$REPORT_DIR/action.output" 2>/dev/null | cut -d= -f2 || true)
+            # Restore any files kicad-happy's diff may have checked out over our tree
+            git checkout HEAD -- "features/${FEATURE}/" 2>/dev/null || true
+
+            REPORT_PATH=$(grep "^report-path=" "$REPORT_DIR/action.output" 2>/dev/null \
+              | cut -d= -f2- || true)
             if [[ -n "$REPORT_PATH" && -f "$REPORT_PATH" ]]; then
               happy_reports="${happy_reports}${FEATURE}:${REPORT_PATH},"
-              echo "✅  kicad-happy report: ${REPORT_PATH}"
+              echo "✅  kicad-happy report generated for ${FEATURE}"
             else
               echo "⚠️  kicad-happy: no report produced for ${FEATURE}"
             fi
@@ -233,10 +260,10 @@ jobs:
           HAPPY_REPORTS: ${{ steps.kicad_happy.outputs.happy_reports }}
         with:
           script: |
-            const fs    = require('fs');
-            const runUrl  = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const sha     = '${{ steps.pr.outputs.sha }}'.slice(0, 7);
-            const ts      = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+            const fs     = require('fs');
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const sha    = '${{ steps.pr.outputs.sha }}'.slice(0, 7);
+            const ts     = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 
             const hasAnyFeature  = '${{ steps.find.outputs.has_any_feature }}' === 'true';
             const featuresList   = '${{ steps.kibot.outputs.features_list }}';
@@ -251,6 +278,7 @@ jobs:
             const noDiff = toSet(featuresNoDiff);
 
             // Parse kicad-happy reports map: "feature:path,feature:path"
+            // Use indexOf to handle paths containing colons
             const happyMap = {};
             for (const entry of happyReports.split(',').filter(Boolean)) {
               const idx = entry.indexOf(':');
@@ -273,10 +301,10 @@ jobs:
                   body += `⚠️ \`features/${f}/${f}.kicad_pro\` not found — add the KiCad project file to enable rendering\n\n`;
                 } else {
                   body += noSvg.has(f)
-                    ? '⚠️ SVG render failed — check workflow logs\n'
+                    ? '⚠️ SVG render failed — check [workflow logs](' + runUrl + ')\n'
                     : '✅ SVG render complete (all pages)\n';
                   body += noDiff.has(f)
-                    ? '⚠️ Visual diff not generated — check workflow logs\n'
+                    ? '⚠️ Visual diff not generated — check [workflow logs](' + runUrl + ')\n'
                     : '✅ Visual diff generated (red = removed, green = added)\n';
 
                   if (happyMap[f]) {

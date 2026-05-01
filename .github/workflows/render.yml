@@ -60,8 +60,9 @@ jobs:
             grep "^features/" | grep "\.kicad_sch$" | \
             head -1 | cut -d'/' -f2 || true)
           if [[ -z "$FEATURE" ]]; then
-            FEATURE=$(find features -maxdepth 1 -mindepth 1 -type d \
-              2>/dev/null | head -1 | cut -d'/' -f2 || true)
+            # Fallback: find the first feature dir that contains a .kibot.yml
+            FEATURE=$(find features -maxdepth 2 -name ".kibot.yml" 2>/dev/null | \
+              head -1 | cut -d'/' -f2 || true)
           fi
           if [[ -z "$FEATURE" ]]; then
             echo "has_feature=false" >> $GITHUB_OUTPUT

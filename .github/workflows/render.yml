@@ -91,19 +91,30 @@ jobs:
           # Must use steps.pr.outputs.base_ref — github.base_ref
           # is empty in issue_comment events.
           git fetch origin "${{ steps.pr.outputs.base_ref }}"
-          FEATURES=$(git diff --name-only \
+          SCH_FEATURES=$(git diff --name-only \
             "origin/${{ steps.pr.outputs.base_ref }}...HEAD" | \
             grep "^features/" | grep "\.kicad_sch$" | \
             cut -d'/' -f2 | sort -u || true)
+          PCB_FEATURES=$(git diff --name-only \
+            "origin/${{ steps.pr.outputs.base_ref }}...HEAD" | \
+            grep "^features/" | grep "\.kicad_pcb$" | \
+            cut -d'/' -f2 | sort -u || true)
+          FEATURES=$(printf '%s\n%s\n' "$SCH_FEATURES" "$PCB_FEATURES" | sort -u | grep -v '^$' || true)
           if [[ -z "$FEATURES" ]]; then
             echo "has_any_feature=false" >> $GITHUB_OUTPUT
             echo "features="             >> $GITHUB_OUTPUT
+            echo "pcb_features="         >> $GITHUB_OUTPUT
           else
             echo "has_any_feature=true"  >> $GITHUB_OUTPUT
             # Encode as newline-separated list in output
             {
               echo "features<<EOF"
               echo "$FEATURES"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
+            {
+              echo "pcb_features<<EOF"
+              echo "$PCB_FEATURES"
               echo "EOF"
             } >> $GITHUB_OUTPUT
           fi
@@ -176,6 +187,7 @@ jobs:
           BASE_REF: ${{ steps.pr.outputs.base_ref }}
           BASE_SHA: ${{ steps.pr.outputs.sha }}
           HEAD_SHA: ${{ steps.pr.outputs.sha }}
+          PCB_FEATURES: ${{ steps.find.outputs.pcb_features }}
         run: |
           diff_comments=""
 
@@ -195,7 +207,13 @@ jobs:
             git archive HEAD -- "features/${FEATURE}/" \
               | tar -x -C "$HEADDIR" 2>/dev/null || true
 
-            echo "▶  kicad-visual-diff: ${FEATURE}"
+            # Determine whether to pass --pcb flag
+            PCB_FLAG=""
+            if echo "$PCB_FEATURES" | grep -qx "${FEATURE}"; then
+              PCB_FLAG="--pcb"
+            fi
+
+            echo "▶  kicad-visual-diff: ${FEATURE}${PCB_FLAG:+ (with PCB)}"
             docker run --rm \
               -v "$PWD/scripts:/scripts" \
               -v "$BASEDIR:/vdiff-base" \
@@ -208,7 +226,8 @@ jobs:
                 --base-dir /vdiff-base \
                 --head-dir /vdiff-head \
                 --feature "${FEATURE}" \
-                --output-dir /vdiff-out 2>&1 || true
+                --output-dir /vdiff-out \
+                $PCB_FLAG 2>&1 || true
 
             # Copy outputs into fab dir for artifact upload
             mkdir -p "features/${FEATURE}/fab/visual-diff"

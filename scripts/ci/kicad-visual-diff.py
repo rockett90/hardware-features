@@ -352,7 +352,7 @@ def _get_property(element: list, key: str) -> Optional[str]:
     # Older flat style — map standard property names
     legacy_map = {
         "Reference": "reference",
-        "Value":     "value",
+        "Value": "value",
         "Footprint": "footprint",
     }
     legacy_tag = legacy_map.get(key)
@@ -386,9 +386,9 @@ def _count_wires(tree: list) -> int:
     return sum(1 for item in tree if _sym_type(item) == "wire")
 
 
-def _extract_label_texts(tree: list) -> set:
+def _extract_label_texts(tree: list) -> "Set[str]":
     """Return the set of all net/global label texts in the schematic tree."""
-    texts: set = set()
+    texts: Set[str] = set()
     for item in tree:
         if _sym_type(item) not in ("net_label", "global_label", "label"):
             continue
@@ -403,9 +403,9 @@ def _extract_label_texts(tree: list) -> set:
     return texts
 
 
-def _extract_sheet_filenames(tree: list) -> set:
+def _extract_sheet_filenames(tree: list) -> "Set[str]":
     """Return the set of hierarchical sheet filenames referenced in the schematic."""
-    filenames: set = set()
+    filenames: Set[str] = set()
     for item in tree:
         if _sym_type(item) != "sheet":
             continue
@@ -764,7 +764,9 @@ def generate_comment_md(
     # ---- Change summary (high-confidence only, max 10 items) ---------------
     high_conf = [ch for ch in changes if ch.get("confidence") == "high"]
     if high_conf:
-        lines.append(f"**Changes detected:** {len(high_conf)}")
+        n_total = len(high_conf)
+        count_label = f"{n_total}" if n_total <= 10 else f"{n_total} (showing 10)"
+        lines.append(f"**Changes detected:** {count_label}")
         lines.append("")
         lines.append("| Type | Reference | Detail |")
         lines.append("|---|---|---|")

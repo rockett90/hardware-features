@@ -407,7 +407,6 @@ def _add_watermark(png_path: Path, sha: str, ts: str, command: str) -> None:
         img.convert("RGB").save(png_path)
     except Exception as exc:
         print(f"WARNING: watermark failed for {png_path}: {exc}", file=sys.stderr)
-        pass  # watermark failure must never break the diff
 
 
 # ---------------------------------------------------------------------------

@@ -6,6 +6,8 @@ The report embeds all images as base64 PNGs and includes an interactive **zoom/p
 
 > **Docker image used:** `ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257` (pinned digest)
 
+> 💡 Tip: The Docker image is pinned by SHA digest — not by tag. This ensures the diff output is reproducible regardless of upstream changes to the `kicad10_auto_full` image. Do not change the digest without coordinating with the team and re-testing the full diff pipeline.
+
 ---
 
 ## Inputs
@@ -130,3 +132,28 @@ docker run --rm \
 | `metadata.json` | Feature name, SHAs, sheet counts, warnings |
 | `comment.md` | Markdown summary suitable for a PR comment |
 | `changes.json` | Structured change list (populated by the semantic diff step) |
+
+---
+
+## Watermark
+
+Every image in the generated report includes a watermark containing:
+
+- The base and head git SHAs
+- A timestamp
+- The label `/kicad-diff` (identifying it as a CI-generated diff)
+
+This ensures that diff images attached to PR comments can always be traced back to a specific commit pair.
+
+---
+
+## Hierarchical sheet discovery
+
+The script automatically discovers all schematic sheets for a feature:
+
+1. `features/<feature>/schematics/*.kicad_sch` — sub-sheets in the `schematics/` subdirectory (highest priority)
+2. `features/<feature>/*.kicad_sch` — the top-level schematic and any other sheets at the feature root
+
+All discovered sheets are included in the diff report. Duplicate filenames are deduplicated — a sheet present in both locations will only appear once.
+
+> 💡 Tip: If a sheet is missing from the diff report, check that the file exists in one of the two locations above and that its filename does not conflict with another sheet in the feature directory.

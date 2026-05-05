@@ -561,6 +561,20 @@ def parse_schematic_changes(
 # Step 5 — Generate outputs
 # ---------------------------------------------------------------------------
 
+_CHANGE_TYPE_LABELS: Dict[str, str] = {
+    "symbol_added":               "Symbol added",
+    "symbol_removed":             "Symbol removed",
+    "symbol_value_changed":       "Value changed",
+    "symbol_footprint_changed":   "Footprint changed",
+    "wire_count_changed":         "Wire count changed",
+    "net_label_added":            "Net label added",
+    "net_label_removed":          "Net label removed",
+    "hierarchical_sheet_added":   "Sheet added",
+    "hierarchical_sheet_removed": "Sheet removed",
+    "unknown_change":             "Unknown change",
+}
+
+
 def _img_tag(path: Optional[Path]) -> str:
     """Return an <img> HTML tag with base64-embedded PNG, or em dash."""
     if path is None or not path.is_file():
@@ -583,25 +597,13 @@ def generate_html(
         changes = []
 
     # ---- Change summary section --------------------------------------------
-    _TYPE_LABELS = {
-        "symbol_added":               "Symbol added",
-        "symbol_removed":             "Symbol removed",
-        "symbol_value_changed":       "Value changed",
-        "symbol_footprint_changed":   "Footprint changed",
-        "wire_count_changed":         "Wire count changed",
-        "net_label_added":            "Net label added",
-        "net_label_removed":          "Net label removed",
-        "hierarchical_sheet_added":   "Sheet added",
-        "hierarchical_sheet_removed": "Sheet removed",
-        "unknown_change":             "Unknown change",
-    }
 
     def _change_row_html(ch: dict) -> str:
         ctype  = ch.get("type", "unknown")
         sheet  = ch.get("sheet", "")
         conf   = ch.get("confidence", "")
         ref    = ch.get("reference", "&mdash;")
-        label  = _TYPE_LABELS.get(ctype, ctype.replace("_", " "))
+        label  = _CHANGE_TYPE_LABELS.get(ctype, ctype.replace("_", " "))
         if ctype in ("symbol_value_changed", "symbol_footprint_changed"):
             detail = f"{ch.get('old', '')} &rarr; {ch.get('new', '')}"
         elif ctype in ("symbol_added", "symbol_removed"):
@@ -762,24 +764,14 @@ def generate_comment_md(
     # ---- Change summary (high-confidence only, max 10 items) ---------------
     high_conf = [ch for ch in changes if ch.get("confidence") == "high"]
     if high_conf:
-        lines.append(f"**Changes detected:** {len(changes)}")
+        lines.append(f"**Changes detected:** {len(high_conf)}")
         lines.append("")
         lines.append("| Type | Reference | Detail |")
         lines.append("|---|---|---|")
-        _TYPE_LABELS_MD = {
-            "symbol_added":               "Symbol added",
-            "symbol_removed":             "Symbol removed",
-            "symbol_value_changed":       "Value changed",
-            "symbol_footprint_changed":   "Footprint changed",
-            "net_label_added":            "Net label added",
-            "net_label_removed":          "Net label removed",
-            "hierarchical_sheet_added":   "Sheet added",
-            "hierarchical_sheet_removed": "Sheet removed",
-        }
         for ch in high_conf[:10]:
             ctype  = ch.get("type", "unknown")
             ref    = ch.get("reference", "\u2014")
-            label  = _TYPE_LABELS_MD.get(ctype, ctype.replace("_", " "))
+            label  = _CHANGE_TYPE_LABELS.get(ctype, ctype.replace("_", " "))
             if ctype in ("symbol_value_changed", "symbol_footprint_changed"):
                 detail = f"{ch.get('old', '')} \u2192 {ch.get('new', '')}"
             elif ctype in ("symbol_added", "symbol_removed"):
@@ -969,18 +961,19 @@ def main() -> None:
 
     # Semantic diff — parse compared sheets and aggregate changes
     all_changes: List[dict] = []
-    if sheets_compared:
+    if sheets_compared and SEXPDATA_AVAILABLE:
+        for name in sheets_compared:
+            base_sch, head_sch = sheets[name]
+            if base_sch is not None and head_sch is not None:
+                sheet_changes = parse_schematic_changes(
+                    base_sch, head_sch, name, warnings_list
+                )
+                all_changes.extend(sheet_changes)
+
+    # changes.json — written when compared sheets exist or sexpdata unavailable
+    if sheets_compared or not SEXPDATA_AVAILABLE:
         if SEXPDATA_AVAILABLE:
-            for name in sheets_compared:
-                base_sch, head_sch = sheets[name]
-                if base_sch is not None and head_sch is not None:
-                    sheet_changes = parse_schematic_changes(
-                        base_sch, head_sch, name, warnings_list
-                    )
-                    all_changes.extend(sheet_changes)
-        # changes.json — always written when compared sheets exist
-        if SEXPDATA_AVAILABLE:
-            changes_json = {
+            changes_json: dict = {
                 "feature":       feature,
                 "total_changes": len(all_changes),
                 "changes":       all_changes,
@@ -992,17 +985,6 @@ def main() -> None:
                 "changes":       [],
                 "warning":       "sexpdata not available",
             }
-        (out_dir / "changes.json").write_text(
-            json.dumps(changes_json, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
-    elif not SEXPDATA_AVAILABLE:
-        # Write unavailability notice even when no compared sheets exist
-        changes_json = {
-            "feature":       feature,
-            "total_changes": 0,
-            "changes":       [],
-            "warning":       "sexpdata not available",
-        }
         (out_dir / "changes.json").write_text(
             json.dumps(changes_json, indent=2, ensure_ascii=False), encoding="utf-8"
         )

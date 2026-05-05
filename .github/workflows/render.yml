@@ -60,6 +60,15 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Pre-flight — verify kicad-cli and rasterisation tools
+        run: |
+          echo "## Pre-flight tool check" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          docker run --rm \
+            "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
+            bash -c "kicad-cli sch export svg --help 2>&1 || true; echo '---'; which inkscape 2>/dev/null && echo 'inkscape: found' || echo 'inkscape: not found'; python3 -c 'import cairosvg; print(\"cairosvg: found\")' 2>/dev/null || echo 'cairosvg: not found'; python3 -c 'import PIL; print(\"Pillow: found\")' 2>/dev/null || echo 'Pillow: not found'" 2>&1 || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Install analysis tools
         run: |
           sudo apt-get install -y --no-install-recommends ngspice poppler-utils python3-pip
@@ -108,7 +117,6 @@ jobs:
           features_list=""
           features_no_pro=""
           features_no_svg=""
-          features_no_diff=""
 
           while IFS= read -r FEATURE; do
             [[ -z "$FEATURE" ]] && continue
@@ -134,20 +142,6 @@ jobs:
               options:
                 all_pages: true
                 output: "%f-%i.%x"
-            - name: schematic_diff
-              comment: "Visual diff vs base branch (red=removed, green=added)"
-              type: diff
-              dir: fab
-              options:
-                pcb: false
-                old: origin/${BASE_REF}
-                old_type: git
-                new: ""
-                new_type: current
-                only_different: true
-                diff_mode: red_green
-                dpi: 300
-                force_checkout: true
           KIBOT_EOF
 
             echo "▶  Rendering feature: ${FEATURE}"
@@ -155,16 +149,12 @@ jobs:
               -v "$PWD:/repo" \
               -w "/repo/features/${FEATURE}" \
               "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
-              kibot -c /repo/kibot-render.yml schematic_svg schematic_diff 2>&1 || true
+              kibot -c /repo/kibot-render.yml schematic_svg 2>&1 || true
 
             SVG_COUNT=$(find "features/${FEATURE}/fab" -name "*.svg" 2>/dev/null | wc -l)
-            DIFF_COUNT=$(find "features/${FEATURE}/fab" -name "*.pdf" 2>/dev/null | wc -l)
 
             if [[ "$SVG_COUNT" -eq 0 ]]; then
               features_no_svg="${features_no_svg}${FEATURE},"
-            fi
-            if [[ "$DIFF_COUNT" -eq 0 ]]; then
-              features_no_diff="${features_no_diff}${FEATURE},"
             fi
 
           done <<< "${{ steps.find.outputs.features }}"
@@ -173,12 +163,70 @@ jobs:
           features_list="${features_list%,}"
           features_no_pro="${features_no_pro%,}"
           features_no_svg="${features_no_svg%,}"
-          features_no_diff="${features_no_diff%,}"
 
           echo "features_list=${features_list}"       >> $GITHUB_OUTPUT
           echo "features_no_pro=${features_no_pro}"   >> $GITHUB_OUTPUT
           echo "features_no_svg=${features_no_svg}"   >> $GITHUB_OUTPUT
-          echo "features_no_diff=${features_no_diff}" >> $GITHUB_OUTPUT
+
+      - name: Run kicad-visual-diff per feature
+        id: visual_diff
+        if: steps.find.outputs.has_any_feature == 'true'
+        continue-on-error: true
+        env:
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+          BASE_SHA: ${{ steps.pr.outputs.sha }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          diff_comments=""
+
+          while IFS= read -r FEATURE; do
+            [[ -z "$FEATURE" ]] && continue
+
+            OUTDIR="$RUNNER_TEMP/vdiff-${FEATURE}"
+            BASEDIR="$RUNNER_TEMP/vdiff-base-${FEATURE}"
+            HEADDIR="$RUNNER_TEMP/vdiff-head-${FEATURE}"
+            mkdir -p "$OUTDIR" "$BASEDIR" "$HEADDIR"
+
+            # Extract base ref
+            git archive "origin/${BASE_REF}" -- "features/${FEATURE}/" \
+              | tar -x -C "$BASEDIR" 2>/dev/null || true
+
+            # Extract head ref
+            git archive HEAD -- "features/${FEATURE}/" \
+              | tar -x -C "$HEADDIR" 2>/dev/null || true
+
+            echo "▶  kicad-visual-diff: ${FEATURE}"
+            docker run --rm \
+              -v "$PWD/scripts:/scripts" \
+              -v "$BASEDIR:/vdiff-base" \
+              -v "$HEADDIR:/vdiff-head" \
+              -v "$OUTDIR:/vdiff-out" \
+              -e BASE_SHA="${BASE_SHA}" \
+              -e HEAD_SHA="${HEAD_SHA}" \
+              "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
+              python3 /scripts/ci/kicad-visual-diff.py \
+                --base-dir /vdiff-base \
+                --head-dir /vdiff-head \
+                --feature "${FEATURE}" \
+                --output-dir /vdiff-out 2>&1 || true
+
+            # Copy outputs into fab dir for artifact upload
+            mkdir -p "features/${FEATURE}/fab/visual-diff"
+            cp -r "$OUTDIR/." "features/${FEATURE}/fab/visual-diff/" 2>/dev/null || true
+
+            # Capture comment.md
+            if [[ -f "$OUTDIR/comment.md" ]]; then
+              COMMENT=$(cat "$OUTDIR/comment.md")
+              diff_comments="${diff_comments}${COMMENT}"$'\n\n'
+            fi
+
+          done <<< "${{ steps.find.outputs.features }}"
+
+          {
+            echo "diff_comments<<DIFF_EOF"
+            echo "$diff_comments"
+            echo "DIFF_EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Run kicad-happy analysis per feature
         id: kicad_happy
@@ -255,12 +303,12 @@ jobs:
           retention-days:    90
           if-no-files-found: warn
 
-      - name: Upload diff PDF artifacts
+      - name: Upload visual diff HTML reports
         if: steps.find.outputs.has_any_feature == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name:              schematic-diffs-pr${{ github.event.issue.number }}
-          path:              features/*/fab/*.pdf
+          name:              visual-diff-pr${{ github.event.issue.number }}
+          path:              features/*/fab/visual-diff/
           retention-days:    90
           if-no-files-found: warn
 
@@ -275,17 +323,16 @@ jobs:
             const sha    = '${{ steps.pr.outputs.sha }}'.slice(0, 7);
             const ts     = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 
-            const hasAnyFeature  = '${{ steps.find.outputs.has_any_feature }}' === 'true';
-            const featuresList   = '${{ steps.kibot.outputs.features_list }}';
-            const featuresNoPro  = '${{ steps.kibot.outputs.features_no_pro }}';
-            const featuresNoSvg  = '${{ steps.kibot.outputs.features_no_svg }}';
-            const featuresNoDiff = '${{ steps.kibot.outputs.features_no_diff }}';
-            const happyReports   = process.env.HAPPY_REPORTS || '';
+            const hasAnyFeature = '${{ steps.find.outputs.has_any_feature }}' === 'true';
+            const featuresList  = '${{ steps.kibot.outputs.features_list }}';
+            const featuresNoPro = '${{ steps.kibot.outputs.features_no_pro }}';
+            const featuresNoSvg = '${{ steps.kibot.outputs.features_no_svg }}';
+            const diffComments  = `${{ steps.visual_diff.outputs.diff_comments }}`;
+            const happyReports  = process.env.HAPPY_REPORTS || '';
 
             const toSet = s => new Set(s ? s.split(',').filter(Boolean) : []);
-            const noPro  = toSet(featuresNoPro);
-            const noSvg  = toSet(featuresNoSvg);
-            const noDiff = toSet(featuresNoDiff);
+            const noPro = toSet(featuresNoPro);
+            const noSvg = toSet(featuresNoSvg);
 
             // Parse kicad-happy reports map: "feature:path,feature:path"
             // Use indexOf to handle paths containing colons
@@ -313,9 +360,10 @@ jobs:
                   body += noSvg.has(f)
                     ? '⚠️ SVG render failed — check [workflow logs](' + runUrl + ')\n'
                     : '✅ SVG render complete (all pages)\n';
-                  body += noDiff.has(f)
-                    ? '⚠️ Visual diff not generated — check [workflow logs](' + runUrl + ')\n'
-                    : '✅ Visual diff generated (red = removed, green = added)\n';
+
+                  body += diffComments
+                    ? diffComments + '\n'
+                    : '⚠️ Visual diff not generated — check [workflow logs](' + runUrl + ')\n';
 
                   if (happyMap[f]) {
                     body += '\n<details>\n<summary>📋 Design analysis & change summary</summary>\n\n';
@@ -325,7 +373,7 @@ jobs:
                   body += '\n';
                 }
               }
-              body += `📥 [Download SVGs & Diffs from workflow artifacts](${runUrl})\n\n`;
+              body += `📥 [Download SVGs & Visual Diff from workflow artifacts](${runUrl})\n\n`;
               body += '---\n';
               body += `*Commit: \`${sha}\` — ${ts} · [Workflow run](${runUrl})*`;
             }

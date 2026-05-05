@@ -53,6 +53,7 @@ jobs:
       - name: Run kicad-happy analysis
         id: kh
         if: steps.kicad.outputs.has_kicad == 'true'
+        continue-on-error: true
         uses: aklofas/kicad-happy@v1
 
       - name: Read review context

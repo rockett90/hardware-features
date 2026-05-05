@@ -1,11 +1,5 @@
 {
-  "packages": {
-    "features/my-first-feature": {
-      "release-type": "simple",
-      "component": "my-first-feature",
-      "changelog-path": "features/my-first-feature/CHANGELOG.md"
-    }
-  },
+  "packages": {},
   "changelog-sections": [
     { "type": "feat", "section": "Features" },
     { "type": "fix",  "section": "Bug Fixes" }

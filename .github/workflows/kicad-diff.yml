@@ -20,15 +20,22 @@ permissions:
 
 jobs:
   kicad-diff:
-    if: github.event.issue.pull_request != null &&
-        contains(github.event.comment.body, '/kicad-diff')
+    # Allow both direct issue_comment trigger and workflow_dispatch (from slash command dispatcher).
+    # For issue_comment: guard ensures this is a PR comment containing /kicad-diff.
+    # For workflow_dispatch: the dispatcher has already verified permission and parsed the command.
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request != null &&
+       contains(github.event.comment.body, '/kicad-diff'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
-      group: kicad-diff-pr-${{ github.event.issue.number }}
+      group: kicad-diff-pr-${{ github.event.issue.number || github.event.inputs.pr_number }}
       cancel-in-progress: true
     steps:
       - name: Verify commenter has write access
+        # Skip for workflow_dispatch — permission was already verified by the dispatcher.
+        if: github.event_name != 'workflow_dispatch'
         uses: actions/github-script@v7
         with:
           script: |
@@ -46,14 +53,19 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const prNumber = context.eventName === 'workflow_dispatch'
+              ? parseInt('${{ github.event.inputs.pr_number }}', 10)
+              : context.issue.number;
             const { data } = await github.rest.pulls.get({
               owner:       context.repo.owner,
               repo:        context.repo.repo,
-              pull_number: context.issue.number,
+              pull_number: prNumber,
             });
-            core.setOutput('ref',      data.head.ref);
-            core.setOutput('sha',      data.head.sha);
-            core.setOutput('base_ref', data.base.ref);
+            core.setOutput('pr_number', String(prNumber));
+            core.setOutput('ref',       data.head.ref);
+            core.setOutput('sha',       data.head.sha);
+            core.setOutput('base_ref',  data.base.ref);
+            core.setOutput('base_sha',  data.base.sha);
 
       - uses: actions/checkout@v4
         with:
@@ -89,9 +101,9 @@ jobs:
         if: steps.find.outputs.has_any_feature == 'true'
         continue-on-error: true
         env:
-          BASE_REF:     ${{ steps.pr.outputs.base_ref }}
-          BASE_SHA:     ${{ steps.pr.outputs.sha }}
-          HEAD_SHA:     ${{ steps.pr.outputs.sha }}
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+          BASE_SHA: ${{ steps.pr.outputs.base_sha }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
           PCB_FEATURES: ${{ steps.find.outputs.pcb_features }}
         run: |
           diff_comments=""
@@ -150,7 +162,7 @@ jobs:
         if: steps.find.outputs.has_any_feature == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name:              visual-diff-pr${{ github.event.issue.number }}
+          name:              visual-diff-pr${{ steps.pr.outputs.pr_number }}
           path:              features/*/fab/visual-diff/
           retention-days:    90
           if-no-files-found: warn
@@ -162,9 +174,10 @@ jobs:
           DIFF_COMMENTS: ${{ steps.visual_diff.outputs.diff_comments }}
         with:
           script: |
-            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const sha    = '${{ steps.pr.outputs.sha }}'.slice(0, 7);
-            const ts     = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+            const runUrl    = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const sha       = '${{ steps.pr.outputs.sha }}'.slice(0, 7);
+            const ts        = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+            const prNumber  = parseInt('${{ steps.pr.outputs.pr_number }}', 10);
             const hasAnyFeature = '${{ steps.find.outputs.has_any_feature }}' === 'true';
             const diffComments  = (process.env.DIFF_COMMENTS || '').trim();
 
@@ -183,7 +196,7 @@ jobs:
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner, repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: prNumber,
             });
             const existing = comments.find(c =>
               c.user.type === 'Bot' && c.body.startsWith('## 🔍 KiCad Visual Diff')
@@ -196,6 +209,6 @@ jobs:
             } else {
               await github.rest.issues.createComment({
                 owner: context.repo.owner, repo: context.repo.repo,
-                issue_number: context.issue.number, body,
+                issue_number: prNumber, body,
               });
             }

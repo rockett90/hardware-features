@@ -4,7 +4,7 @@ import sys
 
 ALLOWED_TOP_LEVEL = {
     '.github', 'assets', 'bench', 'checklists', 'config',
-    'guidelines', 'library', 'templates', 'scripts', 'features',
+    'guidelines', 'kicad-visual-diff', 'library', 'templates', 'scripts', 'features',
     'tests', 'docs', 'pyproject.toml', '.shellcheckrc', '.gitignore',
     '.gitmodules', 'CONTRIBUTING.md', 'README.md',
 }

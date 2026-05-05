@@ -27,17 +27,4 @@ jobs:
             > changed_files.txt
           python3 scripts/ci/validate-dir-structure.py < changed_files.txt
 
-  validate-pr-title:
-    name: Validate PR title
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm install --save-dev @commitlint/cli @commitlint/config-conventional
-      - run: |
-          echo "${{ github.event.pull_request.title }}" \
-            | npx commitlint --config .github/commitlint.config.js
+  # PR title commitlint is handled by the standalone commitlint.yml workflow.

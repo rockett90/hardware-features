@@ -159,7 +159,7 @@ Branch as `finding/<feature>/<N>-<desc>` where `N` is the GitHub issue number.
 
 Include `Resolves #N` in the PR description body.
 
-Labels are applied automatically by CI.
+Labels are applied automatically by CI. **Prerequisite:** the labels `finding: in-progress` and `finding: resolved` must be created in the GitHub repository before the automation can apply them. Create them once via GitHub → Issues → Labels → New label.
 
 ---
 

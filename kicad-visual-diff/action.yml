@@ -1,0 +1,68 @@
+name: 'KiCad Visual Diff'
+description: 'Generate a four-column HTML visual diff report for KiCad schematic and PCB changes'
+author: 'rockett90'
+
+inputs:
+  feature:
+    description: 'Feature name (e.g. buck-converter-5v)'
+    required: true
+  base-ref:
+    description: 'Base git ref to compare against'
+    required: false
+    default: 'main'
+  output-dir:
+    description: 'Output directory for diff report files'
+    required: false
+    default: '/tmp/kicad-visual-diff'
+  pcb:
+    description: 'Also diff PCB layers (true/false)'
+    required: false
+    default: 'false'
+
+outputs:
+  report-path:
+    description: 'Path to the generated diff-report.html'
+  comment-path:
+    description: 'Path to the generated comment.md'
+  changes-path:
+    description: 'Path to the generated changes.json'
+  metadata-path:
+    description: 'Path to the generated metadata.json'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Extract base ref
+      shell: bash
+      run: |
+        mkdir -p "${{ inputs.output-dir }}" \
+          "$RUNNER_TEMP/kv-base" \
+          "$RUNNER_TEMP/kv-head"
+        git archive "${{ inputs.base-ref }}" -- "features/${{ inputs.feature }}/" \
+          | tar -x -C "$RUNNER_TEMP/kv-base" 2>/dev/null || true
+        git archive HEAD -- "features/${{ inputs.feature }}/" \
+          | tar -x -C "$RUNNER_TEMP/kv-head" 2>/dev/null || true
+
+    - name: Run kicad-visual-diff
+      shell: bash
+      run: |
+        PCB_FLAG=""
+        [[ "${{ inputs.pcb }}" == "true" ]] && PCB_FLAG="--pcb"
+        docker run --rm \
+          -v "${{ github.workspace }}/scripts:/scripts" \
+          -v "$RUNNER_TEMP/kv-base:/kv-base" \
+          -v "$RUNNER_TEMP/kv-head:/kv-head" \
+          -v "${{ inputs.output-dir }}:/kv-out" \
+          -e BASE_SHA="${{ github.event.pull_request.base.sha }}" \
+          -e HEAD_SHA="${{ github.sha }}" \
+          "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
+          python3 /scripts/ci/kicad-visual-diff.py \
+            --base-dir /kv-base \
+            --head-dir /kv-head \
+            --feature "${{ inputs.feature }}" \
+            --output-dir /kv-out \
+            $PCB_FLAG 2>&1 || true
+        echo "report-path=${{ inputs.output-dir }}/diff-report.html" >> $GITHUB_OUTPUT
+        echo "comment-path=${{ inputs.output-dir }}/comment.md"      >> $GITHUB_OUTPUT
+        echo "changes-path=${{ inputs.output-dir }}/changes.json"    >> $GITHUB_OUTPUT
+        echo "metadata-path=${{ inputs.output-dir }}/metadata.json"  >> $GITHUB_OUTPUT

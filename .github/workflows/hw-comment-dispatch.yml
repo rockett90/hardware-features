@@ -1,0 +1,193 @@
+name: PR comment command dispatcher
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  dispatch:
+    if: github.event.issue.pull_request != null
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check commenter permission
+        id: permission
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner:    context.repo.owner,
+              repo:     context.repo.repo,
+              username: context.payload.comment.user.login,
+            });
+            const allowed = ['admin', 'maintain', 'write'];
+            if (!allowed.includes(data.permission)) {
+              // React with ❌ and stop
+              await github.rest.reactions.createForIssueComment({
+                owner:      context.repo.owner,
+                repo:       context.repo.repo,
+                comment_id: context.payload.comment.id,
+                content:    '-1',
+              });
+              core.setFailed(
+                `${context.payload.comment.user.login} does not have write access (permission: ${data.permission})`
+              );
+            }
+
+      - name: React with 👀
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content:    'eyes',
+            });
+
+      - name: Parse command and dispatch
+        id: dispatch
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.comment.body || '';
+
+            // Find first line starting with '/'
+            const commandLine = body.split('\n').map(l => l.trim()).find(l => l.startsWith('/'));
+            const command = commandLine ? commandLine.split(/\s+/)[0] : null;
+
+            // Fetch PR details to get head_sha
+            const { data: pr } = await github.rest.pulls.get({
+              owner:       context.repo.owner,
+              repo:        context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            const prNumber = String(context.issue.number);
+            const headSha  = pr.head.sha;
+
+            const NOT_YET = ['/emc-check', '/spice', '/bom-check', '/fab-check'];
+            const DISPATCH_MAP = {
+              '/render':     'render.yml',
+              '/ai-review':  'ai-review.yml',
+              '/erc':        'erc-drc.yml',
+              '/drc':        'erc-drc.yml',
+              '/kicad-diff': 'render.yml',
+            };
+            const ALL_COMMANDS = [
+              ...Object.keys(DISPATCH_MAP),
+              ...NOT_YET,
+            ];
+
+            if (!command) {
+              await github.rest.issues.createComment({
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
+                issue_number: context.issue.number,
+                body: [
+                  '### Available slash commands',
+                  '',
+                  'Post one of the following commands as a comment on this PR:',
+                  '',
+                  '| Command | Description |',
+                  '|---|---|',
+                  '| `/render` | Generate schematic SVG renders |',
+                  '| `/ai-review` | Run AI schematic review |',
+                  '| `/kicad-diff` | Generate visual schematic diff |',
+                  '| `/erc` | Run ERC (Electrical Rules Check) |',
+                  '| `/drc` | Run DRC (Design Rules Check) |',
+                  '| `/emc-check` | *(coming soon)* |',
+                  '| `/spice` | *(coming soon)* |',
+                  '| `/bom-check` | *(coming soon)* |',
+                  '| `/fab-check` | *(coming soon)* |',
+                  '',
+                  '> ⚠️ Commands require write access to this repository.',
+                ].join('\n'),
+              });
+              core.setOutput('dispatched', 'false');
+              return;
+            }
+
+            if (NOT_YET.includes(command)) {
+              await github.rest.issues.createComment({
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
+                issue_number: context.issue.number,
+                body: `⏳ \`${command}\` is not yet implemented. It will be available in a future release.`,
+              });
+              core.setOutput('dispatched', 'false');
+              return;
+            }
+
+            const workflow = DISPATCH_MAP[command];
+            if (!workflow) {
+              await github.rest.issues.createComment({
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
+                issue_number: context.issue.number,
+                body: [
+                  `Unrecognised command: \`${command}\``,
+                  '',
+                  'Available commands: ' + ALL_COMMANDS.map(c => `\`${c}\``).join(', '),
+                ].join('\n'),
+              });
+              core.setOutput('dispatched', 'false');
+              return;
+            }
+
+            try {
+              await github.rest.actions.createWorkflowDispatch({
+                owner:  context.repo.owner,
+                repo:   context.repo.repo,
+                workflow_id: workflow,
+                ref:    context.payload.repository.default_branch,
+                inputs: {
+                  pr_number: prNumber,
+                  head_sha:  headSha,
+                },
+              });
+              core.setOutput('dispatched', 'true');
+              core.setOutput('workflow',   workflow);
+            } catch (err) {
+              core.setOutput('dispatched',    'false');
+              core.setOutput('dispatch_error', err.message);
+              core.setFailed(`Failed to dispatch ${workflow}: ${err.message}`);
+            }
+
+      - name: React with ✅ on success
+        if: success() && steps.dispatch.outputs.dispatched == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content:    '+1',
+            });
+
+      - name: React with ❌ and post failure comment
+        if: failure() && steps.dispatch.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content:    '-1',
+            });
+            const errorMsg = '${{ steps.dispatch.outputs.dispatch_error }}';
+            await github.rest.issues.createComment({
+              owner:        context.repo.owner,
+              repo:         context.repo.repo,
+              issue_number: context.issue.number,
+              body: `❌ Failed to dispatch workflow: ${errorMsg || 'unknown error'}`,
+            });

@@ -82,6 +82,26 @@ Address all ⚠️ CRITICAL findings before requesting human review.
 
 ---
 
+## 6a. Slash commands
+
+Post a slash command as a PR comment to trigger CI actions. Commands require **write access** to the repository.
+
+| Command | Action |
+|---|---|
+| `/render` | Generate schematic SVG renders and visual diff |
+| `/ai-review` | Run AI schematic review |
+| `/kicad-diff` | Generate visual schematic diff |
+| `/erc` | Run ERC (Electrical Rules Check) — informational, does not block merge |
+| `/drc` | Run DRC (Design Rules Check) — informational, does not block merge |
+| `/emc-check` | *(coming soon)* |
+| `/spice` | *(coming soon)* |
+| `/bom-check` | *(coming soon)* |
+| `/fab-check` | *(coming soon)* |
+
+The dispatcher reacts with 👀 immediately on receipt. On success it reacts with ✅; on failure with ❌.
+
+---
+
 ## 7. One-file-at-a-time rule
 
 Check open PRs before starting work. If another PR is open for a KiCad file you need, speak to the lead first.

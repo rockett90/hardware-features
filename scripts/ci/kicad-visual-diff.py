@@ -43,6 +43,12 @@ try:
 except ImportError:
     NUMPY_AVAILABLE = False
 
+try:
+    import sexpdata  # type: ignore
+    SEXPDATA_AVAILABLE = True
+except ImportError:
+    SEXPDATA_AVAILABLE = False
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -312,6 +318,246 @@ def compute_diff(
 
 
 # ---------------------------------------------------------------------------
+# Semantic diff (sexpdata)
+# ---------------------------------------------------------------------------
+
+def _sym_type(item: object) -> Optional[str]:
+    """Return the type name of an S-expression list element, or None."""
+    if not isinstance(item, list) or not item:
+        return None
+    first = item[0]
+    if hasattr(first, "value"):
+        return str(first.value())
+    return None
+
+
+def _sexp_find_all(tree: list, type_name: str) -> List[list]:
+    """Return all direct children of *tree* whose type matches *type_name*."""
+    if not isinstance(tree, list):
+        return []
+    return [item for item in tree if _sym_type(item) == type_name]
+
+
+def _get_property(element: list, key: str) -> Optional[str]:
+    """Extract value for a named property inside a KiCad element.
+
+    Handles both KiCad 6+ ``(property "Key" "Value" …)`` format and the
+    older flat ``(reference "R7")`` / ``(value "10k")`` style.
+    """
+    for item in element:
+        if _sym_type(item) == "property":
+            if len(item) >= 3 and item[1] == key:
+                val = item[2]
+                return str(val) if isinstance(val, str) else None
+    # Older flat style — map standard property names
+    legacy_map = {
+        "Reference": "reference",
+        "Value":     "value",
+        "Footprint": "footprint",
+    }
+    legacy_tag = legacy_map.get(key)
+    if legacy_tag:
+        for item in element:
+            if _sym_type(item) == legacy_tag and len(item) >= 2:
+                val = item[1]
+                return str(val) if isinstance(val, str) else None
+    return None
+
+
+def _extract_placed_symbols(tree: list) -> Dict[str, Dict[str, str]]:
+    """Return {reference: {value, footprint}} for placed symbol instances."""
+    syms: Dict[str, Dict[str, str]] = {}
+    for item in tree:
+        if _sym_type(item) != "symbol":
+            continue
+        ref = _get_property(item, "Reference")
+        if ref is None:
+            continue  # skip lib_symbols entries and unresolved instances
+        val = _get_property(item, "Value") or ""
+        fp  = _get_property(item, "Footprint") or ""
+        syms[ref] = {"value": val, "footprint": fp}
+    return syms
+
+
+def _count_wires(tree: list) -> int:
+    """Count wire elements at the top level of the schematic tree."""
+    if not isinstance(tree, list):
+        return 0
+    return sum(1 for item in tree if _sym_type(item) == "wire")
+
+
+def _extract_label_texts(tree: list) -> set:
+    """Return the set of all net/global label texts in the schematic tree."""
+    texts: set = set()
+    for item in tree:
+        if _sym_type(item) not in ("net_label", "global_label", "label"):
+            continue
+        # KiCad 7+: (net_label "TEXT" ...) or (label "TEXT" ...)
+        if len(item) >= 2 and isinstance(item[1], str):
+            texts.add(item[1])
+            continue
+        # KiCad 6+: (net_label ... (property "Value" "TEXT") ...)
+        val = _get_property(item, "Value")
+        if val:
+            texts.add(val)
+    return texts
+
+
+def _extract_sheet_filenames(tree: list) -> set:
+    """Return the set of hierarchical sheet filenames referenced in the schematic."""
+    filenames: set = set()
+    for item in tree:
+        if _sym_type(item) != "sheet":
+            continue
+        fn = _get_property(item, "Sheet file")
+        if fn:
+            filenames.add(fn)
+    return filenames
+
+
+def parse_schematic_changes(
+    base_sch: Path,
+    head_sch: Path,
+    sheet_name: str,
+    warnings_list: List[str],
+) -> List[dict]:
+    """Parse two .kicad_sch S-expression files and return a list of change dicts.
+
+    Returns an empty list when sexpdata is unavailable or parsing fails.
+    High-confidence changes are reported precisely; uncertain situations
+    are recorded as ``unknown_change`` with ``confidence: low``.
+    """
+    if not SEXPDATA_AVAILABLE:
+        return []
+
+    changes: List[dict] = []
+
+    def _load(path: Path) -> Optional[list]:
+        try:
+            return sexpdata.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            _warn(warnings_list, f"sexpdata: failed to parse {path.name}: {exc}")
+            return None
+
+    base_tree = _load(base_sch)
+    head_tree = _load(head_sch)
+
+    if base_tree is None or head_tree is None:
+        return []
+
+    # ---- Symbols -----------------------------------------------------------
+    try:
+        base_syms = _extract_placed_symbols(base_tree)
+        head_syms = _extract_placed_symbols(head_tree)
+        all_refs = set(base_syms) | set(head_syms)
+        for ref in sorted(all_refs):
+            if ref in head_syms and ref not in base_syms:
+                changes.append({
+                    "type": "symbol_added",
+                    "reference": ref,
+                    "value": head_syms[ref]["value"],
+                    "sheet": sheet_name,
+                    "confidence": "high",
+                })
+            elif ref in base_syms and ref not in head_syms:
+                changes.append({
+                    "type": "symbol_removed",
+                    "reference": ref,
+                    "value": base_syms[ref]["value"],
+                    "sheet": sheet_name,
+                    "confidence": "high",
+                })
+            else:
+                b = base_syms[ref]
+                h = head_syms[ref]
+                if b["value"] != h["value"]:
+                    changes.append({
+                        "type": "symbol_value_changed",
+                        "reference": ref,
+                        "old": b["value"],
+                        "new": h["value"],
+                        "sheet": sheet_name,
+                        "confidence": "high",
+                    })
+                if b["footprint"] != h["footprint"]:
+                    changes.append({
+                        "type": "symbol_footprint_changed",
+                        "reference": ref,
+                        "old": b["footprint"],
+                        "new": h["footprint"],
+                        "sheet": sheet_name,
+                        "confidence": "high",
+                    })
+    except Exception as exc:
+        _warn(warnings_list, f"sexpdata: symbol extraction failed for {sheet_name}: {exc}")
+        changes.append({
+            "type": "unknown_change",
+            "sheet": sheet_name,
+            "confidence": "low",
+            "description": f"Symbol extraction error: {exc}",
+        })
+
+    # ---- Wires -------------------------------------------------------------
+    try:
+        base_wires = _count_wires(base_tree)
+        head_wires = _count_wires(head_tree)
+        if base_wires != head_wires:
+            changes.append({
+                "type": "wire_count_changed",
+                "base_count": base_wires,
+                "head_count": head_wires,
+                "sheet": sheet_name,
+                "confidence": "medium",
+            })
+    except Exception as exc:
+        _warn(warnings_list, f"sexpdata: wire count failed for {sheet_name}: {exc}")
+
+    # ---- Net labels --------------------------------------------------------
+    try:
+        base_labels = _extract_label_texts(base_tree)
+        head_labels = _extract_label_texts(head_tree)
+        for lbl in sorted(head_labels - base_labels):
+            changes.append({
+                "type": "net_label_added",
+                "label": lbl,
+                "sheet": sheet_name,
+                "confidence": "high",
+            })
+        for lbl in sorted(base_labels - head_labels):
+            changes.append({
+                "type": "net_label_removed",
+                "label": lbl,
+                "sheet": sheet_name,
+                "confidence": "high",
+            })
+    except Exception as exc:
+        _warn(warnings_list, f"sexpdata: label extraction failed for {sheet_name}: {exc}")
+
+    # ---- Hierarchical sheets -----------------------------------------------
+    try:
+        base_hsheets = _extract_sheet_filenames(base_tree)
+        head_hsheets = _extract_sheet_filenames(head_tree)
+        for fn in sorted(head_hsheets - base_hsheets):
+            changes.append({
+                "type": "hierarchical_sheet_added",
+                "filename": fn,
+                "sheet": sheet_name,
+                "confidence": "high",
+            })
+        for fn in sorted(base_hsheets - head_hsheets):
+            changes.append({
+                "type": "hierarchical_sheet_removed",
+                "filename": fn,
+                "sheet": sheet_name,
+                "confidence": "high",
+            })
+    except Exception as exc:
+        _warn(warnings_list, f"sexpdata: sheet extraction failed for {sheet_name}: {exc}")
+
+    return changes
+
+
+# ---------------------------------------------------------------------------
 # Step 5 — Generate outputs
 # ---------------------------------------------------------------------------
 
@@ -331,7 +577,71 @@ def generate_html(
     base_sha: str,
     head_sha: str,
     ts: str,
+    changes: Optional[List[dict]] = None,
 ) -> str:
+    if changes is None:
+        changes = []
+
+    # ---- Change summary section --------------------------------------------
+    _TYPE_LABELS = {
+        "symbol_added":               "Symbol added",
+        "symbol_removed":             "Symbol removed",
+        "symbol_value_changed":       "Value changed",
+        "symbol_footprint_changed":   "Footprint changed",
+        "wire_count_changed":         "Wire count changed",
+        "net_label_added":            "Net label added",
+        "net_label_removed":          "Net label removed",
+        "hierarchical_sheet_added":   "Sheet added",
+        "hierarchical_sheet_removed": "Sheet removed",
+        "unknown_change":             "Unknown change",
+    }
+
+    def _change_row_html(ch: dict) -> str:
+        ctype  = ch.get("type", "unknown")
+        sheet  = ch.get("sheet", "")
+        conf   = ch.get("confidence", "")
+        ref    = ch.get("reference", "&mdash;")
+        label  = _TYPE_LABELS.get(ctype, ctype.replace("_", " "))
+        if ctype in ("symbol_value_changed", "symbol_footprint_changed"):
+            detail = f"{ch.get('old', '')} &rarr; {ch.get('new', '')}"
+        elif ctype in ("symbol_added", "symbol_removed"):
+            detail = ch.get("value", "")
+        elif ctype == "wire_count_changed":
+            detail = f"{ch.get('base_count', 0)} &rarr; {ch.get('head_count', 0)}"
+            ref = "&mdash;"
+        elif ctype in ("net_label_added", "net_label_removed"):
+            detail = ch.get("label", "")
+            ref = "&mdash;"
+        elif ctype in ("hierarchical_sheet_added", "hierarchical_sheet_removed"):
+            detail = ch.get("filename", "")
+            ref = "&mdash;"
+        elif ctype == "unknown_change":
+            detail = ch.get("description", "")
+            ref = "&mdash;"
+        else:
+            detail = ""
+        return (
+            f"<tr><td>{label}</td><td>{ref}</td><td>{detail}</td>"
+            f"<td>{sheet}</td><td>{conf}</td></tr>"
+        )
+
+    if changes:
+        change_rows = "\n".join(_change_row_html(ch) for ch in changes)
+        changes_section = f"""<details>
+  <summary>&#x1F4CB; Change summary ({len(changes)} changes)</summary>
+  <table class="changes-table">
+    <thead><tr><th>Type</th><th>Reference</th><th>Detail</th><th>Sheet</th><th>Confidence</th></tr></thead>
+    <tbody>
+{change_rows}
+    </tbody>
+  </table>
+</details>"""
+    else:
+        changes_section = (
+            "<p><em>Semantic diff unavailable &mdash; "
+            "sexpdata not installed or no changes detected.</em></p>"
+        )
+
     rows_html_parts = []
     for name in sheets:
         r = results.get(name, {})
@@ -396,6 +706,10 @@ def generate_html(
   .badge-deleted {{ background: #FF00FF; color: #fff; }}
   footer {{ margin-top: 2em; font-size: 0.85em; color: #666;
             border-top: 1px solid #eee; padding-top: 0.5em; }}
+  details {{ margin: 1em 0 1.5em; }}
+  .changes-table {{ border-collapse: collapse; width: 100%; font-size: 0.9em; }}
+  .changes-table th, .changes-table td {{ border: 1px solid #ccc; padding: 0.3em 0.5em; }}
+  .changes-table th {{ background: #f5f5f5; text-align: left; }}
 </style>
 </head>
 <body>
@@ -407,6 +721,8 @@ def generate_html(
   <span><span class="swatch" style="background:#FFB400"></span> Changed (amber)</span>
   <span><span class="swatch" style="background:#DCDCDC"></span> Unchanged (grey)</span>
 </div>
+
+{changes_section}
 
 <table>
   <thead>
@@ -433,10 +749,54 @@ def generate_comment_md(
     sheets: Dict[str, Tuple[Optional[Path], Optional[Path]]],
     results: Dict[str, dict],
     warnings_list: List[str],
+    changes: Optional[List[dict]] = None,
 ) -> str:
+    if changes is None:
+        changes = []
+
     lines: List[str] = [
         f"### \U0001f5bc\ufe0f Visual Diff \u2014 `{feature}`",
         "",
+    ]
+
+    # ---- Change summary (high-confidence only, max 10 items) ---------------
+    high_conf = [ch for ch in changes if ch.get("confidence") == "high"]
+    if high_conf:
+        lines.append(f"**Changes detected:** {len(changes)}")
+        lines.append("")
+        lines.append("| Type | Reference | Detail |")
+        lines.append("|---|---|---|")
+        _TYPE_LABELS_MD = {
+            "symbol_added":               "Symbol added",
+            "symbol_removed":             "Symbol removed",
+            "symbol_value_changed":       "Value changed",
+            "symbol_footprint_changed":   "Footprint changed",
+            "net_label_added":            "Net label added",
+            "net_label_removed":          "Net label removed",
+            "hierarchical_sheet_added":   "Sheet added",
+            "hierarchical_sheet_removed": "Sheet removed",
+        }
+        for ch in high_conf[:10]:
+            ctype  = ch.get("type", "unknown")
+            ref    = ch.get("reference", "\u2014")
+            label  = _TYPE_LABELS_MD.get(ctype, ctype.replace("_", " "))
+            if ctype in ("symbol_value_changed", "symbol_footprint_changed"):
+                detail = f"{ch.get('old', '')} \u2192 {ch.get('new', '')}"
+            elif ctype in ("symbol_added", "symbol_removed"):
+                detail = ch.get("value", "")
+            elif ctype in ("net_label_added", "net_label_removed"):
+                detail = ch.get("label", "")
+                ref = "\u2014"
+            elif ctype in ("hierarchical_sheet_added", "hierarchical_sheet_removed"):
+                detail = ch.get("filename", "")
+                ref = "\u2014"
+            else:
+                detail = ""
+            lines.append(f"| {label} | {ref} | {detail} |")
+        lines.append("")
+
+    # ---- Sheet result table ------------------------------------------------
+    lines += [
         "| Sheet | Result |",
         "|---|---|",
     ]
@@ -607,9 +967,49 @@ def main() -> None:
 
     # ---- Step 5: Generate outputs -------------------------------------------
 
+    # Semantic diff — parse compared sheets and aggregate changes
+    all_changes: List[dict] = []
+    if sheets_compared:
+        if SEXPDATA_AVAILABLE:
+            for name in sheets_compared:
+                base_sch, head_sch = sheets[name]
+                if base_sch is not None and head_sch is not None:
+                    sheet_changes = parse_schematic_changes(
+                        base_sch, head_sch, name, warnings_list
+                    )
+                    all_changes.extend(sheet_changes)
+        # changes.json — always written when compared sheets exist
+        if SEXPDATA_AVAILABLE:
+            changes_json = {
+                "feature":       feature,
+                "total_changes": len(all_changes),
+                "changes":       all_changes,
+            }
+        else:
+            changes_json = {
+                "feature":       feature,
+                "total_changes": 0,
+                "changes":       [],
+                "warning":       "sexpdata not available",
+            }
+        (out_dir / "changes.json").write_text(
+            json.dumps(changes_json, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+    elif not SEXPDATA_AVAILABLE:
+        # Write unavailability notice even when no compared sheets exist
+        changes_json = {
+            "feature":       feature,
+            "total_changes": 0,
+            "changes":       [],
+            "warning":       "sexpdata not available",
+        }
+        (out_dir / "changes.json").write_text(
+            json.dumps(changes_json, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
     # diff-report.html
     html_content = generate_html(
-        feature, sheets, results, base_sha, head_sha, ts
+        feature, sheets, results, base_sha, head_sha, ts, all_changes
     )
     (out_dir / "diff-report.html").write_text(html_content, encoding="utf-8")
 
@@ -628,7 +1028,7 @@ def main() -> None:
     )
 
     # comment.md
-    comment_md = generate_comment_md(feature, sheets, results, warnings_list)
+    comment_md = generate_comment_md(feature, sheets, results, warnings_list, all_changes)
     (out_dir / "comment.md").write_text(comment_md, encoding="utf-8")
 
     print(f"kicad-visual-diff complete. Outputs in {out_dir}")

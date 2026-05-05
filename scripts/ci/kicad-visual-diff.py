@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""kicad-visual-diff.py — Generate a visual diff of KiCad schematic sheets.
+"""kicad-visual-diff.py — Generate a visual diff of KiCad schematic and PCB layers.
 
 Usage:
     python3 kicad-visual-diff.py \
         --base-dir /tmp/base \
         --head-dir /tmp/head \
         --feature buck-converter-5v \
-        --output-dir /tmp/diff-output
+        --output-dir /tmp/diff-output [--pcb]
 
 Always exits 0. Errors are recorded as warnings, never crashes.
 """
@@ -48,6 +48,23 @@ try:
     SEXPDATA_AVAILABLE = True
 except ImportError:
     SEXPDATA_AVAILABLE = False
+
+# ---------------------------------------------------------------------------
+# PCB layer constants
+# ---------------------------------------------------------------------------
+
+PRIORITY_LAYERS = [
+    "F.Cu", "B.Cu", "In1.Cu", "In2.Cu",
+    "F.Silkscreen", "B.Silkscreen",
+    "F.Courtyard", "B.Courtyard",
+    "F.Fab", "B.Fab",
+    "Edge.Cuts",
+]
+
+# SVG files smaller than this are considered empty board layers and are skipped.
+# kicad-cli may export a near-empty SVG (just a bounding box) for layers with no
+# copper or other content; 500 bytes is well above metadata but below any real content.
+_MIN_SVG_SIZE_BYTES = 500
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -110,6 +127,21 @@ def find_sheets(
 
 
 # ---------------------------------------------------------------------------
+# PCB discovery
+# ---------------------------------------------------------------------------
+
+def find_pcb(
+    base_dir: Path, head_dir: Path, feature: str
+) -> Tuple[Optional[Path], Optional[Path]]:
+    """Return (base_pcb_or_None, head_pcb_or_None) for features/<feature>/<feature>.kicad_pcb."""
+    def _pcb(root: Path) -> Optional[Path]:
+        p = root / "features" / feature / f"{feature}.kicad_pcb"
+        return p if p.is_file() else None
+
+    return _pcb(base_dir), _pcb(head_dir)
+
+
+# ---------------------------------------------------------------------------
 # Step 2 — Export SVG
 # ---------------------------------------------------------------------------
 
@@ -145,6 +177,132 @@ def export_svg(
 
     _warn(warnings_list, f"kicad-cli ran but no SVG found for {sch_path.name}")
     return None
+
+
+# ---------------------------------------------------------------------------
+# Step 2b — Export PCB layer SVG
+# ---------------------------------------------------------------------------
+
+def export_pcb_layer_svg(
+    pcb_path: Path, layer: str, svg_out_dir: Path, warnings_list: List[str]
+) -> Optional[Path]:
+    """Export a single PCB layer as SVG. Returns SVG path or None (including empty layers)."""
+    svg_out_dir.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
+        ["kicad-cli", "pcb", "export", "svg",
+         "--layers", layer,
+         "--output", str(svg_out_dir),
+         str(pcb_path)],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        _warn(
+            warnings_list,
+            f"kicad-cli pcb export svg failed for {pcb_path.name} layer {layer}: "
+            f"{(result.stderr or result.stdout or '').strip()[:300]}",
+        )
+        return None
+
+    svgs = sorted(svg_out_dir.glob("*.svg"))
+    if not svgs:
+        _warn(warnings_list, f"kicad-cli ran but no SVG found for {pcb_path.name} layer {layer}")
+        return None
+
+    svg_path = svgs[0]
+    # Skip layers that produced an effectively empty SVG
+    if svg_path.stat().st_size < _MIN_SVG_SIZE_BYTES:
+        return None
+
+    return svg_path
+
+
+# ---------------------------------------------------------------------------
+# PCB layer diffing
+# ---------------------------------------------------------------------------
+
+def diff_pcb_layers(
+    base_pcb: Optional[Path],
+    head_pcb: Optional[Path],
+    feature: str,
+    out_dir: Path,
+    warnings_list: List[str],
+) -> List[dict]:
+    """Return a list of layer result dicts, one per priority layer that is non-empty."""
+    layer_results: List[dict] = []
+
+    svg_dir  = out_dir / "pcb_svgs"
+    png_dir  = out_dir / "pcb_pngs"
+    diff_dir = out_dir / "pcb_diffs"
+    for d in (svg_dir, png_dir, diff_dir):
+        d.mkdir(parents=True, exist_ok=True)
+
+    for layer in PRIORITY_LAYERS:
+        layer_safe = layer.replace(".", "_")
+
+        base_svg: Optional[Path] = None
+        head_svg: Optional[Path] = None
+
+        if base_pcb is not None:
+            base_svg = export_pcb_layer_svg(
+                base_pcb, layer, svg_dir / "base" / layer_safe, warnings_list
+            )
+        if head_pcb is not None:
+            head_svg = export_pcb_layer_svg(
+                head_pcb, layer, svg_dir / "head" / layer_safe, warnings_list
+            )
+
+        # Skip layer if both sides are empty/missing
+        if base_svg is None and head_svg is None:
+            continue
+
+        r: dict = {"layer": layer}
+
+        # Classify
+        if base_pcb is None:
+            r["status"] = "new_pcb"
+        elif head_pcb is None:
+            r["status"] = "deleted_pcb"
+        else:
+            r["status"] = "compared"
+
+        # Rasterise base side
+        base_png: Optional[Path] = None
+        if base_svg is not None:
+            base_png_path = png_dir / "base" / f"{layer_safe}.png"
+            if rasterize_svg(base_svg, base_png_path, warnings_list):
+                base_png = base_png_path
+        if base_png:
+            r["base_png"] = base_png
+
+        # Rasterise head side
+        head_png: Optional[Path] = None
+        if head_svg is not None:
+            head_png_path = png_dir / "head" / f"{layer_safe}.png"
+            if rasterize_svg(head_svg, head_png_path, warnings_list):
+                head_png = head_png_path
+        if head_png:
+            r["head_png"] = head_png
+
+        # Compute pixel diff when both sides are present
+        if r["status"] == "compared":
+            if base_png is None or head_png is None:
+                r["status"] = "unrenderable"
+                _warn(
+                    warnings_list,
+                    f"Cannot diff PCB layer {layer}: "
+                    f"{'base' if base_png is None else 'head'} side could not be rendered",
+                )
+            else:
+                diff_path = diff_dir / f"{layer_safe}-diff.png"
+                if compute_diff(base_png, head_png, diff_path, warnings_list):
+                    r["diff_png"] = diff_path
+                else:
+                    r["status"] = "unrenderable"
+
+        layer_results.append(r)
+
+    return layer_results
 
 
 # ---------------------------------------------------------------------------
@@ -592,9 +750,12 @@ def generate_html(
     head_sha: str,
     ts: str,
     changes: Optional[List[dict]] = None,
+    pcb_results: Optional[List[dict]] = None,
 ) -> str:
     if changes is None:
         changes = []
+    if pcb_results is None:
+        pcb_results = []
 
     # ---- Change summary section --------------------------------------------
 
@@ -687,6 +848,57 @@ def generate_html(
 
     rows_html = "\n".join(rows_html_parts)
 
+    # Build PCB layers section if there are results
+    pcb_section = ""
+    if pcb_results:
+        pcb_rows_parts = []
+        for pr in pcb_results:
+            layer = pr.get("layer", "")
+            status = pr.get("status", "unrenderable")
+            if status == "unrenderable":
+                cell = (
+                    '<td colspan="3" class="warn">'
+                    "&#9888;&#xFE0F; Could not render this layer &mdash; check workflow logs"
+                    "</td>"
+                )
+                pcb_rows_parts.append(f"<tr><td><code>{layer}</code></td>{cell}</tr>")
+            elif status == "new_pcb":
+                head_img = _img_tag(pr.get("head_png"))
+                pcb_rows_parts.append(
+                    f"<tr><td><code>{layer}</code></td>"
+                    f"<td>&mdash;</td>"
+                    f"<td><span class='badge badge-new'>&#x1F195; New PCB</span></td>"
+                    f"<td>{head_img}</td></tr>"
+                )
+            elif status == "deleted_pcb":
+                base_img = _img_tag(pr.get("base_png"))
+                pcb_rows_parts.append(
+                    f"<tr><td><code>{layer}</code></td>"
+                    f"<td>{base_img}</td>"
+                    f"<td><span class='badge badge-deleted'>&#x1F5D1;&#xFE0F; Deleted</span></td>"
+                    f"<td>&mdash;</td></tr>"
+                )
+            else:  # compared
+                base_img = _img_tag(pr.get("base_png"))
+                diff_img = _img_tag(pr.get("diff_png"))
+                head_img = _img_tag(pr.get("head_png"))
+                pcb_rows_parts.append(
+                    f"<tr><td><code>{layer}</code></td>"
+                    f"<td>{base_img}</td>"
+                    f"<td>{diff_img}</td>"
+                    f"<td>{head_img}</td></tr>"
+                )
+        pcb_rows_html = "\n".join(pcb_rows_parts)
+        pcb_section = f"""
+<h2>PCB Layers</h2>
+<table>
+  <thead><tr><th>Layer</th><th>Old (base)</th><th>Diff</th><th>New (head)</th></tr></thead>
+  <tbody>
+{pcb_rows_html}
+  </tbody>
+</table>
+"""
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -734,7 +946,7 @@ def generate_html(
 {rows_html}
   </tbody>
 </table>
-
+{pcb_section}
 <footer>
   Feature: <code>{feature}</code> &nbsp;|&nbsp;
   BASE_SHA: <code>{base_sha}</code> &nbsp;|&nbsp;
@@ -752,9 +964,12 @@ def generate_comment_md(
     results: Dict[str, dict],
     warnings_list: List[str],
     changes: Optional[List[dict]] = None,
+    pcb_results: Optional[List[dict]] = None,
 ) -> str:
     if changes is None:
         changes = []
+    if pcb_results is None:
+        pcb_results = []
 
     lines: List[str] = [
         f"### \U0001f5bc\ufe0f Visual Diff \u2014 `{feature}`",
@@ -821,6 +1036,25 @@ def generate_comment_md(
         lines.append("")
         lines.append("</details>")
 
+    if pcb_results:
+        lines.append("")
+        lines.append("**PCB Layers**")
+        lines.append("")
+        lines.append("| Layer | Result |")
+        lines.append("|---|---|")
+        for pr in pcb_results:
+            layer = pr.get("layer", "")
+            status = pr.get("status", "unrenderable")
+            if status == "new_pcb":
+                result_str = "\U0001f195 New PCB"
+            elif status == "deleted_pcb":
+                result_str = "\U0001f5d1\ufe0f Deleted"
+            elif status == "unrenderable":
+                result_str = "\u26a0\ufe0f Could not render"
+            else:
+                result_str = "\u2705 Diff generated"
+            lines.append(f"| {layer} | {result_str} |")
+
     return "\n".join(lines) + "\n"
 
 
@@ -869,6 +1103,8 @@ def main() -> None:
                         help="Feature name (e.g. buck-converter-5v)")
     parser.add_argument("--output-dir", required=True, type=Path,
                         help="Directory where outputs will be written")
+    parser.add_argument("--pcb", action="store_true", default=False,
+                        help="Also diff PCB layers when .kicad_pcb files are present")
     args = parser.parse_args()
 
     base_dir: Path  = args.base_dir
@@ -959,6 +1195,37 @@ def main() -> None:
 
         results[name] = r
 
+    # ---- PCB layer diff (when --pcb flag is set) ----------------------------
+    pcb_results: List[dict] = []
+    layers_compared: List[str] = []
+    layers_skipped:  List[str] = []
+
+    if args.pcb:
+        base_pcb, head_pcb = find_pcb(base_dir, head_dir, feature)
+        if base_pcb is None and head_pcb is None:
+            _warn(
+                warnings_list,
+                f"--pcb specified but no .kicad_pcb file found for feature '{feature}' "
+                f"in either base-dir or head-dir",
+            )
+        else:
+            pcb_results = diff_pcb_layers(
+                base_pcb, head_pcb, feature, out_dir, warnings_list
+            )
+            for pr in pcb_results:
+                if pr.get("status") == "unrenderable":
+                    layers_skipped.append(pr["layer"])
+                else:
+                    layers_compared.append(pr["layer"])
+
+        # Also record layers that were absent on both sides (empty on both base and
+        # head) as skipped, so metadata.json gives a complete picture of all
+        # PRIORITY_LAYERS that were considered but not compared.
+        processed_layers = {pr["layer"] for pr in pcb_results}
+        for layer in PRIORITY_LAYERS:
+            if layer not in processed_layers:
+                layers_skipped.append(layer)
+
     # ---- Step 5: Generate outputs -------------------------------------------
 
     # Semantic diff — parse compared sheets and aggregate changes
@@ -993,7 +1260,8 @@ def main() -> None:
 
     # diff-report.html
     html_content = generate_html(
-        feature, sheets, results, base_sha, head_sha, ts, all_changes
+        feature, sheets, results, base_sha, head_sha, ts,
+        all_changes, pcb_results=pcb_results,
     )
     (out_dir / "diff-report.html").write_text(html_content, encoding="utf-8")
 
@@ -1005,6 +1273,8 @@ def main() -> None:
         "sheets_compared":  sheets_compared,
         "sheets_new":       sheets_new,
         "sheets_deleted":   sheets_deleted,
+        "layers_compared":  layers_compared,
+        "layers_skipped":   layers_skipped,
         "warnings":         warnings_list,
     }
     (out_dir / "metadata.json").write_text(
@@ -1012,12 +1282,18 @@ def main() -> None:
     )
 
     # comment.md
-    comment_md = generate_comment_md(feature, sheets, results, warnings_list, all_changes)
+    comment_md = generate_comment_md(
+        feature, sheets, results, warnings_list, all_changes,
+        pcb_results=pcb_results,
+    )
     (out_dir / "comment.md").write_text(comment_md, encoding="utf-8")
 
     print(f"kicad-visual-diff complete. Outputs in {out_dir}")
     print(f"  Sheets compared: {len(sheets_compared)}, "
           f"new: {len(sheets_new)}, deleted: {len(sheets_deleted)}")
+    if args.pcb:
+        print(f"  PCB layers compared: {len(layers_compared)}, "
+              f"skipped: {len(layers_skipped)}")
     if warnings_list:
         print(f"  {len(warnings_list)} warning(s):")
         for w in warnings_list:

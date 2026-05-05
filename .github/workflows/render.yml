@@ -316,6 +316,7 @@ jobs:
         uses: actions/github-script@v7
         env:
           HAPPY_REPORTS: ${{ steps.kicad_happy.outputs.happy_reports }}
+          DIFF_COMMENTS: ${{ steps.visual_diff.outputs.diff_comments }}
         with:
           script: |
             const fs     = require('fs');
@@ -327,7 +328,7 @@ jobs:
             const featuresList  = '${{ steps.kibot.outputs.features_list }}';
             const featuresNoPro = '${{ steps.kibot.outputs.features_no_pro }}';
             const featuresNoSvg = '${{ steps.kibot.outputs.features_no_svg }}';
-            const diffComments  = `${{ steps.visual_diff.outputs.diff_comments }}`;
+            const diffComments  = (process.env.DIFF_COMMENTS || '').trim();
             const happyReports  = process.env.HAPPY_REPORTS || '';
 
             const toSet = s => new Set(s ? s.split(',').filter(Boolean) : []);

@@ -526,7 +526,7 @@ def main() -> None:
     warnings_list: List[str] = []
     base_sha = os.environ.get("BASE_SHA", "unknown")
     head_sha = os.environ.get("HEAD_SHA", "unknown")
-    ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     # ---- Step 1: Discover schematics ----------------------------------------
     sheets = find_sheets(base_dir, head_dir, feature)

@@ -99,7 +99,7 @@ jobs:
             "origin/${{ steps.pr.outputs.base_ref }}...HEAD" | \
             grep "^features/" | grep "\.kicad_pcb$" | \
             cut -d'/' -f2 | sort -u || true)
-          FEATURES=$(printf '%s\n%s\n' "$SCH_FEATURES" "$PCB_FEATURES" | sort -u | grep -v '^$' || true)
+          FEATURES=$(printf '%s\n%s\n' "$SCH_FEATURES" "$PCB_FEATURES" | sort -u | grep -v '^[[:space:]]*$' || true)
           if [[ -z "$FEATURES" ]]; then
             echo "has_any_feature=false" >> $GITHUB_OUTPUT
             echo "features="             >> $GITHUB_OUTPUT

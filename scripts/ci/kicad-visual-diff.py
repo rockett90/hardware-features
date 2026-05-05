@@ -55,6 +55,11 @@ PRIORITY_LAYERS = [
     "Edge.Cuts",
 ]
 
+# SVG files smaller than this are considered empty board layers and are skipped.
+# kicad-cli may export a near-empty SVG (just a bounding box) for layers with no
+# copper or other content; 500 bytes is well above metadata but below any real content.
+_MIN_SVG_SIZE_BYTES = 500
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -200,7 +205,7 @@ def export_pcb_layer_svg(
 
     svg_path = svgs[0]
     # Skip layers that produced an effectively empty SVG
-    if svg_path.stat().st_size < 500:
+    if svg_path.stat().st_size < _MIN_SVG_SIZE_BYTES:
         return None
 
     return svg_path
@@ -859,7 +864,9 @@ def main() -> None:
                 else:
                     layers_compared.append(pr["layer"])
 
-        # Also track layers present in PRIORITY_LAYERS but not in pcb_results
+        # Also record layers that were absent on both sides (empty on both base and
+        # head) as skipped, so metadata.json gives a complete picture of all
+        # PRIORITY_LAYERS that were considered but not compared.
         processed_layers = {pr["layer"] for pr in pcb_results}
         for layer in PRIORITY_LAYERS:
             if layer not in processed_layers:

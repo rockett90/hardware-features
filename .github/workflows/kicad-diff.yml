@@ -1,0 +1,201 @@
+name: KiCad visual diff
+
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number'
+        required: false
+        type: string
+      head_sha:
+        description: 'Head SHA to check out'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  kicad-diff:
+    if: github.event.issue.pull_request != null &&
+        contains(github.event.comment.body, '/kicad-diff')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: kicad-diff-pr-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    steps:
+      - name: Verify commenter has write access
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner:    context.repo.owner,
+              repo:     context.repo.repo,
+              username: context.payload.comment.user.login,
+            });
+            if (!['admin','maintain','write','triage'].includes(data.permission)) {
+              core.setFailed(`${context.payload.comment.user.login} does not have write access`);
+            }
+
+      - name: Get PR details
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.pulls.get({
+              owner:       context.repo.owner,
+              repo:        context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            core.setOutput('ref',      data.head.ref);
+            core.setOutput('sha',      data.head.sha);
+            core.setOutput('base_ref', data.base.ref);
+
+      - uses: actions/checkout@v4
+        with:
+          ref:        ${{ steps.pr.outputs.sha }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Find changed features (schematic and PCB)
+        id: find
+        run: |
+          git fetch origin "${{ steps.pr.outputs.base_ref }}"
+          SCH_FEATURES=$(git diff --name-only \
+            "origin/${{ steps.pr.outputs.base_ref }}...HEAD" | \
+            grep "^features/" | grep "\.kicad_sch$" | \
+            cut -d'/' -f2 | sort -u || true)
+          PCB_FEATURES=$(git diff --name-only \
+            "origin/${{ steps.pr.outputs.base_ref }}...HEAD" | \
+            grep "^features/" | grep "\.kicad_pcb$" | \
+            cut -d'/' -f2 | sort -u || true)
+          FEATURES=$(printf '%s\n%s\n' "$SCH_FEATURES" "$PCB_FEATURES" | sort -u | grep -v '^[[:space:]]*$' || true)
+          if [[ -z "$FEATURES" ]]; then
+            echo "has_any_feature=false" >> $GITHUB_OUTPUT
+            echo "features="             >> $GITHUB_OUTPUT
+            echo "pcb_features="         >> $GITHUB_OUTPUT
+          else
+            echo "has_any_feature=true"  >> $GITHUB_OUTPUT
+            { echo "features<<EOF"; echo "$FEATURES"; echo "EOF"; } >> $GITHUB_OUTPUT
+            { echo "pcb_features<<EOF"; echo "$PCB_FEATURES"; echo "EOF"; } >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run kicad-visual-diff per feature
+        id: visual_diff
+        if: steps.find.outputs.has_any_feature == 'true'
+        continue-on-error: true
+        env:
+          BASE_REF:     ${{ steps.pr.outputs.base_ref }}
+          BASE_SHA:     ${{ steps.pr.outputs.sha }}
+          HEAD_SHA:     ${{ steps.pr.outputs.sha }}
+          PCB_FEATURES: ${{ steps.find.outputs.pcb_features }}
+        run: |
+          diff_comments=""
+
+          while IFS= read -r FEATURE; do
+            [[ -z "$FEATURE" ]] && continue
+
+            OUTDIR="$RUNNER_TEMP/vdiff-${FEATURE}"
+            BASEDIR="$RUNNER_TEMP/vdiff-base-${FEATURE}"
+            HEADDIR="$RUNNER_TEMP/vdiff-head-${FEATURE}"
+            mkdir -p "$OUTDIR" "$BASEDIR" "$HEADDIR"
+
+            git archive "origin/${BASE_REF}" -- "features/${FEATURE}/" \
+              | tar -x -C "$BASEDIR" 2>/dev/null || true
+            git archive HEAD -- "features/${FEATURE}/" \
+              | tar -x -C "$HEADDIR" 2>/dev/null || true
+
+            PCB_FLAG=""
+            if echo "$PCB_FEATURES" | grep -qx "${FEATURE}"; then
+              PCB_FLAG="--pcb"
+            fi
+
+            echo "▶  kicad-visual-diff: ${FEATURE}${PCB_FLAG:+ (with PCB)}"
+            docker run --rm \
+              -v "$PWD/scripts:/scripts" \
+              -v "$BASEDIR:/vdiff-base" \
+              -v "$HEADDIR:/vdiff-head" \
+              -v "$OUTDIR:/vdiff-out" \
+              -e BASE_SHA="${BASE_SHA}" \
+              -e HEAD_SHA="${HEAD_SHA}" \
+              "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
+              python3 /scripts/ci/kicad-visual-diff.py \
+                --base-dir /vdiff-base \
+                --head-dir /vdiff-head \
+                --feature "${FEATURE}" \
+                --output-dir /vdiff-out \
+                $PCB_FLAG 2>&1 || true
+
+            mkdir -p "features/${FEATURE}/fab/visual-diff"
+            cp -r "$OUTDIR/." "features/${FEATURE}/fab/visual-diff/" 2>/dev/null || true
+
+            if [[ -f "$OUTDIR/comment.md" ]]; then
+              COMMENT=$(cat "$OUTDIR/comment.md")
+              diff_comments="${diff_comments}${COMMENT}"$'\n\n'
+            fi
+
+          done <<< "${{ steps.find.outputs.features }}"
+
+          {
+            echo "diff_comments<<DIFF_EOF"
+            echo "$diff_comments"
+            echo "DIFF_EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Upload visual diff HTML reports
+        if: steps.find.outputs.has_any_feature == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name:              visual-diff-pr${{ github.event.issue.number }}
+          path:              features/*/fab/visual-diff/
+          retention-days:    90
+          if-no-files-found: warn
+
+      - name: Post PR comment
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          DIFF_COMMENTS: ${{ steps.visual_diff.outputs.diff_comments }}
+        with:
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const sha    = '${{ steps.pr.outputs.sha }}'.slice(0, 7);
+            const ts     = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+            const hasAnyFeature = '${{ steps.find.outputs.has_any_feature }}' === 'true';
+            const diffComments  = (process.env.DIFF_COMMENTS || '').trim();
+
+            let body = '## 🔍 KiCad Visual Diff\n\n';
+
+            if (!hasAnyFeature) {
+              body += 'No KiCad schematic or PCB changes found in this PR.\n';
+            } else {
+              body += diffComments
+                ? diffComments + '\n'
+                : `⚠️ Visual diff not generated — check [workflow logs](${runUrl})\n`;
+              body += `📥 [Download full diff report from workflow artifacts](${runUrl})\n\n`;
+              body += '---\n';
+              body += `*Commit: \`${sha}\` — ${ts} · [Workflow run](${runUrl})*`;
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.startsWith('## 🔍 KiCad Visual Diff')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: context.issue.number, body,
+              });
+            }

@@ -240,6 +240,8 @@ def diff_pcb_layers(
     feature: str,
     out_dir: Path,
     warnings_list: List[str],
+    head_sha: str = "",
+    ts: str = "",
 ) -> List[dict]:
     """Return a list of layer result dicts, one per priority layer that is non-empty."""
     layer_results: List[dict] = []
@@ -284,6 +286,7 @@ def diff_pcb_layers(
         if base_svg is not None:
             base_png_path = png_dir / "base" / f"{layer_safe}.png"
             if rasterize_svg(base_svg, base_png_path, warnings_list):
+                _add_watermark(base_png_path, head_sha, ts, "/kicad-diff")
                 base_png = base_png_path
         if base_png:
             r["base_png"] = base_png
@@ -293,6 +296,7 @@ def diff_pcb_layers(
         if head_svg is not None:
             head_png_path = png_dir / "head" / f"{layer_safe}.png"
             if rasterize_svg(head_svg, head_png_path, warnings_list):
+                _add_watermark(head_png_path, head_sha, ts, "/kicad-diff")
                 head_png = head_png_path
         if head_png:
             r["head_png"] = head_png
@@ -362,6 +366,47 @@ def rasterize_svg(
         f"— sheet marked as unrenderable",
     )
     return False
+
+
+# ---------------------------------------------------------------------------
+# Watermark helper
+# ---------------------------------------------------------------------------
+
+def _add_watermark(png_path: Path, sha: str, ts: str, command: str) -> None:
+    """Add a small watermark to the bottom-right of a PNG, in place."""
+    if not PILLOW_AVAILABLE or not png_path.is_file():
+        return
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        img = Image.open(png_path).convert("RGBA")
+        draw = ImageDraw.Draw(img)
+        text = f"SHA: {sha[:7]} | {ts} | {command}"
+        # Use default font — no external font files required
+        try:
+            font = ImageFont.load_default(size=11)
+        except TypeError:
+            font = ImageFont.load_default()
+        # Measure text
+        bbox = draw.textbbox((0, 0), text, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        margin = 6
+        x = img.width - tw - margin
+        y = img.height - th - margin
+        # Semi-transparent white backing rectangle
+        overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        odraw = ImageDraw.Draw(overlay)
+        odraw.rectangle(
+            [x - 3, y - 2, x + tw + 3, y + th + 2],
+            fill=(255, 255, 255, 180),
+        )
+        img = Image.alpha_composite(img, overlay)
+        # Draw text
+        draw = ImageDraw.Draw(img)
+        draw.text((x, y), text, font=font, fill=(100, 100, 100, 220))
+        img.convert("RGB").save(png_path)
+    except Exception as exc:
+        print(f"WARNING: watermark failed for {png_path}: {exc}", file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
@@ -881,6 +926,7 @@ def generate_html(
         pcb_rows_parts = []
         for pr in pcb_results:
             layer = pr.get("layer", "")
+            layer_safe = layer.replace(".", "_")
             status = pr.get("status", "unrenderable")
             if status == "unrenderable":
                 cell = (
@@ -890,7 +936,7 @@ def generate_html(
                 )
                 pcb_rows_parts.append(f"<tr><td><code>{layer}</code></td>{cell}</tr>")
             elif status == "new_pcb":
-                head_img = _img_tag(pr.get("head_png"))
+                head_img = _img_tag(pr.get("head_png"), layer_safe, "new")
                 pcb_rows_parts.append(
                     f"<tr><td><code>{layer}</code></td>"
                     f"<td>&mdash;</td>"
@@ -898,7 +944,7 @@ def generate_html(
                     f"<td>{head_img}</td></tr>"
                 )
             elif status == "deleted_pcb":
-                base_img = _img_tag(pr.get("base_png"))
+                base_img = _img_tag(pr.get("base_png"), layer_safe, "base")
                 pcb_rows_parts.append(
                     f"<tr><td><code>{layer}</code></td>"
                     f"<td>{base_img}</td>"
@@ -906,9 +952,9 @@ def generate_html(
                     f"<td>&mdash;</td></tr>"
                 )
             else:  # compared
-                base_img = _img_tag(pr.get("base_png"))
-                diff_img = _img_tag(pr.get("diff_png"))
-                head_img = _img_tag(pr.get("head_png"))
+                base_img = _img_tag(pr.get("base_png"), layer_safe, "base")
+                diff_img = _img_tag(pr.get("diff_png"), layer_safe, "diff")
+                head_img = _img_tag(pr.get("head_png"), layer_safe, "new")
                 pcb_rows_parts.append(
                     f"<tr><td><code>{layer}</code></td>"
                     f"<td>{base_img}</td>"
@@ -1115,6 +1161,8 @@ def _process_side(
     png_dir: Path,
     kicad_available: bool,
     warnings_list: List[str],
+    head_sha: str = "",
+    ts: str = "",
 ) -> Optional[Path]:
     """Export SVG and rasterise to PNG for one side (base or head)."""
     if sch_path is None:
@@ -1129,6 +1177,7 @@ def _process_side(
 
     png_path = png_dir / side / (sch_path.stem + ".png")
     if rasterize_svg(svg_path, png_path, warnings_list):
+        _add_watermark(png_path, head_sha, ts, "/kicad-diff")
         return png_path
     return None
 
@@ -1206,10 +1255,12 @@ def main() -> None:
 
         # ---- Steps 2 + 3: Export and rasterise --------------------------------
         base_png = _process_side(
-            base_sch, "base", svg_dir, png_dir, kicad_available, warnings_list
+            base_sch, "base", svg_dir, png_dir, kicad_available, warnings_list,
+            head_sha=head_sha, ts=ts,
         )
         head_png = _process_side(
-            head_sch, "head", svg_dir, png_dir, kicad_available, warnings_list
+            head_sch, "head", svg_dir, png_dir, kicad_available, warnings_list,
+            head_sha=head_sha, ts=ts,
         )
 
         if base_png:
@@ -1256,7 +1307,8 @@ def main() -> None:
             )
         else:
             pcb_results = diff_pcb_layers(
-                base_pcb, head_pcb, feature, out_dir, warnings_list
+                base_pcb, head_pcb, feature, out_dir, warnings_list,
+                head_sha=head_sha, ts=ts,
             )
             for pr in pcb_results:
                 if pr.get("status") == "unrenderable":

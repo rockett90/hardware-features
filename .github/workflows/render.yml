@@ -179,73 +179,37 @@ jobs:
           echo "features_no_pro=${features_no_pro}"   >> $GITHUB_OUTPUT
           echo "features_no_svg=${features_no_svg}"   >> $GITHUB_OUTPUT
 
-      - name: Run kicad-visual-diff per feature
-        id: visual_diff
+      - name: Watermark SVG renders
         if: steps.find.outputs.has_any_feature == 'true'
-        continue-on-error: true
-        env:
-          BASE_REF: ${{ steps.pr.outputs.base_ref }}
-          BASE_SHA: ${{ steps.pr.outputs.sha }}
-          HEAD_SHA: ${{ steps.pr.outputs.sha }}
-          PCB_FEATURES: ${{ steps.find.outputs.pcb_features }}
         run: |
-          diff_comments=""
-
           while IFS= read -r FEATURE; do
             [[ -z "$FEATURE" ]] && continue
-
-            OUTDIR="$RUNNER_TEMP/vdiff-${FEATURE}"
-            BASEDIR="$RUNNER_TEMP/vdiff-base-${FEATURE}"
-            HEADDIR="$RUNNER_TEMP/vdiff-head-${FEATURE}"
-            mkdir -p "$OUTDIR" "$BASEDIR" "$HEADDIR"
-
-            # Extract base ref
-            git archive "origin/${BASE_REF}" -- "features/${FEATURE}/" \
-              | tar -x -C "$BASEDIR" 2>/dev/null || true
-
-            # Extract head ref
-            git archive HEAD -- "features/${FEATURE}/" \
-              | tar -x -C "$HEADDIR" 2>/dev/null || true
-
-            # Determine whether to pass --pcb flag
-            PCB_FLAG=""
-            if echo "$PCB_FEATURES" | grep -qx "${FEATURE}"; then
-              PCB_FLAG="--pcb"
-            fi
-
-            echo "▶  kicad-visual-diff: ${FEATURE}${PCB_FLAG:+ (with PCB)}"
-            docker run --rm \
-              -v "$PWD/scripts:/scripts" \
-              -v "$BASEDIR:/vdiff-base" \
-              -v "$HEADDIR:/vdiff-head" \
-              -v "$OUTDIR:/vdiff-out" \
-              -e BASE_SHA="${BASE_SHA}" \
-              -e HEAD_SHA="${HEAD_SHA}" \
-              "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
-              python3 /scripts/ci/kicad-visual-diff.py \
-                --base-dir /vdiff-base \
-                --head-dir /vdiff-head \
-                --feature "${FEATURE}" \
-                --output-dir /vdiff-out \
-                $PCB_FLAG 2>&1 || true
-
-            # Copy outputs into fab dir for artifact upload
-            mkdir -p "features/${FEATURE}/fab/visual-diff"
-            cp -r "$OUTDIR/." "features/${FEATURE}/fab/visual-diff/" 2>/dev/null || true
-
-            # Capture comment.md
-            if [[ -f "$OUTDIR/comment.md" ]]; then
-              COMMENT=$(cat "$OUTDIR/comment.md")
-              diff_comments="${diff_comments}${COMMENT}"$'\n\n'
-            fi
-
+            find "features/${FEATURE}/fab" -name "*.svg" | while read SVG; do
+              python3 - "$SVG" "${{ steps.pr.outputs.sha }}" <<'PYEOF'
+import sys, datetime, xml.etree.ElementTree as ET
+try:
+    path, sha = sys.argv[1], sys.argv[2][:7]
+    ts = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+    ET.register_namespace('', 'http://www.w3.org/2000/svg')
+    tree = ET.parse(path)
+    root = tree.getroot()
+    ns = 'http://www.w3.org/2000/svg'
+    tag = f'{{{ns}}}text' if root.tag.startswith('{') else 'text'
+    txt = ET.SubElement(root, tag)
+    txt.set('x', '98%')
+    txt.set('y', '98%')
+    txt.set('text-anchor', 'end')
+    txt.set('font-family', 'monospace')
+    txt.set('font-size', '10')
+    txt.set('fill', '#999999')
+    txt.set('opacity', '0.7')
+    txt.text = f'SHA: {sha} | {ts} | /render'
+    tree.write(path, xml_declaration=True, encoding='unicode')
+except Exception as e:
+    print(f'WARNING: watermark failed for {sys.argv[1]}: {e}', file=sys.stderr)
+PYEOF
+            done || true
           done <<< "${{ steps.find.outputs.features }}"
-
-          {
-            echo "diff_comments<<DIFF_EOF"
-            echo "$diff_comments"
-            echo "DIFF_EOF"
-          } >> $GITHUB_OUTPUT
 
       - name: Run kicad-happy analysis per feature
         id: kicad_happy
@@ -322,20 +286,10 @@ jobs:
           retention-days:    90
           if-no-files-found: warn
 
-      - name: Upload visual diff HTML reports
-        if: steps.find.outputs.has_any_feature == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name:              visual-diff-pr${{ github.event.issue.number }}
-          path:              features/*/fab/visual-diff/
-          retention-days:    90
-          if-no-files-found: warn
-
       - name: Post PR comment
         uses: actions/github-script@v7
         env:
           HAPPY_REPORTS: ${{ steps.kicad_happy.outputs.happy_reports }}
-          DIFF_COMMENTS: ${{ steps.visual_diff.outputs.diff_comments }}
         with:
           script: |
             const fs     = require('fs');
@@ -347,7 +301,6 @@ jobs:
             const featuresList  = '${{ steps.kibot.outputs.features_list }}';
             const featuresNoPro = '${{ steps.kibot.outputs.features_no_pro }}';
             const featuresNoSvg = '${{ steps.kibot.outputs.features_no_svg }}';
-            const diffComments  = (process.env.DIFF_COMMENTS || '').trim();
             const happyReports  = process.env.HAPPY_REPORTS || '';
 
             const toSet = s => new Set(s ? s.split(',').filter(Boolean) : []);
@@ -381,10 +334,6 @@ jobs:
                     ? '⚠️ SVG render failed — check [workflow logs](' + runUrl + ')\n'
                     : '✅ SVG render complete (all pages)\n';
 
-                  body += diffComments
-                    ? diffComments + '\n'
-                    : '⚠️ Visual diff not generated — check [workflow logs](' + runUrl + ')\n';
-
                   if (happyMap[f]) {
                     body += '\n<details>\n<summary>📋 Design analysis & change summary</summary>\n\n';
                     body += happyMap[f] + '\n';
@@ -393,7 +342,7 @@ jobs:
                   body += '\n';
                 }
               }
-              body += `📥 [Download SVGs & Visual Diff from workflow artifacts](${runUrl})\n\n`;
+              body += `📥 [Download SVGs from workflow artifacts](${runUrl})\n\n`;
               body += '---\n';
               body += `*Commit: \`${sha}\` — ${ts} · [Workflow run](${runUrl})*`;
             }

@@ -109,7 +109,13 @@ def _check_kicad_cli(warnings_list: List[str]) -> bool:
 # ---------------------------------------------------------------------------
 
 def _collect_sheets(root: Path, feature: str) -> Dict[str, Path]:
-    """Return {sheet_filename: absolute_path} for a given root dir."""
+    """Return {sheet_filename: absolute_path} for a given root dir.
+
+    Looks in two locations (checked in order, no duplicates):
+    1. features/<feature>/schematics/*.kicad_sch  — if that subdirectory exists
+    2. features/<feature>/*.kicad_sch             — root dir glob (catches the
+       root schematic and any sibling hierarchical sheets)
+    """
     sheets: Dict[str, Path] = {}
 
     # Primary location: features/<feature>/schematics/*.kicad_sch
@@ -118,10 +124,13 @@ def _collect_sheets(root: Path, feature: str) -> Dict[str, Path]:
         for f in sorted(sch_dir.glob("*.kicad_sch")):
             sheets[f.name] = f
 
-    # Fallback: features/<feature>/<feature>.kicad_sch
-    fallback = root / "features" / feature / f"{feature}.kicad_sch"
-    if fallback.is_file() and fallback.name not in sheets:
-        sheets[fallback.name] = fallback
+    # Fallback: glob all *.kicad_sch files in the feature root directory.
+    # This picks up the root schematic and any sibling hierarchical sheets.
+    feature_dir = root / "features" / feature
+    if feature_dir.is_dir():
+        for f in sorted(feature_dir.glob("*.kicad_sch")):
+            if f.name not in sheets:
+                sheets[f.name] = f
 
     return sheets
 

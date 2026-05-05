@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""kicad-visual-diff.py — Generate a visual diff of KiCad schematic sheets.
+"""kicad-visual-diff.py — Generate a visual diff of KiCad schematic and PCB layers.
 
 Usage:
     python3 kicad-visual-diff.py \
         --base-dir /tmp/base \
         --head-dir /tmp/head \
         --feature buck-converter-5v \
-        --output-dir /tmp/diff-output
+        --output-dir /tmp/diff-output [--pcb]
 
 Always exits 0. Errors are recorded as warnings, never crashes.
 """
@@ -42,6 +42,29 @@ try:
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
+
+try:
+    import sexpdata  # type: ignore
+    SEXPDATA_AVAILABLE = True
+except ImportError:
+    SEXPDATA_AVAILABLE = False
+
+# ---------------------------------------------------------------------------
+# PCB layer constants
+# ---------------------------------------------------------------------------
+
+PRIORITY_LAYERS = [
+    "F.Cu", "B.Cu", "In1.Cu", "In2.Cu",
+    "F.Silkscreen", "B.Silkscreen",
+    "F.Courtyard", "B.Courtyard",
+    "F.Fab", "B.Fab",
+    "Edge.Cuts",
+]
+
+# SVG files smaller than this are considered empty board layers and are skipped.
+# kicad-cli may export a near-empty SVG (just a bounding box) for layers with no
+# copper or other content; 500 bytes is well above metadata but below any real content.
+_MIN_SVG_SIZE_BYTES = 500
 
 # ---------------------------------------------------------------------------
 # Embedded panzoom v4.5.1 — MIT licence — https://github.com/timmywil/panzoom
@@ -117,6 +140,21 @@ def find_sheets(
 
 
 # ---------------------------------------------------------------------------
+# PCB discovery
+# ---------------------------------------------------------------------------
+
+def find_pcb(
+    base_dir: Path, head_dir: Path, feature: str
+) -> Tuple[Optional[Path], Optional[Path]]:
+    """Return (base_pcb_or_None, head_pcb_or_None) for features/<feature>/<feature>.kicad_pcb."""
+    def _pcb(root: Path) -> Optional[Path]:
+        p = root / "features" / feature / f"{feature}.kicad_pcb"
+        return p if p.is_file() else None
+
+    return _pcb(base_dir), _pcb(head_dir)
+
+
+# ---------------------------------------------------------------------------
 # Step 2 — Export SVG
 # ---------------------------------------------------------------------------
 
@@ -152,6 +190,132 @@ def export_svg(
 
     _warn(warnings_list, f"kicad-cli ran but no SVG found for {sch_path.name}")
     return None
+
+
+# ---------------------------------------------------------------------------
+# Step 2b — Export PCB layer SVG
+# ---------------------------------------------------------------------------
+
+def export_pcb_layer_svg(
+    pcb_path: Path, layer: str, svg_out_dir: Path, warnings_list: List[str]
+) -> Optional[Path]:
+    """Export a single PCB layer as SVG. Returns SVG path or None (including empty layers)."""
+    svg_out_dir.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
+        ["kicad-cli", "pcb", "export", "svg",
+         "--layers", layer,
+         "--output", str(svg_out_dir),
+         str(pcb_path)],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        _warn(
+            warnings_list,
+            f"kicad-cli pcb export svg failed for {pcb_path.name} layer {layer}: "
+            f"{(result.stderr or result.stdout or '').strip()[:300]}",
+        )
+        return None
+
+    svgs = sorted(svg_out_dir.glob("*.svg"))
+    if not svgs:
+        _warn(warnings_list, f"kicad-cli ran but no SVG found for {pcb_path.name} layer {layer}")
+        return None
+
+    svg_path = svgs[0]
+    # Skip layers that produced an effectively empty SVG
+    if svg_path.stat().st_size < _MIN_SVG_SIZE_BYTES:
+        return None
+
+    return svg_path
+
+
+# ---------------------------------------------------------------------------
+# PCB layer diffing
+# ---------------------------------------------------------------------------
+
+def diff_pcb_layers(
+    base_pcb: Optional[Path],
+    head_pcb: Optional[Path],
+    feature: str,
+    out_dir: Path,
+    warnings_list: List[str],
+) -> List[dict]:
+    """Return a list of layer result dicts, one per priority layer that is non-empty."""
+    layer_results: List[dict] = []
+
+    svg_dir  = out_dir / "pcb_svgs"
+    png_dir  = out_dir / "pcb_pngs"
+    diff_dir = out_dir / "pcb_diffs"
+    for d in (svg_dir, png_dir, diff_dir):
+        d.mkdir(parents=True, exist_ok=True)
+
+    for layer in PRIORITY_LAYERS:
+        layer_safe = layer.replace(".", "_")
+
+        base_svg: Optional[Path] = None
+        head_svg: Optional[Path] = None
+
+        if base_pcb is not None:
+            base_svg = export_pcb_layer_svg(
+                base_pcb, layer, svg_dir / "base" / layer_safe, warnings_list
+            )
+        if head_pcb is not None:
+            head_svg = export_pcb_layer_svg(
+                head_pcb, layer, svg_dir / "head" / layer_safe, warnings_list
+            )
+
+        # Skip layer if both sides are empty/missing
+        if base_svg is None and head_svg is None:
+            continue
+
+        r: dict = {"layer": layer}
+
+        # Classify
+        if base_pcb is None:
+            r["status"] = "new_pcb"
+        elif head_pcb is None:
+            r["status"] = "deleted_pcb"
+        else:
+            r["status"] = "compared"
+
+        # Rasterise base side
+        base_png: Optional[Path] = None
+        if base_svg is not None:
+            base_png_path = png_dir / "base" / f"{layer_safe}.png"
+            if rasterize_svg(base_svg, base_png_path, warnings_list):
+                base_png = base_png_path
+        if base_png:
+            r["base_png"] = base_png
+
+        # Rasterise head side
+        head_png: Optional[Path] = None
+        if head_svg is not None:
+            head_png_path = png_dir / "head" / f"{layer_safe}.png"
+            if rasterize_svg(head_svg, head_png_path, warnings_list):
+                head_png = head_png_path
+        if head_png:
+            r["head_png"] = head_png
+
+        # Compute pixel diff when both sides are present
+        if r["status"] == "compared":
+            if base_png is None or head_png is None:
+                r["status"] = "unrenderable"
+                _warn(
+                    warnings_list,
+                    f"Cannot diff PCB layer {layer}: "
+                    f"{'base' if base_png is None else 'head'} side could not be rendered",
+                )
+            else:
+                diff_path = diff_dir / f"{layer_safe}-diff.png"
+                if compute_diff(base_png, head_png, diff_path, warnings_list):
+                    r["diff_png"] = diff_path
+                else:
+                    r["status"] = "unrenderable"
+
+        layer_results.append(r)
+
+    return layer_results
 
 
 # ---------------------------------------------------------------------------
@@ -325,8 +489,262 @@ def compute_diff(
 
 
 # ---------------------------------------------------------------------------
+# Semantic diff (sexpdata)
+# ---------------------------------------------------------------------------
+
+def _sym_type(item: object) -> Optional[str]:
+    """Return the type name of an S-expression list element, or None."""
+    if not isinstance(item, list) or not item:
+        return None
+    first = item[0]
+    if hasattr(first, "value"):
+        return str(first.value())
+    return None
+
+
+def _sexp_find_all(tree: list, type_name: str) -> List[list]:
+    """Return all direct children of *tree* whose type matches *type_name*."""
+    if not isinstance(tree, list):
+        return []
+    return [item for item in tree if _sym_type(item) == type_name]
+
+
+def _get_property(element: list, key: str) -> Optional[str]:
+    """Extract value for a named property inside a KiCad element.
+
+    Handles both KiCad 6+ ``(property "Key" "Value" …)`` format and the
+    older flat ``(reference "R7")`` / ``(value "10k")`` style.
+    """
+    for item in element:
+        if _sym_type(item) == "property":
+            if len(item) >= 3 and item[1] == key:
+                val = item[2]
+                return str(val) if isinstance(val, str) else None
+    # Older flat style — map standard property names
+    legacy_map = {
+        "Reference": "reference",
+        "Value": "value",
+        "Footprint": "footprint",
+    }
+    legacy_tag = legacy_map.get(key)
+    if legacy_tag:
+        for item in element:
+            if _sym_type(item) == legacy_tag and len(item) >= 2:
+                val = item[1]
+                return str(val) if isinstance(val, str) else None
+    return None
+
+
+def _extract_placed_symbols(tree: list) -> Dict[str, Dict[str, str]]:
+    """Return {reference: {value, footprint}} for placed symbol instances."""
+    syms: Dict[str, Dict[str, str]] = {}
+    for item in tree:
+        if _sym_type(item) != "symbol":
+            continue
+        ref = _get_property(item, "Reference")
+        if ref is None:
+            continue  # skip lib_symbols entries and unresolved instances
+        val = _get_property(item, "Value") or ""
+        fp  = _get_property(item, "Footprint") or ""
+        syms[ref] = {"value": val, "footprint": fp}
+    return syms
+
+
+def _count_wires(tree: list) -> int:
+    """Count wire elements at the top level of the schematic tree."""
+    if not isinstance(tree, list):
+        return 0
+    return sum(1 for item in tree if _sym_type(item) == "wire")
+
+
+def _extract_label_texts(tree: list) -> "Set[str]":
+    """Return the set of all net/global label texts in the schematic tree."""
+    texts: Set[str] = set()
+    for item in tree:
+        if _sym_type(item) not in ("net_label", "global_label", "label"):
+            continue
+        # KiCad 7+: (net_label "TEXT" ...) or (label "TEXT" ...)
+        if len(item) >= 2 and isinstance(item[1], str):
+            texts.add(item[1])
+            continue
+        # KiCad 6+: (net_label ... (property "Value" "TEXT") ...)
+        val = _get_property(item, "Value")
+        if val:
+            texts.add(val)
+    return texts
+
+
+def _extract_sheet_filenames(tree: list) -> "Set[str]":
+    """Return the set of hierarchical sheet filenames referenced in the schematic."""
+    filenames: Set[str] = set()
+    for item in tree:
+        if _sym_type(item) != "sheet":
+            continue
+        fn = _get_property(item, "Sheet file")
+        if fn:
+            filenames.add(fn)
+    return filenames
+
+
+def parse_schematic_changes(
+    base_sch: Path,
+    head_sch: Path,
+    sheet_name: str,
+    warnings_list: List[str],
+) -> List[dict]:
+    """Parse two .kicad_sch S-expression files and return a list of change dicts.
+
+    Returns an empty list when sexpdata is unavailable or parsing fails.
+    High-confidence changes are reported precisely; uncertain situations
+    are recorded as ``unknown_change`` with ``confidence: low``.
+    """
+    if not SEXPDATA_AVAILABLE:
+        return []
+
+    changes: List[dict] = []
+
+    def _load(path: Path) -> Optional[list]:
+        try:
+            return sexpdata.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            _warn(warnings_list, f"sexpdata: failed to parse {path.name}: {exc}")
+            return None
+
+    base_tree = _load(base_sch)
+    head_tree = _load(head_sch)
+
+    if base_tree is None or head_tree is None:
+        return []
+
+    # ---- Symbols -----------------------------------------------------------
+    try:
+        base_syms = _extract_placed_symbols(base_tree)
+        head_syms = _extract_placed_symbols(head_tree)
+        all_refs = set(base_syms) | set(head_syms)
+        for ref in sorted(all_refs):
+            if ref in head_syms and ref not in base_syms:
+                changes.append({
+                    "type": "symbol_added",
+                    "reference": ref,
+                    "value": head_syms[ref]["value"],
+                    "sheet": sheet_name,
+                    "confidence": "high",
+                })
+            elif ref in base_syms and ref not in head_syms:
+                changes.append({
+                    "type": "symbol_removed",
+                    "reference": ref,
+                    "value": base_syms[ref]["value"],
+                    "sheet": sheet_name,
+                    "confidence": "high",
+                })
+            else:
+                b = base_syms[ref]
+                h = head_syms[ref]
+                if b["value"] != h["value"]:
+                    changes.append({
+                        "type": "symbol_value_changed",
+                        "reference": ref,
+                        "old": b["value"],
+                        "new": h["value"],
+                        "sheet": sheet_name,
+                        "confidence": "high",
+                    })
+                if b["footprint"] != h["footprint"]:
+                    changes.append({
+                        "type": "symbol_footprint_changed",
+                        "reference": ref,
+                        "old": b["footprint"],
+                        "new": h["footprint"],
+                        "sheet": sheet_name,
+                        "confidence": "high",
+                    })
+    except Exception as exc:
+        _warn(warnings_list, f"sexpdata: symbol extraction failed for {sheet_name}: {exc}")
+        changes.append({
+            "type": "unknown_change",
+            "sheet": sheet_name,
+            "confidence": "low",
+            "description": f"Symbol extraction error: {exc}",
+        })
+
+    # ---- Wires -------------------------------------------------------------
+    try:
+        base_wires = _count_wires(base_tree)
+        head_wires = _count_wires(head_tree)
+        if base_wires != head_wires:
+            changes.append({
+                "type": "wire_count_changed",
+                "base_count": base_wires,
+                "head_count": head_wires,
+                "sheet": sheet_name,
+                "confidence": "medium",
+            })
+    except Exception as exc:
+        _warn(warnings_list, f"sexpdata: wire count failed for {sheet_name}: {exc}")
+
+    # ---- Net labels --------------------------------------------------------
+    try:
+        base_labels = _extract_label_texts(base_tree)
+        head_labels = _extract_label_texts(head_tree)
+        for lbl in sorted(head_labels - base_labels):
+            changes.append({
+                "type": "net_label_added",
+                "label": lbl,
+                "sheet": sheet_name,
+                "confidence": "high",
+            })
+        for lbl in sorted(base_labels - head_labels):
+            changes.append({
+                "type": "net_label_removed",
+                "label": lbl,
+                "sheet": sheet_name,
+                "confidence": "high",
+            })
+    except Exception as exc:
+        _warn(warnings_list, f"sexpdata: label extraction failed for {sheet_name}: {exc}")
+
+    # ---- Hierarchical sheets -----------------------------------------------
+    try:
+        base_hsheets = _extract_sheet_filenames(base_tree)
+        head_hsheets = _extract_sheet_filenames(head_tree)
+        for fn in sorted(head_hsheets - base_hsheets):
+            changes.append({
+                "type": "hierarchical_sheet_added",
+                "filename": fn,
+                "sheet": sheet_name,
+                "confidence": "high",
+            })
+        for fn in sorted(base_hsheets - head_hsheets):
+            changes.append({
+                "type": "hierarchical_sheet_removed",
+                "filename": fn,
+                "sheet": sheet_name,
+                "confidence": "high",
+            })
+    except Exception as exc:
+        _warn(warnings_list, f"sexpdata: sheet extraction failed for {sheet_name}: {exc}")
+
+    return changes
+
+
+# ---------------------------------------------------------------------------
 # Step 5 — Generate outputs
 # ---------------------------------------------------------------------------
+
+_CHANGE_TYPE_LABELS: Dict[str, str] = {
+    "symbol_added":               "Symbol added",
+    "symbol_removed":             "Symbol removed",
+    "symbol_value_changed":       "Value changed",
+    "symbol_footprint_changed":   "Footprint changed",
+    "wire_count_changed":         "Wire count changed",
+    "net_label_added":            "Net label added",
+    "net_label_removed":          "Net label removed",
+    "hierarchical_sheet_added":   "Sheet added",
+    "hierarchical_sheet_removed": "Sheet removed",
+    "unknown_change":             "Unknown change",
+}
+
 
 def _img_tag(path: Optional[Path], sheet_slug: str = "", side: str = "") -> str:
     """Return an <img> HTML tag with base64-embedded PNG, or em dash.
@@ -357,7 +775,62 @@ def generate_html(
     base_sha: str,
     head_sha: str,
     ts: str,
+    changes: Optional[List[dict]] = None,
+    pcb_results: Optional[List[dict]] = None,
 ) -> str:
+    if changes is None:
+        changes = []
+    if pcb_results is None:
+        pcb_results = []
+
+    # ---- Change summary section --------------------------------------------
+
+    def _change_row_html(ch: dict) -> str:
+        ctype  = ch.get("type", "unknown")
+        sheet  = ch.get("sheet", "")
+        conf   = ch.get("confidence", "")
+        ref    = ch.get("reference", "&mdash;")
+        label  = _CHANGE_TYPE_LABELS.get(ctype, ctype.replace("_", " "))
+        if ctype in ("symbol_value_changed", "symbol_footprint_changed"):
+            detail = f"{ch.get('old', '')} &rarr; {ch.get('new', '')}"
+        elif ctype in ("symbol_added", "symbol_removed"):
+            detail = ch.get("value", "")
+        elif ctype == "wire_count_changed":
+            detail = f"{ch.get('base_count', 0)} &rarr; {ch.get('head_count', 0)}"
+            ref = "&mdash;"
+        elif ctype in ("net_label_added", "net_label_removed"):
+            detail = ch.get("label", "")
+            ref = "&mdash;"
+        elif ctype in ("hierarchical_sheet_added", "hierarchical_sheet_removed"):
+            detail = ch.get("filename", "")
+            ref = "&mdash;"
+        elif ctype == "unknown_change":
+            detail = ch.get("description", "")
+            ref = "&mdash;"
+        else:
+            detail = ""
+        return (
+            f"<tr><td>{label}</td><td>{ref}</td><td>{detail}</td>"
+            f"<td>{sheet}</td><td>{conf}</td></tr>"
+        )
+
+    if changes:
+        change_rows = "\n".join(_change_row_html(ch) for ch in changes)
+        changes_section = f"""<details>
+  <summary>&#x1F4CB; Change summary ({len(changes)} changes)</summary>
+  <table class="changes-table">
+    <thead><tr><th>Type</th><th>Reference</th><th>Detail</th><th>Sheet</th><th>Confidence</th></tr></thead>
+    <tbody>
+{change_rows}
+    </tbody>
+  </table>
+</details>"""
+    else:
+        changes_section = (
+            "<p><em>Semantic diff unavailable &mdash; "
+            "sexpdata not installed or no changes detected.</em></p>"
+        )
+
     rows_html_parts = []
     for name in sheets:
         r = results.get(name, {})
@@ -402,6 +875,57 @@ def generate_html(
 
     rows_html = "\n".join(rows_html_parts)
 
+    # Build PCB layers section if there are results
+    pcb_section = ""
+    if pcb_results:
+        pcb_rows_parts = []
+        for pr in pcb_results:
+            layer = pr.get("layer", "")
+            status = pr.get("status", "unrenderable")
+            if status == "unrenderable":
+                cell = (
+                    '<td colspan="3" class="warn">'
+                    "&#9888;&#xFE0F; Could not render this layer &mdash; check workflow logs"
+                    "</td>"
+                )
+                pcb_rows_parts.append(f"<tr><td><code>{layer}</code></td>{cell}</tr>")
+            elif status == "new_pcb":
+                head_img = _img_tag(pr.get("head_png"))
+                pcb_rows_parts.append(
+                    f"<tr><td><code>{layer}</code></td>"
+                    f"<td>&mdash;</td>"
+                    f"<td><span class='badge badge-new'>&#x1F195; New PCB</span></td>"
+                    f"<td>{head_img}</td></tr>"
+                )
+            elif status == "deleted_pcb":
+                base_img = _img_tag(pr.get("base_png"))
+                pcb_rows_parts.append(
+                    f"<tr><td><code>{layer}</code></td>"
+                    f"<td>{base_img}</td>"
+                    f"<td><span class='badge badge-deleted'>&#x1F5D1;&#xFE0F; Deleted</span></td>"
+                    f"<td>&mdash;</td></tr>"
+                )
+            else:  # compared
+                base_img = _img_tag(pr.get("base_png"))
+                diff_img = _img_tag(pr.get("diff_png"))
+                head_img = _img_tag(pr.get("head_png"))
+                pcb_rows_parts.append(
+                    f"<tr><td><code>{layer}</code></td>"
+                    f"<td>{base_img}</td>"
+                    f"<td>{diff_img}</td>"
+                    f"<td>{head_img}</td></tr>"
+                )
+        pcb_rows_html = "\n".join(pcb_rows_parts)
+        pcb_section = f"""
+<h2>PCB Layers</h2>
+<table>
+  <thead><tr><th>Layer</th><th>Old (base)</th><th>Diff</th><th>New (head)</th></tr></thead>
+  <tbody>
+{pcb_rows_html}
+  </tbody>
+</table>
+"""
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -430,6 +954,10 @@ def generate_html(
   .pz-reset {{ position: absolute; top: 4px; right: 4px; font-size: 0.75em;
                padding: 2px 6px; background: rgba(255,255,255,0.85);
                border: 1px solid #aaa; border-radius: 3px; cursor: pointer; }}
+  details {{ margin: 1em 0 1.5em; }}
+  .changes-table {{ border-collapse: collapse; width: 100%; font-size: 0.9em; }}
+  .changes-table th, .changes-table td {{ border: 1px solid #ccc; padding: 0.3em 0.5em; }}
+  .changes-table th {{ background: #f5f5f5; text-align: left; }}
 </style>
 </head>
 <body>
@@ -442,6 +970,8 @@ def generate_html(
   <span><span class="swatch" style="background:#DCDCDC"></span> Unchanged (grey)</span>
 </div>
 
+{changes_section}
+
 <table>
   <thead>
     <tr><th>Sheet</th><th>Old (base)</th><th>Diff</th><th>New (head)</th></tr>
@@ -450,7 +980,7 @@ def generate_html(
 {rows_html}
   </tbody>
 </table>
-
+{pcb_section}
 <footer>
   Feature: <code>{feature}</code> &nbsp;|&nbsp;
   BASE_SHA: <code>{base_sha}</code> &nbsp;|&nbsp;
@@ -479,10 +1009,49 @@ def generate_comment_md(
     sheets: Dict[str, Tuple[Optional[Path], Optional[Path]]],
     results: Dict[str, dict],
     warnings_list: List[str],
+    changes: Optional[List[dict]] = None,
+    pcb_results: Optional[List[dict]] = None,
 ) -> str:
+    if changes is None:
+        changes = []
+    if pcb_results is None:
+        pcb_results = []
+
     lines: List[str] = [
         f"### \U0001f5bc\ufe0f Visual Diff \u2014 `{feature}`",
         "",
+    ]
+
+    # ---- Change summary (high-confidence only, max 10 items) ---------------
+    high_conf = [ch for ch in changes if ch.get("confidence") == "high"]
+    if high_conf:
+        n_total = len(high_conf)
+        count_label = f"{n_total}" if n_total <= 10 else f"{n_total} (showing 10)"
+        lines.append(f"**Changes detected:** {count_label}")
+        lines.append("")
+        lines.append("| Type | Reference | Detail |")
+        lines.append("|---|---|---|")
+        for ch in high_conf[:10]:
+            ctype  = ch.get("type", "unknown")
+            ref    = ch.get("reference", "\u2014")
+            label  = _CHANGE_TYPE_LABELS.get(ctype, ctype.replace("_", " "))
+            if ctype in ("symbol_value_changed", "symbol_footprint_changed"):
+                detail = f"{ch.get('old', '')} \u2192 {ch.get('new', '')}"
+            elif ctype in ("symbol_added", "symbol_removed"):
+                detail = ch.get("value", "")
+            elif ctype in ("net_label_added", "net_label_removed"):
+                detail = ch.get("label", "")
+                ref = "\u2014"
+            elif ctype in ("hierarchical_sheet_added", "hierarchical_sheet_removed"):
+                detail = ch.get("filename", "")
+                ref = "\u2014"
+            else:
+                detail = ""
+            lines.append(f"| {label} | {ref} | {detail} |")
+        lines.append("")
+
+    # ---- Sheet result table ------------------------------------------------
+    lines += [
         "| Sheet | Result |",
         "|---|---|",
     ]
@@ -512,6 +1081,25 @@ def generate_comment_md(
             lines.append(f"- {w}")
         lines.append("")
         lines.append("</details>")
+
+    if pcb_results:
+        lines.append("")
+        lines.append("**PCB Layers**")
+        lines.append("")
+        lines.append("| Layer | Result |")
+        lines.append("|---|---|")
+        for pr in pcb_results:
+            layer = pr.get("layer", "")
+            status = pr.get("status", "unrenderable")
+            if status == "new_pcb":
+                result_str = "\U0001f195 New PCB"
+            elif status == "deleted_pcb":
+                result_str = "\U0001f5d1\ufe0f Deleted"
+            elif status == "unrenderable":
+                result_str = "\u26a0\ufe0f Could not render"
+            else:
+                result_str = "\u2705 Diff generated"
+            lines.append(f"| {layer} | {result_str} |")
 
     return "\n".join(lines) + "\n"
 
@@ -561,6 +1149,8 @@ def main() -> None:
                         help="Feature name (e.g. buck-converter-5v)")
     parser.add_argument("--output-dir", required=True, type=Path,
                         help="Directory where outputs will be written")
+    parser.add_argument("--pcb", action="store_true", default=False,
+                        help="Also diff PCB layers when .kicad_pcb files are present")
     args = parser.parse_args()
 
     base_dir: Path  = args.base_dir
@@ -651,11 +1241,73 @@ def main() -> None:
 
         results[name] = r
 
+    # ---- PCB layer diff (when --pcb flag is set) ----------------------------
+    pcb_results: List[dict] = []
+    layers_compared: List[str] = []
+    layers_skipped:  List[str] = []
+
+    if args.pcb:
+        base_pcb, head_pcb = find_pcb(base_dir, head_dir, feature)
+        if base_pcb is None and head_pcb is None:
+            _warn(
+                warnings_list,
+                f"--pcb specified but no .kicad_pcb file found for feature '{feature}' "
+                f"in either base-dir or head-dir",
+            )
+        else:
+            pcb_results = diff_pcb_layers(
+                base_pcb, head_pcb, feature, out_dir, warnings_list
+            )
+            for pr in pcb_results:
+                if pr.get("status") == "unrenderable":
+                    layers_skipped.append(pr["layer"])
+                else:
+                    layers_compared.append(pr["layer"])
+
+        # Also record layers that were absent on both sides (empty on both base and
+        # head) as skipped, so metadata.json gives a complete picture of all
+        # PRIORITY_LAYERS that were considered but not compared.
+        processed_layers = {pr["layer"] for pr in pcb_results}
+        for layer in PRIORITY_LAYERS:
+            if layer not in processed_layers:
+                layers_skipped.append(layer)
+
     # ---- Step 5: Generate outputs -------------------------------------------
+
+    # Semantic diff — parse compared sheets and aggregate changes
+    all_changes: List[dict] = []
+    if sheets_compared and SEXPDATA_AVAILABLE:
+        for name in sheets_compared:
+            base_sch, head_sch = sheets[name]
+            if base_sch is not None and head_sch is not None:
+                sheet_changes = parse_schematic_changes(
+                    base_sch, head_sch, name, warnings_list
+                )
+                all_changes.extend(sheet_changes)
+
+    # changes.json — written when compared sheets exist or sexpdata unavailable
+    if sheets_compared or not SEXPDATA_AVAILABLE:
+        if SEXPDATA_AVAILABLE:
+            changes_json: dict = {
+                "feature":       feature,
+                "total_changes": len(all_changes),
+                "changes":       all_changes,
+            }
+        else:
+            changes_json = {
+                "feature":       feature,
+                "total_changes": 0,
+                "changes":       [],
+                "warning":       "sexpdata not available",
+            }
+        (out_dir / "changes.json").write_text(
+            json.dumps(changes_json, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
 
     # diff-report.html
     html_content = generate_html(
-        feature, sheets, results, base_sha, head_sha, ts
+        feature, sheets, results, base_sha, head_sha, ts,
+        all_changes, pcb_results=pcb_results,
     )
     (out_dir / "diff-report.html").write_text(html_content, encoding="utf-8")
 
@@ -667,6 +1319,8 @@ def main() -> None:
         "sheets_compared":  sheets_compared,
         "sheets_new":       sheets_new,
         "sheets_deleted":   sheets_deleted,
+        "layers_compared":  layers_compared,
+        "layers_skipped":   layers_skipped,
         "warnings":         warnings_list,
     }
     (out_dir / "metadata.json").write_text(
@@ -674,12 +1328,18 @@ def main() -> None:
     )
 
     # comment.md
-    comment_md = generate_comment_md(feature, sheets, results, warnings_list)
+    comment_md = generate_comment_md(
+        feature, sheets, results, warnings_list, all_changes,
+        pcb_results=pcb_results,
+    )
     (out_dir / "comment.md").write_text(comment_md, encoding="utf-8")
 
     print(f"kicad-visual-diff complete. Outputs in {out_dir}")
     print(f"  Sheets compared: {len(sheets_compared)}, "
           f"new: {len(sheets_new)}, deleted: {len(sheets_deleted)}")
+    if args.pcb:
+        print(f"  PCB layers compared: {len(layers_compared)}, "
+              f"skipped: {len(layers_skipped)}")
     if warnings_list:
         print(f"  {len(warnings_list)} warning(s):")
         for w in warnings_list:

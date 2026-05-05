@@ -1,1 +1,29 @@
+# Default — all paths not explicitly listed below
 * @rockett90
+
+# GitHub platform configuration — prevents unauthorised workflow or config changes
+/.github/workflows/                         @rockett90
+/.github/commitlint.config.js               @rockett90
+/.github/release-please-config.json         @rockett90
+/.github/release-please-manifest.json       @rockett90
+
+# KiCad project templates — leads only, changes affect all features globally
+/templates/                                 @rockett90
+
+# Checklists — gate process documents
+/checklists/                                @rockett90
+
+# Tool configuration
+/config/                                    @rockett90
+
+# CI scripts and automation
+/scripts/                                   @rockett90
+
+# Engineering guidelines — content feeds into AI review automatically
+/guidelines/                                @rockett90
+
+# Gate sign-off records per feature — CODEOWNERS-protected, leads only
+/features/*/reviews/                        @rockett90
+
+# Shared component library submodule pointer
+/library/                                   @rockett90

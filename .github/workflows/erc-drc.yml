@@ -1,0 +1,172 @@
+name: ERC / DRC informational
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number'
+        required: true
+        type: string
+      head_sha:
+        description: 'Head SHA to check out'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: erc-drc-pr-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  erc-drc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          ref: ${{ github.event.inputs.head_sha || github.sha }}
+
+      - name: Detect changed KiCad files
+        id: changed
+        run: |
+          BASE_REF="${{ github.base_ref || 'main' }}"
+          SCH_FILES=$(git diff --name-only "origin/${BASE_REF}...HEAD" \
+            | grep '\.kicad_sch$' || true)
+          PCB_FILES=$(git diff --name-only "origin/${BASE_REF}...HEAD" \
+            | grep '\.kicad_pcb$' || true)
+          if [[ -z "$SCH_FILES" && -z "$PCB_FILES" ]]; then
+            echo "has_kicad=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_kicad=true" >> $GITHUB_OUTPUT
+          fi
+          { echo "sch_files<<EOF"; echo "$SCH_FILES"; echo "EOF"; } >> $GITHUB_OUTPUT
+          { echo "pcb_files<<EOF"; echo "$PCB_FILES"; echo "EOF"; } >> $GITHUB_OUTPUT
+
+      - name: Run ERC per schematic
+        id: erc
+        if: steps.changed.outputs.has_kicad == 'true'
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/erc-results
+          erc_summary=""
+          while IFS= read -r SCH; do
+            [[ -z "$SCH" ]] && continue
+            FEATURE=$(echo "$SCH" | cut -d'/' -f2)
+            echo "Running ERC on $SCH"
+            docker run --rm \
+              -v "$PWD:/repo" \
+              -w "/repo" \
+              "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
+              kicad-cli sch run-erc \
+                --output "/repo/$(dirname $SCH)/erc-report.txt" \
+                "/repo/$SCH" 2>&1 | tee "/tmp/erc-results/${FEATURE}-erc.txt" || true
+            EXIT_CODE=${PIPESTATUS[0]}
+            VIOLATIONS=$(grep -c "ERC " "/tmp/erc-results/${FEATURE}-erc.txt" 2>/dev/null || echo 0)
+            if [[ "$EXIT_CODE" -eq 0 ]]; then
+              erc_summary="${erc_summary}✅ ERC passed — \`$SCH\` (0 violations)\n"
+            else
+              erc_summary="${erc_summary}⚠️ ERC found violations — \`$SCH\` (~${VIOLATIONS} issue(s))\n"
+            fi
+          done <<< "${{ steps.changed.outputs.sch_files }}"
+          { echo "erc_summary<<EOF"; printf "$erc_summary"; echo "EOF"; } >> $GITHUB_OUTPUT
+
+      - name: Run DRC per PCB
+        id: drc
+        if: steps.changed.outputs.has_kicad == 'true'
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/drc-results
+          drc_summary=""
+          while IFS= read -r PCB; do
+            [[ -z "$PCB" ]] && continue
+            FEATURE=$(echo "$PCB" | cut -d'/' -f2)
+            echo "Running DRC on $PCB"
+            docker run --rm \
+              -v "$PWD:/repo" \
+              -w "/repo" \
+              "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
+              kicad-cli pcb run-drc \
+                --output "/repo/$(dirname $PCB)/drc-report.txt" \
+                "/repo/$PCB" 2>&1 | tee "/tmp/drc-results/${FEATURE}-drc.txt" || true
+            EXIT_CODE=${PIPESTATUS[0]}
+            VIOLATIONS=$(grep -c "DRC " "/tmp/drc-results/${FEATURE}-drc.txt" 2>/dev/null || echo 0)
+            if [[ "$EXIT_CODE" -eq 0 ]]; then
+              drc_summary="${drc_summary}✅ DRC passed — \`$PCB\` (0 violations)\n"
+            else
+              drc_summary="${drc_summary}⚠️ DRC found violations — \`$PCB\` (~${VIOLATIONS} issue(s))\n"
+            fi
+          done <<< "${{ steps.changed.outputs.pcb_files }}"
+          { echo "drc_summary<<EOF"; printf "$drc_summary"; echo "EOF"; } >> $GITHUB_OUTPUT
+
+      - name: Upload ERC/DRC reports
+        if: steps.changed.outputs.has_kicad == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: erc-drc-reports-pr${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+          path: |
+            features/*/erc-report.txt
+            features/*/drc-report.txt
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Post PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const hasKicad = '${{ steps.changed.outputs.has_kicad }}' === 'true';
+            const ercSummary = `${{ steps.erc.outputs.erc_summary }}`;
+            const drcSummary = `${{ steps.drc.outputs.drc_summary }}`;
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const prNumber = context.payload.pull_request
+              ? context.payload.pull_request.number
+              : parseInt('${{ github.event.inputs.pr_number }}', 10);
+
+            let body = '## 🔬 ERC / DRC\n\n';
+
+            if (!hasKicad) {
+              body += 'No KiCad schematic or PCB files changed in this PR — ERC/DRC skipped.\n';
+            } else {
+              if (ercSummary && ercSummary.trim()) {
+                body += '### Schematic ERC\n\n' + ercSummary.trim() + '\n\n';
+              }
+              if (drcSummary && drcSummary.trim()) {
+                body += '### PCB DRC\n\n' + drcSummary.trim() + '\n\n';
+              }
+              body += '---\n';
+              body += '> ℹ️ These results are **informational only** and do not block merge. ';
+              body += 'ERC/DRC evidence is reviewed by the hardware lead at CDR (ERC) and TRR (DRC).\n\n';
+              body += `📥 [Download full ERC/DRC reports](${runUrl})`;
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.startsWith('## 🔬 ERC / DRC')
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }

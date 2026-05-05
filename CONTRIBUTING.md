@@ -74,7 +74,7 @@ Add a Jira key to the branch name and PR description if you have a ticket. Leave
 Open a Draft PR immediately after your first push:
 GitHub → "Compare & pull request" → dropdown arrow on the green button → "Create draft pull request".
 
-Comment `/render` on the PR at any time to generate a schematic SVG.
+Comment `/render` on the PR at any time to export schematic SVGs. Comment `/kicad-diff` to generate a visual diff of all changes vs the base branch.
 
 When ready for review, click **"Ready for review"** at the bottom of the PR page (below the merge box) — this triggers AI review automatically.
 
@@ -88,9 +88,9 @@ Post a slash command as a PR comment to trigger CI actions. Commands require **w
 
 | Command | Action |
 |---|---|
-| `/render` | Generate schematic SVG renders and visual diff |
+| `/render` | Export schematic as SVG — readable without KiCad |
 | `/ai-review` | Run AI schematic review |
-| `/kicad-diff` | Generate visual schematic diff |
+| `/kicad-diff` | Generate visual diff of schematic (and PCB) changes vs base branch |
 | `/erc` | Run ERC (Electrical Rules Check) — informational, does not block merge |
 | `/drc` | Run DRC (Design Rules Check) — informational, does not block merge |
 | `/emc-check` | *(coming soon)* |

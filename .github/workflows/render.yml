@@ -17,17 +17,24 @@ permissions:
   pull-requests: write
 jobs:
   render:
-    if: github.event.issue.pull_request != null &&
-        contains(github.event.comment.body, '/render')
+    # Allow both direct issue_comment trigger and workflow_dispatch (from slash command dispatcher).
+    # For issue_comment: guard ensures this is a PR comment containing /render.
+    # For workflow_dispatch: the dispatcher has already verified permission and parsed the command.
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request != null &&
+       contains(github.event.comment.body, '/render'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
-      group: render-pr-${{ github.event.issue.number }}
+      group: render-pr-${{ github.event.issue.number || github.event.inputs.pr_number }}
       cancel-in-progress: true
     # First run is slow (~1-3 min) while the ~2 GB image is pulled.
     # Subsequent runs use cached layers and are faster.
     steps:
       - name: Verify commenter has write access
+        # Skip for workflow_dispatch — permission was already verified by the dispatcher.
+        if: github.event_name != 'workflow_dispatch'
         uses: actions/github-script@v7
         with:
           script: |
@@ -45,14 +52,18 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const prNumber = context.eventName === 'workflow_dispatch'
+              ? parseInt('${{ github.event.inputs.pr_number }}', 10)
+              : context.issue.number;
             const { data } = await github.rest.pulls.get({
               owner:       context.repo.owner,
               repo:        context.repo.repo,
-              pull_number: context.issue.number,
+              pull_number: prNumber,
             });
-            core.setOutput('ref',      data.head.ref);
-            core.setOutput('sha',      data.head.sha);
-            core.setOutput('base_ref', data.base.ref);
+            core.setOutput('pr_number', String(prNumber));
+            core.setOutput('ref',       data.head.ref);
+            core.setOutput('sha',       data.head.sha);
+            core.setOutput('base_ref',  data.base.ref);
 
       - uses: actions/checkout@v4
         with:
@@ -89,7 +100,7 @@ jobs:
         id: find
         run: |
           # Must use steps.pr.outputs.base_ref — github.base_ref
-          # is empty in issue_comment events.
+          # is empty in issue_comment and workflow_dispatch events.
           git fetch origin "${{ steps.pr.outputs.base_ref }}"
           SCH_FEATURES=$(git diff --name-only \
             "origin/${{ steps.pr.outputs.base_ref }}...HEAD" | \
@@ -222,7 +233,11 @@ PYEOF
           while IFS= read -r FEATURE; do
             [[ -z "$FEATURE" ]] && continue
 
+            # Locate schematic: try feature root first, then schematics/ subdirectory.
             SCH_FILE="features/${FEATURE}/${FEATURE}.kicad_sch"
+            if [[ ! -f "$SCH_FILE" ]]; then
+              SCH_FILE="features/${FEATURE}/schematics/${FEATURE}.kicad_sch"
+            fi
             if [[ ! -f "$SCH_FILE" ]]; then
               echo "⚠️  kicad-happy: skipping ${FEATURE} — schematic not found"
               continue
@@ -281,7 +296,7 @@ PYEOF
         if: steps.find.outputs.has_any_feature == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name:              schematic-svgs-pr${{ github.event.issue.number }}
+          name:              schematic-svgs-pr${{ steps.pr.outputs.pr_number }}
           path:              features/*/fab/*.svg
           retention-days:    90
           if-no-files-found: warn
@@ -292,10 +307,11 @@ PYEOF
           HAPPY_REPORTS: ${{ steps.kicad_happy.outputs.happy_reports }}
         with:
           script: |
-            const fs     = require('fs');
-            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const sha    = '${{ steps.pr.outputs.sha }}'.slice(0, 7);
-            const ts     = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+            const fs       = require('fs');
+            const runUrl   = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const sha      = '${{ steps.pr.outputs.sha }}'.slice(0, 7);
+            const ts       = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+            const prNumber = parseInt('${{ steps.pr.outputs.pr_number }}', 10);
 
             const hasAnyFeature = '${{ steps.find.outputs.has_any_feature }}' === 'true';
             const featuresList  = '${{ steps.kibot.outputs.features_list }}';
@@ -349,7 +365,7 @@ PYEOF
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner, repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: prNumber,
             });
             const existing = comments.find(c =>
               c.user.type === 'Bot' && c.body.startsWith('## 📐 Schematic Render')
@@ -362,6 +378,6 @@ PYEOF
             } else {
               await github.rest.issues.createComment({
                 owner: context.repo.owner, repo: context.repo.repo,
-                issue_number: context.issue.number, body,
+                issue_number: prNumber, body,
               });
             }

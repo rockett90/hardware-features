@@ -22,4 +22,7 @@ Location: sheet/reference
 Detail: explanation
 Suggestion: what to change
 
-Severity: BLOCKER | MAJOR | MINOR | NOTE
+Severity: CRITICAL | ADVISORY
+
+Use CRITICAL for findings that must be resolved before merge.
+Use ADVISORY for findings that may be dismissed with reasoning.

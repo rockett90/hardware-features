@@ -1,0 +1,114 @@
+name: Manufacturing Release
+
+on:
+  push:
+    tags:
+      - '*-v[0-9]*.[0-9]*.[0-9]*'
+
+jobs:
+  manufacturing-release:
+    name: Generate and attach manufacturing artefacts
+    runs-on: ubuntu-latest
+    # Only fire on production tags — skip release candidates
+    if: "!contains(github.ref_name, '-rc.')"
+
+    steps:
+      - name: Detect feature name from tag
+        id: tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Tag format: <feature>-vX.Y.Z
+          # Strip the version suffix to get the feature name
+          FEATURE="${TAG%-v*}"
+          VERSION="${TAG#*-v}"
+          echo "feature=$FEATURE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Feature: $FEATURE  Version: $VERSION  Tag: $TAG"
+
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Verify feature directory exists
+        run: |
+          FEATURE="${{ steps.tag.outputs.feature }}"
+          if [ ! -d "features/$FEATURE" ]; then
+            echo "ERROR: features/$FEATURE does not exist for tag ${{ steps.tag.outputs.tag }}"
+            exit 1
+          fi
+          echo "Feature directory confirmed: features/$FEATURE"
+
+      - name: Run KiBot — schematic and BOM outputs
+        # These outputs are reliable across KiCad versions
+        uses: INTI-CMNB/KiBot@v2_k9
+        with:
+          config: config/kibot/base.kibot.yml
+          dir: features/${{ steps.tag.outputs.feature }}/fab/release
+          schema: features/${{ steps.tag.outputs.feature }}/${{ steps.tag.outputs.feature }}.kicad_sch
+          board: features/${{ steps.tag.outputs.feature }}/${{ steps.tag.outputs.feature }}.kicad_pcb
+          targets: pdf_schematic,bom_csv,bom_html,erc_report
+        continue-on-error: false
+
+      - name: Run KiBot — PCB manufacturing outputs
+        # PCB outputs (gerbers, drill, IPC netlist, CPL) need confirming against the
+        # KiCad 10 Docker image. continue-on-error: true per Technical Intent Document
+        # to avoid blocking release if PCB outputs fail on a KiCad version mismatch.
+        uses: INTI-CMNB/KiBot@v2_k9
+        with:
+          config: config/kibot/base.kibot.yml
+          dir: features/${{ steps.tag.outputs.feature }}/fab/release
+          schema: features/${{ steps.tag.outputs.feature }}/${{ steps.tag.outputs.feature }}.kicad_sch
+          board: features/${{ steps.tag.outputs.feature }}/${{ steps.tag.outputs.feature }}.kicad_pcb
+          targets: gerbers,drill,ipc_netlist,cpl,pdf_pcb_print
+        continue-on-error: true
+        id: pcb_outputs
+
+      - name: Warn if PCB outputs failed
+        if: steps.pcb_outputs.outcome == 'failure'
+        run: |
+          echo "::warning::PCB manufacturing outputs (gerbers/drill/IPC/CPL) failed — check KiBot/KiCad version compatibility. Schematic and BOM outputs are still attached."
+
+      - name: Create manufacturing ZIP
+        run: |
+          FEATURE="${{ steps.tag.outputs.feature }}"
+          TAG="${{ steps.tag.outputs.tag }}"
+          FAB_DIR="features/$FEATURE/fab/release"
+          ZIP_NAME="${TAG}-manufacturing.zip"
+
+          if [ -d "$FAB_DIR" ] && [ "$(ls -A "$FAB_DIR")" ]; then
+            zip -r "$ZIP_NAME" "$FAB_DIR/"
+            echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+            echo "zip_created=true" >> "$GITHUB_OUTPUT"
+            echo "Created: $ZIP_NAME"
+            ls -lh "$ZIP_NAME"
+          else
+            echo "zip_created=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No manufacturing outputs found — ZIP not created."
+          fi
+        id: create_zip
+
+      - name: Upload manufacturing ZIP to GitHub Release
+        if: steps.create_zip.outputs.zip_created == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: ${{ steps.create_zip.outputs.zip_name }}
+          fail_on_unmatched_files: true
+
+      - name: Upload ERC report to GitHub Release
+        # Attach ERC report if present — non-fatal if absent
+        run: |
+          FEATURE="${{ steps.tag.outputs.feature }}"
+          TAG="${{ steps.tag.outputs.tag }}"
+          ERC_REPORT="features/$FEATURE/fab/release/erc_report.txt"
+          if [ -f "$ERC_REPORT" ]; then
+            echo "ERC report found — uploading"
+            gh release upload "$TAG" "$ERC_REPORT" --clobber
+          else
+            echo "No ERC report found — skipping"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

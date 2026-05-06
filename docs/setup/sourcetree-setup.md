@@ -1,5 +1,9 @@
 # SourceTree Setup Guide
 
+For the full list of pinned tool versions, see [docs/versions.md](../versions.md).
+
+---
+
 ## Installation
 
 1. Download SourceTree from [sourcetreeapp.com](https://www.sourcetreeapp.com)

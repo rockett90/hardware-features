@@ -21,13 +21,16 @@
 
 **Dependencies:**
 
-| Dependency | Install |
-|---|---|
-| Python 3.9+ | System package or pyenv |
-| Pillow | `pip install Pillow` |
-| cairosvg | `pip install cairosvg` |
-| sexpdata | `pip install sexpdata` |
-| kicad-cli | Included in the KiCad Docker image |
+| Dependency | Version | Install |
+|---|---|---|
+| Python | 3.11+ | System package or pyenv |
+| Pillow | 12.2.0 | `pip install -r scripts/ci/requirements.txt` |
+| cairosvg | 2.7.1 | `pip install -r scripts/ci/requirements.txt` |
+| lxml | 6.1.0 | `pip install -r scripts/ci/requirements.txt` |
+| sexpdata | 1.0.2 | `pip install -r scripts/ci/requirements.txt` |
+| kicad-cli | pinned via Docker | Included in the KiCad Docker image |
+
+Dependency versions are pinned in `scripts/ci/requirements.txt`. See [docs/versions.md](../../docs/versions.md) for the full version reference.
 
 > 💡 Tip: The KiCad Docker image includes all Python dependencies and `kicad-cli`. Running inside Docker is the easiest way to reproduce CI output locally.
 

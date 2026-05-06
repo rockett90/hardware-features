@@ -24,9 +24,9 @@
 | Dependency | Version | Install |
 |---|---|---|
 | Python | 3.11+ | System package or pyenv |
-| Pillow | 10.3.0 | `pip install -r scripts/ci/requirements.txt` |
+| Pillow | 12.2.0 | `pip install -r scripts/ci/requirements.txt` |
 | cairosvg | 2.7.1 | `pip install -r scripts/ci/requirements.txt` |
-| lxml | 5.2.2 | `pip install -r scripts/ci/requirements.txt` |
+| lxml | 6.1.0 | `pip install -r scripts/ci/requirements.txt` |
 | sexpdata | 1.0.2 | `pip install -r scripts/ci/requirements.txt` |
 | kicad-cli | pinned via Docker | Included in the KiCad Docker image |
 

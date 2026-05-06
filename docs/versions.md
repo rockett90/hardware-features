@@ -21,9 +21,9 @@ Pinned in `scripts/ci/requirements.txt`.
 
 | Package | Version | Purpose |
 |---|---|---|
-| Pillow | 10.3.0 | Image processing and rasterisation |
+| Pillow | 12.2.0 | Image processing and rasterisation |
 | cairosvg | 2.7.1 | SVG to PNG conversion |
-| lxml | 5.2.2 | XML and SVG parsing |
+| lxml | 6.1.0 | XML and SVG parsing |
 | sexpdata | 1.0.2 | KiCad S-expression file parsing |
 
 ---

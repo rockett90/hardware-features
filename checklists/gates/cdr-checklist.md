@@ -1,7 +1,6 @@
 # CDR Checklist
 
 > Posted automatically when a CDR sign-off PR opens.
-> Leads must finalise content before first use.
 
 ## Artifacts
 - [ ] ERC clean (zero errors, zero warnings unless formally accepted)

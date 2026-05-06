@@ -42,10 +42,13 @@ Preferences → Manage Symbol Libraries → add `library/symbols/` using `${KIPR
 | Artifact with Jira | `artifact/<feature>/<desc-HW-123>` | Same as above with an optional Jira ticket key appended. |
 | Finding | `finding/<feature>/<N>-<desc>` | IVV finding fix. N is the GitHub Issue number. Triggers automatic label updates on the linked issue. |
 | CDR sign-off | `signoff/<feature>/cdr` | CDR gate sign-off. Document-only PR. Triggers CDR checklist posting and gate tag creation. |
+| Re-CDR | `signoff/<feature>/cdr-N` | Re-CDR after a `finding: major` severity forces the design back to CDR. N starts at 1. Triggers the same CDR gate automation as the original CDR sign-off. |
 | TRR sign-off | `signoff/<feature>/trr` | TRR gate sign-off. Document-only PR. Triggers TRR checklist, rc tag, and pre-release creation. |
 | Re-TRR | `signoff/<feature>/trr-N` | Re-TRR after finding resolution. Triggers visual diff versus previous rc tag. |
 | Library | `library/<desc>` | Changes to the hardware-library repository (raised in that repo, not here). |
 | Chore | `chore/<desc>` | Repository housekeeping: CI changes, guideline updates, template changes, submodule pointer updates. Uses `library` scope in PR title by convention. |
+
+> **PDR** is recorded via the `init/<feature>` PR — there is no separate `signoff/*/pdr` branch. The init PR IS the PDR baseline.
 
 CI validates every PR branch. A non-matching branch fails "Validate branch name" and cannot merge until corrected.
 

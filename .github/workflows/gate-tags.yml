@@ -41,8 +41,10 @@ jobs:
             || git rev-parse HEAD)
           FEA_SHA=$(git log -1 --format="%H" -- "features/$FEATURE/" 2>/dev/null \
             || git rev-parse HEAD)
+          LIB_SUBMODULE_URL=$(git -C library remote get-url origin 2>/dev/null || echo "unknown")
           cat > "features/$FEATURE/reviews/library.lock" <<EOF
           # Created automatically by CI at CDR gate. Do not edit manually.
+          library-submodule-url: $LIB_SUBMODULE_URL
           library-submodule-commit: $LIB_SHA
           feature-commit: $FEA_SHA
           locked-at-gate: cdr

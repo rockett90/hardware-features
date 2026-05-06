@@ -21,4 +21,15 @@ These files are CODEOWNERS-protected. Changes require a `chore/` PR with lead ap
 
 ## Current status
 
-The KiCad templates in this directory are present but minimal. The team's standard stackup, design rules, and approval fields will be added as they are agreed. See [docs/versions.md](../docs/versions.md) for the KiCad version these templates target.
+All four template files are present and will be copied by `init-feature.sh` when an `init/<feature>` PR merges:
+
+| File | Copied to |
+|---|---|
+| `kicad-project-template.kicad_pro` | `features/<feature>/<feature>.kicad_pro` |
+| `schematic-template.kicad_sch` | `features/<feature>/schematics/<feature>.kicad_sch` |
+| `pcb-template.kicad_pcb` | `features/<feature>/pcb/<feature>.kicad_pcb` |
+| `title-block.kicad_wks` | Referenced by path — not copied per feature |
+
+The templates are minimal starters. The team's standard stackup, design rules, and approval fields will be added to `pcb-template.kicad_pcb` and `title-block.kicad_wks` as they are agreed. See [docs/versions.md](../docs/versions.md) for the KiCad version these templates target.
+
+When updating a template, all existing features will be unaffected (the template was already copied). Only new features created after the update will use the new template.

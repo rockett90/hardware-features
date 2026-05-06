@@ -28,6 +28,8 @@ The report embeds all images as base64 PNGs and includes an interactive **zoom/p
 | `changes-path` | Path to the generated `changes.json` |
 | `metadata-path` | Path to the generated `metadata.json` |
 
+> **Implementation note:** Outputs are wired from the `run-diff` step via `${{ steps.run-diff.outputs.<key> }}` in `action.yml`. If you fork or copy this action, ensure the `id: run-diff` field is present on the script step or the outputs will be empty.
+
 ---
 
 ## Example workflow usage

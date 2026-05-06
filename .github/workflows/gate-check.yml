@@ -10,6 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The CDR and TRR PR body templates (.github/PULL_REQUEST_TEMPLATE/cdr-signoff.md
+      # and trr-signoff.md) embed all checklist items directly in the PR description.
+      # GitHub pre-fills the PR body with the template when the engineer opens the PR,
+      # so pr.body contains the checklist and this check correctly enforces completion.
+      # Do NOT move checklists back to comments — gate-check reads pr.body, not comments.
       - name: Check gate PR checklist completion
         uses: actions/github-script@v7
         with:

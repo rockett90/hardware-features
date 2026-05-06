@@ -1,8 +1,37 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# KiCad — per-user local state, never commit
+*.kicad_prl
+
+# KiCad — generated backup files
 *.bak
 *-backups/
 fp-info-cache
+*_cache.lib
+
+# KiCad — SPICE simulation outputs (source files are committed, outputs are not)
+*.raw
+*.op
+*.dc
+*.ac
+*.tran
+*.log
+
+# KiBot — all generated manufacturing outputs are CI artefacts only, not Git content
+# Available as workflow artefacts and GitHub Release assets
+**/fab/
+**/gerbers/
+**/*-render.png
+**/*-render.pdf
+
+# Exception: library.lock lives in reviews/ and must always be committed
+!**/reviews/library.lock
+
+# OS
 .DS_Store
 Thumbs.db
 .history/

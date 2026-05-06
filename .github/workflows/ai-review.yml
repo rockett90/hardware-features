@@ -89,7 +89,7 @@ jobs:
         id: kh
         if: steps.kicad.outputs.has_kicad == 'true'
         continue-on-error: true
-        uses: aklofas/kicad-happy@v1
+        uses: aklofas/kicad-happy@v1.3.0
 
       - name: Read review context
         if: steps.kicad.outputs.has_kicad == 'true'

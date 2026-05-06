@@ -10,7 +10,7 @@
    ```bash
    git clone --recurse-submodules https://github.com/rockett90/hardware-features.git
    ```
-2. **Open in KiCad 10.0.1** — open `features/<feature-name>/<feature-name>.kicad_pro`.
+2. **Open in KiCad** — open `features/<feature-name>/<feature-name>.kicad_pro`. See [docs/versions.md](docs/versions.md) for the required KiCad version.
 3. **Create a branch and open a draft PR** — CI runs on every push. Open the PR as a draft immediately after your first push so checks can start running.
 4. **Use slash commands** during review to trigger CI actions — see [Slash commands](#slash-commands) below.
 
@@ -18,16 +18,16 @@
 
 ## Toolchain & versions
 
-| Tool | Version | Notes |
-|---|---|---|
-| KiCad | 10.0.1 | **Pinned. Do not upgrade individually — coordinate with the team.** |
-| KiBot | via Docker (`kicad10_auto_full`, pinned SHA) | Used in CI only — no local install needed |
-| kicad-happy | latest (cloned in CI) | Design analysis and derating checks |
-| Python | 3.9+ | Required for local script use |
-| Pillow | latest | Required for `kicad-visual-diff` locally |
-| cairosvg | latest | Required for `kicad-visual-diff` locally |
-| sexpdata | latest | Required for semantic diff locally |
-| release-please | v4 | Manages `CHANGELOG.md` and GitHub Releases automatically |
+See [docs/versions.md](docs/versions.md) for all pinned tool and dependency versions.
+
+| Tool | Notes |
+|---|---|
+| KiCad | Pinned — do not upgrade individually, coordinate with the lead |
+| KiBot | Via Docker (pinned SHA) — used in CI only, no local install needed |
+| kicad-happy | Deterministic schematic and PCB analysis |
+| Python | Required for local script use — minimum version in [docs/versions.md](docs/versions.md) |
+| Pillow / cairosvg / sexpdata | Required for `kicad-visual-diff` locally — pinned in `scripts/ci/requirements.txt` |
+| release-please | Manages `CHANGELOG.md` and GitHub Releases automatically |
 
 ---
 
@@ -100,6 +100,10 @@ CI validates every PR branch name. A non-matching name fails the "Validate branc
 ## Further reading
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — full contributor guide
+- [docs/versions.md](docs/versions.md) — all pinned tool and dependency versions
+- [docs/tools.md](docs/tools.md) — toolchain reference for new engineers
+- [docs/setup/kicad-setup.md](docs/setup/kicad-setup.md) — KiCad installation and library setup
+- [docs/setup/sourcetree-setup.md](docs/setup/sourcetree-setup.md) — SourceTree setup guide
 - [docs/how-to/init-feature.md](docs/how-to/init-feature.md) — how to initialise a new feature
 - [docs/how-to/design-workflow.md](docs/how-to/design-workflow.md) — day-to-day design workflow
 - [docs/how-to/cdr-signoff.md](docs/how-to/cdr-signoff.md) — how to perform a CDR sign-off

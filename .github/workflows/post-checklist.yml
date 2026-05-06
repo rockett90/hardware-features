@@ -56,8 +56,31 @@ jobs:
 
             // Release-please and library PRs: post the checklist file as a comment.
             let file = '';
+            if (/^init\//.test(branch)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: prNumber,
+                body: [
+                  '## ✅ PDR Gate',
+                  '',
+                  'The PDR checklist is in the PR description above. Tick every item before requesting merge.',
+                  '',
+                  '**CI enforcement:** `gate-check` will block merge while any `- [ ]` item remains unchecked in the PR description.',
+                  '',
+                  '**After this PR merges:** CI will scaffold the feature directory, copy stub files, and create the `pdr/<feature>/approved` tag automatically.',
+                  '',
+                  '**Required files to commit in this PR:**',
+                  '- `features/<feature>/requirements/feature-requirements.yaml` — with real REQ-IDs',
+                  '- `features/<feature>/requirements/interface-requirements.yaml` — with real interface definitions',
+                  '- `features/<feature>/requirements/verification-matrix.md` — with all REQ-IDs listed',
+                  '- `features/<feature>/decisions/DDR-000-feature-overview.md` — with real content',
+                ].join('\n'),
+              });
+              return;
+            }
             if (/^release-please--/.test(branch))  file = 'checklists/gates/release-checklist.md';
-            else if (/^library\//.test(branch))     file = 'checklists/library/component-addition.md';
+            else if (/^library\//.test(branch))    file = 'checklists/library/component-addition.md';
             if (!file) return;
 
             let body;

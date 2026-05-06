@@ -23,7 +23,7 @@ jobs:
             const branch = pr.head.ref;
             const body = pr.body || '';
 
-            const isGatePR = branch.startsWith('signoff/');
+            const isGatePR = branch.startsWith('signoff/') || branch.startsWith('init/');
             if (!isGatePR) {
               console.log('Not a gate PR — skipping checklist check.');
               return;
@@ -33,5 +33,6 @@ jobs:
             if (unchecked > 0) {
               core.setFailed(`Gate PR has ${unchecked} unchecked item(s) in the checklist. All items must be checked before merge.`);
             } else {
-              console.log('All checklist items checked ✅');
+              const gateType = branch.startsWith('init/') ? 'PDR' : 'CDR/TRR';
+              console.log(`All ${gateType} checklist items checked ✅`);
             }

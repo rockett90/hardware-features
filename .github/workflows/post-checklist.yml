@@ -17,6 +17,30 @@ jobs:
             let file = '';
             if      (/^signoff\/.*\/cdr/.test(branch))  file = 'checklists/gates/cdr-checklist.md';
             else if (/^signoff\/.*\/trr/.test(branch))  file = 'checklists/gates/trr-checklist.md';
+            else if (/^init\//.test(branch)) {
+              const prNumber = context.payload.pull_request.number;
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: prNumber,
+                body: [
+                  '## ✅ PDR Gate',
+                  '',
+                  'The PDR checklist is in the PR description above. Tick every item before requesting merge.',
+                  '',
+                  '**CI enforcement:** `gate-check` will block merge while any `- [ ]` item remains unchecked in the PR description.',
+                  '',
+                  '**After this PR merges:** CI will scaffold the feature directory, copy stub files, and create the `pdr/<feature>/approved` tag automatically.',
+                  '',
+                  '**Required files to commit in this PR:**',
+                  '- `features/<feature>/requirements/feature-requirements.yaml` — with real REQ-IDs',
+                  '- `features/<feature>/requirements/interface-requirements.yaml` — with real interface definitions',
+                  '- `features/<feature>/requirements/verification-matrix.md` — with all REQ-IDs listed',
+                  '- `features/<feature>/decisions/DDR-000-feature-overview.md` — with real content',
+                ].join('\n'),
+              });
+              return;
+            }
             else if (/^release-please--/.test(branch))  file = 'checklists/gates/release-checklist.md';
             else if (/^library\//.test(branch))         file = 'checklists/library/component-addition.md';
             if (!file) return;

@@ -32,7 +32,7 @@ Pinned in `scripts/ci/requirements.txt`.
 
 | Tool | Version | Notes |
 |---|---|---|
-| kicad-happy | @v1 (floating, currently v1.3.0) | Deterministic schematic and PCB analysis |
+| kicad-happy | v1.3.0 (pinned) | Deterministic schematic and PCB analysis |
 | release-please | @v5 | Changelog and release automation |
 | actions/checkout | @v4 | — |
 | actions/upload-artifact | @v4 | — |

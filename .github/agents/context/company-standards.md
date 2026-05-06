@@ -1,5 +1,9 @@
 # Company Standards
 
+> **Status notice:** The `guidelines/` files referenced below are currently placeholder documents.
+> Apply the general engineering principles described in each section as intent, not as team-ratified
+> standards. When a guideline file is completed and reviewed, this notice will be removed for that section.
+
 > This file is loaded automatically by Copilot during AI-assisted reviews. It summarises the non-negotiable engineering standards that apply to every design in this repository.
 
 ## Electrical

@@ -4,6 +4,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     branches: [main]
+    paths:
+      - 'features/**/*.kicad_sch'
+      - 'features/**/*.kicad_pcb'
   workflow_dispatch:
     inputs:
       pr_number:

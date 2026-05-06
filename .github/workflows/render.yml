@@ -1,7 +1,5 @@
 name: Schematic render
 on:
-  issue_comment:
-    types: [created]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -17,13 +15,7 @@ permissions:
   pull-requests: write
 jobs:
   render:
-    # Allow both direct issue_comment trigger and workflow_dispatch (from slash command dispatcher).
-    # For issue_comment: guard ensures this is a PR comment containing /render.
-    # For workflow_dispatch: the dispatcher has already verified permission and parsed the command.
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.issue.pull_request != null &&
-       contains(github.event.comment.body, '/render'))
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
@@ -32,21 +24,6 @@ jobs:
     # First run is slow (~1-3 min) while the ~2 GB image is pulled.
     # Subsequent runs use cached layers and are faster.
     steps:
-      - name: Verify commenter has write access
-        # Skip for workflow_dispatch — permission was already verified by the dispatcher.
-        if: github.event_name != 'workflow_dispatch'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
-              owner:    context.repo.owner,
-              repo:     context.repo.repo,
-              username: context.payload.comment.user.login,
-            });
-            if (!['admin','maintain','write','triage'].includes(data.permission)) {
-              core.setFailed(`${context.payload.comment.user.login} does not have write access`);
-            }
-
       - name: Get PR details
         id: pr
         uses: actions/github-script@v7
@@ -84,7 +61,7 @@ jobs:
         run: |
           sudo apt-get install -y --no-install-recommends ngspice poppler-utils python3-pip
           # Clone kicad-happy action and install its Python dependencies
-          git clone --depth=1 https://github.com/aklofas/kicad-happy.git \
+          git clone --depth=1 --branch v1.3.0 https://github.com/aklofas/kicad-happy.git \
             "$RUNNER_TEMP/kicad-happy-action"
           if [[ -f "$RUNNER_TEMP/kicad-happy-action/requirements.txt" ]]; then
             pip3 install -q -r "$RUNNER_TEMP/kicad-happy-action/requirements.txt"

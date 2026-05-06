@@ -22,12 +22,16 @@ inputs:
 outputs:
   report-path:
     description: 'Path to the generated diff-report.html'
+    value: ${{ steps.run-diff.outputs.report-path }}
   comment-path:
     description: 'Path to the generated comment.md'
+    value: ${{ steps.run-diff.outputs.comment-path }}
   changes-path:
     description: 'Path to the generated changes.json'
+    value: ${{ steps.run-diff.outputs.changes-path }}
   metadata-path:
     description: 'Path to the generated metadata.json'
+    value: ${{ steps.run-diff.outputs.metadata-path }}
 
 runs:
   using: 'composite'
@@ -44,6 +48,7 @@ runs:
           | tar -x -C "$RUNNER_TEMP/kv-head" 2>/dev/null || true
 
     - name: Run kicad-visual-diff
+      id: run-diff
       shell: bash
       run: |
         PCB_FLAG=""

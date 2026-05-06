@@ -1,32 +1,59 @@
 ## Test Readiness Review (TRR) Sign-Off
 
-Use this template when requesting sign-off that a design is ready to proceed to hardware testing.
+**Feature:**
+**Revision:**
+**TRR date:**
+**Lead:**
+**External reference (if applicable):**
+**Re-TRR number (if applicable — leave blank for first TRR):**
 
-### Design details
+---
 
-- **Design name:**
-- **Revision:**
-- **Author:**
-- **Target test date:**
+## Design Artefacts
 
-### Pre-test checklist
+- [ ] ERC clean (zero errors)
+- [ ] DRC clean (zero errors)
+- [ ] Calculations complete and reviewed
+- [ ] Simulations complete and reviewed
 
-- [ ] Design review completed and all blocking issues resolved
-- [ ] Bring-up procedure reviewed (`guidelines/process/bring-up-procedure.md`)
-- [ ] Test equipment and fixtures identified and available
-- [ ] Pass/fail criteria defined for all test points
-- [ ] Simulation results reviewed and acceptable
-- [ ] FPTCS completed and reviewed
-- [ ] Safety assessment completed (if applicable)
+## Implementation
 
-### Sign-off
+- [ ] Stress analysis complete
+- [ ] Thermal analysis complete
+- [ ] BOM MPNs all confirmed (no TBDs)
+- [ ] Bring-up checklist complete
+- [ ] Bring-up notes committed to `features/<feature>/bring-up/`
+- [ ] FPTCS complete
+- [ ] Circuit mods documented in `features/<feature>/circuit-mods/`
 
-| Role | Name | Date | Signature |
-|---|---|---|---|
-| Design Engineer | | | |
-| Reviewer | | | |
-| Lead / Manager | | | |
+## Verification
 
-### Notes
+- [ ] All TRR-gate verification matrix items marked Verified
+- [ ] All REQ-IDs evidenced
 
-<!-- Any conditions or outstanding items to be resolved before or during test -->
+## Open Findings (re-TRR only — tick N/A if first TRR)
+
+- [ ] All major findings resolved — N/A if first TRR
+- [ ] All moderate findings resolved or formally deferred with lead sign-off — N/A if first TRR
+
+## AI Review
+
+- [ ] All CRITICAL findings resolved or explicitly dismissed with reasoning
+
+## Linked PRs
+
+<!-- List the finding PRs resolved since the previous TRR (if re-TRR), or the CDR baseline PRs (if first TRR) -->
+
+## Sign-off
+
+- [ ] TRR date recorded above
+- [ ] Lead name recorded above
+- [ ] External reference recorded above (or marked N/A)
+
+---
+
+> ⚠️ CI will block merge until all checklist items above are ticked.
+> Every item must be checked — items may not be deleted from this list.
+> If an item does not apply, tick it and add a note below.
+
+<!-- Notes -->

@@ -14,12 +14,75 @@ jobs:
         with:
           script: |
             const branch = context.payload.pull_request.head.ref;
+            const prNumber = context.payload.pull_request.number;
+
+            // CDR and TRR: checklists are embedded in the PR body template.
+            // Post a short orientation comment instead of the full checklist.
+            if (/^signoff\/.*\/cdr/.test(branch)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: prNumber,
+                body: [
+                  '## ✅ CDR Gate',
+                  '',
+                  'The CDR checklist is in the PR description above. Tick every item before requesting merge.',
+                  '',
+                  '**CI enforcement:** `gate-check` will block merge while any `- [ ]` item remains unchecked in the PR description.',
+                  '',
+                  'If an item does not apply, tick it and add a note in the PR description or in a comment.',
+                ].join('\n'),
+              });
+              return;
+            }
+
+            if (/^signoff\/.*\/trr/.test(branch)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: prNumber,
+                body: [
+                  '## ✅ TRR Gate',
+                  '',
+                  'The TRR checklist is in the PR description above. Tick every item before requesting merge.',
+                  '',
+                  '**CI enforcement:** `gate-check` will block merge while any `- [ ]` item remains unchecked in the PR description.',
+                  '',
+                  'For re-TRR PRs, tick the "N/A if first TRR" finding items and note the resolved findings in the PR description.',
+                ].join('\n'),
+              });
+              return;
+            }
+
+            // Release-please and library PRs: post the checklist file as a comment.
             let file = '';
-            if      (/^signoff\/.*\/cdr/.test(branch))  file = 'checklists/gates/cdr-checklist.md';
-            else if (/^signoff\/.*\/trr/.test(branch))  file = 'checklists/gates/trr-checklist.md';
-            else if (/^release-please--/.test(branch))  file = 'checklists/gates/release-checklist.md';
-            else if (/^library\//.test(branch))         file = 'checklists/library/component-addition.md';
+            if (/^init\//.test(branch)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: prNumber,
+                body: [
+                  '## ✅ PDR Gate',
+                  '',
+                  'The PDR checklist is in the PR description above. Tick every item before requesting merge.',
+                  '',
+                  '**CI enforcement:** `gate-check` will block merge while any `- [ ]` item remains unchecked in the PR description.',
+                  '',
+                  '**After this PR merges:** CI will scaffold the feature directory, copy stub files, and create the `pdr/<feature>/approved` tag automatically.',
+                  '',
+                  '**Required files to commit in this PR:**',
+                  '- `features/<feature>/requirements/feature-requirements.yaml` — with real REQ-IDs',
+                  '- `features/<feature>/requirements/interface-requirements.yaml` — with real interface definitions',
+                  '- `features/<feature>/requirements/verification-matrix.md` — with all REQ-IDs listed',
+                  '- `features/<feature>/decisions/DDR-000-feature-overview.md` — with real content',
+                ].join('\n'),
+              });
+              return;
+            }
+            if (/^release-please--/.test(branch))  file = 'checklists/gates/release-checklist.md';
+            else if (/^library\//.test(branch))    file = 'checklists/library/component-addition.md';
             if (!file) return;
+
             let body;
             try {
               body = require('fs').readFileSync(file, 'utf8');
@@ -31,6 +94,6 @@ jobs:
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo:  context.repo.repo,
-              issue_number: context.payload.pull_request.number,
+              issue_number: prNumber,
               body,
             });

@@ -10,6 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The CDR and TRR PR body templates (.github/PULL_REQUEST_TEMPLATE/cdr-signoff.md
+      # and trr-signoff.md) embed all checklist items directly in the PR description.
+      # GitHub pre-fills the PR body with the template when the engineer opens the PR,
+      # so pr.body contains the checklist and this check correctly enforces completion.
+      # Do NOT move checklists back to comments — gate-check reads pr.body, not comments.
       - name: Check gate PR checklist completion
         uses: actions/github-script@v7
         with:
@@ -18,7 +23,7 @@ jobs:
             const branch = pr.head.ref;
             const body = pr.body || '';
 
-            const isGatePR = branch.startsWith('signoff/');
+            const isGatePR = branch.startsWith('signoff/') || branch.startsWith('init/');
             if (!isGatePR) {
               console.log('Not a gate PR — skipping checklist check.');
               return;
@@ -28,5 +33,6 @@ jobs:
             if (unchecked > 0) {
               core.setFailed(`Gate PR has ${unchecked} unchecked item(s) in the checklist. All items must be checked before merge.`);
             } else {
-              console.log('All checklist items checked ✅');
+              const gateType = branch.startsWith('init/') ? 'PDR' : 'CDR/TRR';
+              console.log(`All ${gateType} checklist items checked ✅`);
             }

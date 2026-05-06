@@ -53,7 +53,7 @@ Pinned in `scripts/ci/requirements.txt`.
 
 ## Python runtime
 
-Minimum version: **3.11**
+Minimum version: **3.11+**
 
 ---
 

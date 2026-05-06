@@ -1,0 +1,4 @@
+Pillow==10.3.0
+cairosvg==2.7.1
+lxml==5.2.2
+sexpdata==1.0.2

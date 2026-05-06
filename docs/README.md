@@ -1,6 +1,6 @@
 # docs
 
-> Reference documentation and how-to guides for working with this repository.
+> Reference documentation and guides for working with this repository.
 
 ---
 
@@ -8,8 +8,19 @@
 
 | Directory / File | Contents |
 |---|---|
-| `how-to/` | Step-by-step process guides for common workflows |
-| `sourcetree-setup.md` | Guide for setting up SourceTree as a Git client for this repository |
+| `setup/` | Environment and tooling setup guides |
+| `how-to/` | Step-by-step process guides for specific workflow tasks |
+| `tools.md` | Toolchain reference — what each tool does and why it was chosen |
+| `versions.md` | Single source of truth for all pinned tool and dependency versions |
+
+---
+
+## Setup guides
+
+| Guide | Description |
+|---|---|
+| [setup/kicad-setup.md](setup/kicad-setup.md) | Installing KiCad and configuring the symbol and footprint libraries |
+| [setup/sourcetree-setup.md](setup/sourcetree-setup.md) | Setting up SourceTree as a Git client for this repository |
 
 ---
 
@@ -17,15 +28,25 @@
 
 | Guide | Description |
 |---|---|
-| [init-feature.md](how-to/init-feature.md) | How to initialise a brand-new hardware feature |
-| [design-workflow.md](how-to/design-workflow.md) | Day-to-day workflow for working on a hardware feature |
-| [cdr-signoff.md](how-to/cdr-signoff.md) | How to perform a Critical Design Review (CDR) sign-off |
-| [trr-signoff.md](how-to/trr-signoff.md) | How to perform a Test Readiness Review (TRR) sign-off |
+| [how-to/init-feature.md](how-to/init-feature.md) | How to initialise a brand-new hardware feature |
+| [how-to/design-workflow.md](how-to/design-workflow.md) | Day-to-day workflow for working on a hardware feature |
+| [how-to/cdr-signoff.md](how-to/cdr-signoff.md) | How to perform a Critical Design Review (CDR) sign-off |
+| [how-to/trr-signoff.md](how-to/trr-signoff.md) | How to perform a Test Readiness Review (TRR) sign-off |
+
+---
+
+## Reference
+
+| Document | Description |
+|---|---|
+| [tools.md](tools.md) | Toolchain reference for new engineers |
+| [versions.md](versions.md) | All pinned tool and dependency versions |
 
 ---
 
 ## Adding documentation
 
+- Add new setup guides to `docs/setup/` as Markdown files.
 - Add new how-to guides to `docs/how-to/` as Markdown files.
-- Add the new file to the table above.
-- Raise a `docs/` or `chore/` PR.
+- Add the new file to the relevant table above.
+- Raise a `chore/` PR.

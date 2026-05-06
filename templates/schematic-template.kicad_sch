@@ -1,21 +1,21 @@
 (kicad_sch
-	(version 20260306)
-	(generator "eeschema")
-	(generator_version "10.0")
-	(uuid "00000000-0000-0000-0000-000000000000")
-	(paper "A3")
-	(title_block
-		(title "FEATURE_NAME")
-		(date "YYYY-MM-DD")
-		(rev "0.1")
-		(company "")
-		(comment 1 "Replace FEATURE_NAME with the actual feature name")
-	)
-	(lib_symbols
-	)
-	(sheet_instances
-		(path "/"
-			(page "1")
-		)
-	)
+  (version 20231120)
+  (generator eeschema)
+  (generator_version 8.0)
+  (paper "A3")
+  (title_block
+    (title "")
+    (date "")
+    (rev "A")
+    (company "")
+    (comment 1 "")
+    (comment 2 "")
+    (comment 3 "")
+    (comment 4 "")
+  )
+  (lib_symbols
+  )
+  (sheet_instances
+    (path "/" (page "1"))
+  )
 )

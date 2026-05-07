@@ -238,8 +238,12 @@ See [docs/versions.md](docs/versions.md). Do not upgrade individually — coordi
 ## 15. Bench scripts import path
 
 ```python
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../../bench'))
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[4] / 'bench'))
 ```
+
+`parents[4]` navigates from the script file up through `scripts/`, `bring-up/`, `<feature>/`, `features/`, to the repository root where `bench/` lives. Using `Path.resolve()` makes this independent of the working directory the script is run from.
 
 ---
 

@@ -16,6 +16,8 @@ The report embeds all images as base64 PNGs and includes an interactive **zoom/p
 |---|---|---|---|
 | `feature` | ✅ | — | Feature name (e.g. `buck-converter-5v`) |
 | `base-ref` | ❌ | `main` | Base git ref to compare against |
+| `base-sha` | ❌ | `''` | Base commit SHA override for non-`pull_request` events such as `workflow_dispatch` or `issue_comment` |
+| `head-sha` | ❌ | `''` | Head commit SHA override for non-`pull_request` events such as `workflow_dispatch` or `issue_comment` |
 | `output-dir` | ❌ | `/tmp/kicad-visual-diff` | Output directory for diff report files |
 | `pcb` | ❌ | `false` | Also diff PCB layers (`true`/`false`) |
 

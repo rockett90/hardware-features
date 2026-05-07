@@ -21,6 +21,13 @@
 - [ ] All TRR-gate items Verified
 - [ ] All REQ-IDs evidenced
 
+## Datasheet
+
+- [ ] `datasheet/specs.yaml` complete — all `[COMPLETE BEFORE TRR]` placeholders replaced with real values
+- [ ] `datasheet/application-notes.md` complete — typical application, configuration, and layout guidance written
+- [ ] `datasheet/<feature>-datasheet.md` committed and up to date — run `/datasheet` to regenerate if needed
+- [ ] Datasheet reviewed by lead — values consistent with test results and analysis
+
 ## Open Findings for re-TRR
 > Only relevant for re-TRR PRs
 - [ ] All P1 findings resolved

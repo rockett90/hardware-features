@@ -105,6 +105,7 @@ Once CI passes and approvals are in place, merge the PR.
 **On merge, `init-feature.yml` automatically:**
 - Scaffolds all directories inside `features/buck-converter-5v/` — `schematics/`, `pcb/`, `simulations/`, `calculations/`, `analysis/mtbf`, `analysis/stress`, `analysis/thermal`, `analysis/doe`, `bom/`, `bring-up/`, `circuit-mods/`, `production/`, `reviews/`
 - Copies KiCad project files from `templates/`
+- Creates stub files: `README.md`, `requirements/`, `decisions/`, `datasheet/` stubs
 - Creates the git tag `pdr/buck-converter-5v/approved`
 
 You do not create any of these directories or files manually.
@@ -250,7 +251,7 @@ During this phase, fill in the source files in `features/buck-converter-5v/datas
 
 | File | What to fill in |
 |---|---|
-| `datasheet/specs.yaml` | Characterised min/nom/max values for all interfaces and performance parameters |
+| `datasheet/specs.yaml` | Characterised min/nom/max values for all interfaces and performance parameters — actual achieved values, not requirements |
 | `datasheet/application-notes.md` | Typical application, configuration guidance, layout recommendations |
 | `datasheet/errata.md` | Known issues against specific hardware revisions |
 
@@ -258,7 +259,7 @@ During this phase, fill in the source files in `features/buck-converter-5v/datas
 
 ### 4.3 Run `/datasheet` to regenerate the output
 
-Post `/datasheet` as a PR comment to regenerate `buck-converter-5v-datasheet.md` from the source files. The updated file is committed to `main` automatically.
+Post `/datasheet` as a PR comment to regenerate `buck-converter-5v-datasheet.md` and the PDF from the source files. The updated files are committed to `main` automatically.
 
 The TRR checklist requires all `[COMPLETE BEFORE TRR]` placeholders to be replaced and the datasheet committed before TRR can merge.
 
@@ -281,13 +282,18 @@ fix(buck-converter-5v): correct feedback resistor divider — IVV finding #42
 
 CI automatically adds `finding: in-progress` to the issue when the PR opens, and `finding: resolved` plus the merge commit SHA when it merges.
 
+**Severity and gate re-entry:**
+- `finding: minor` — no gate re-entry required unless the lead decides otherwise
+- `finding: moderate` — re-TRR required (`signoff/buck-converter-5v/trr-1`)
+- `finding: major` — re-CDR then re-TRR required (`signoff/buck-converter-5v/cdr-1` then `signoff/buck-converter-5v/trr-1`)
+
 ---
 
 ## Stage 5 — TRR sign-off
 
 ### What this stage achieves
 
-TRR is a formal gate confirming the hardware is built, brought up, and ready to enter formal verification. On merge, CI creates an rc pre-release automatically.
+TRR is a formal gate confirming the hardware is built, brought up, and ready to enter formal verification. On merge, CI creates an rc pre-release automatically as an IVV baseline.
 
 ### 5.1 Create the TRR branch
 
@@ -330,6 +336,9 @@ The TRR template checklist includes:
 - Circuit mods documented in `features/buck-converter-5v/circuit-mods/`
 - All TRR-gate verification matrix items marked Verified
 - All REQ-IDs evidenced
+- `datasheet/specs.yaml` complete — no `[COMPLETE BEFORE TRR]` placeholders remaining
+- `datasheet/application-notes.md` complete
+- Datasheet committed and reviewed by lead
 - All CRITICAL AI review findings resolved
 - TRR date and lead name recorded
 
@@ -341,10 +350,9 @@ Once CI passes and approvals are in place, merge the PR.
 
 **On merge, CI automatically:**
 - Creates the rc git tag, e.g. `buck-converter-5v-v1.0.0-rc.1`
-- Creates a GitHub pre-release at that tag
-- Triggers KiBot to generate manufacturing outputs (Gerbers, drill, BOM, CPL, schematic PDF) and attach them to the pre-release
+- Creates a GitHub pre-release at that tag as a baseline marker for IVV
 
-> 💡 Check the Actions workflow run for the rc tag. Any ⛔ in the step summary means manufacturing outputs are incomplete.
+> 💡 The rc pre-release is an IVV baseline only — it has no manufacturing outputs attached. Manufacturing outputs are generated at Stage 7 when the production tag is created.
 
 ---
 
@@ -352,7 +360,7 @@ Once CI passes and approvals are in place, merge the PR.
 
 ### What this stage achieves
 
-This gate formally authorises the manufacturing outputs for production. The `release/buck-converter-5v/approved` tag is the authorisation record.
+This gate formally authorises the manufacturing outputs for production. The `release/buck-converter-5v/approved` tag is the authorisation record. The manufacturing CI at Stage 7 checks for this tag before proceeding — no tag, no outputs.
 
 ### 6.1 Verify pre-conditions
 
@@ -360,7 +368,7 @@ Before raising the release sign-off PR, confirm:
 - `pdr/buck-converter-5v/approved` tag exists in the repository
 - `cdr/buck-converter-5v/approved` tag exists in the repository
 - `buck-converter-5v-v1.0.0-rc.1` (or the latest rc tag) exists
-- Manufacturing outputs from the rc tag generated cleanly
+- All P1 and P2 IVV findings are resolved or formally deferred
 
 ### 6.2 Create the release sign-off branch
 
@@ -395,7 +403,7 @@ The release sign-off template checklist includes:
 - All CDR-gate checklist items remain satisfied
 - All TRR-gate checklist items remain satisfied
 - All P1 and P2 findings resolved or formally deferred with lead sign-off
-- Manufacturing outputs generated by CI without errors
+- Manufacturing outputs generated by CI without errors (verify the rc pre-release has no ⛔ in its Actions step summary)
 - Gerbers visually verified against PCB layout
 - DRC confirmed clean
 - BOM has no TBDs — all MPNs confirmed and available
@@ -422,9 +430,9 @@ The production tag and final GitHub Release are created. Manufacturing outputs a
 
 ### 7.1 Merge the release-please Release PR
 
-Release-please automatically opens a Release PR after the TRR merge. It tracks conventional commits from the merged artifact PRs and generates `CHANGELOG.md` content.
+Release-please automatically maintains a Release PR — it opens after the first conventional commit is merged to `main` and updates on every subsequent push. It will already exist and have been accumulating changelog entries throughout the lifecycle. Merge it after the Final Release sign-off is complete.
 
-The Release PR appears in the repository's open PRs as something like:
+The Release PR appears as something like:
 ```
 chore(buck-converter-5v): release 1.0.0
 ```
@@ -436,11 +444,13 @@ chore(buck-converter-5v): release 1.0.0
 **On merge, CI automatically:**
 - Creates the production git tag, e.g. `buck-converter-5v-v1.0.0`
 - Creates the final GitHub Release at that tag
-- Checks that `release/buck-converter-5v/approved` exists before running manufacturing outputs — if the tag is missing the manufacturing CI stops immediately
+- Checks that `release/buck-converter-5v/approved` exists — if the tag is absent the manufacturing CI fails immediately with a clear error
 - Runs KiBot to generate Gerbers, drill files, BOM, CPL, and schematic PDF
-- Attaches all manufacturing outputs to the GitHub Release
+- Attaches all manufacturing outputs to the GitHub Release as a ZIP
 
 The manufacturing outputs attached to the `buck-converter-5v-v1.0.0` release are the production-authorised files.
+
+> 💡 Check the `Manufacturing Release` Actions workflow run triggered by the production tag. Any ⛔ in the step summary means outputs are incomplete — do not send to the manufacturer until resolved.
 
 ---
 
@@ -452,7 +462,7 @@ After completing all seven stages, the following tags exist in the repository:
 |---|---|---|
 | `pdr/buck-converter-5v/approved` | Init PR merge | PDR gate passed |
 | `cdr/buck-converter-5v/approved` | CDR sign-off merge | CDR gate passed |
-| `buck-converter-5v-v1.0.0-rc.1` | TRR sign-off merge | Pre-release candidate |
+| `buck-converter-5v-v1.0.0-rc.1` | TRR sign-off merge | IVV baseline pre-release |
 | `release/buck-converter-5v/approved` | Release sign-off merge | Manufacturing authorised |
 | `buck-converter-5v-v1.0.0` | Release PR merge | Production release |
 
@@ -485,6 +495,16 @@ Types: `feat`, `fix`, `docs`, `test`, `chore`
 /drc            — Design Rules Check (informational)
 /datasheet      — regenerate datasheet from specs.yaml and application-notes.md
 ```
+
+**CI that runs automatically (no command needed):**
+
+| Event | What CI does |
+|---|---|
+| Init PR merge | Scaffold directories, copy stubs, create `pdr/.../approved` tag |
+| CDR merge | Create `cdr/.../approved` tag, commit `library.lock`, generate datasheet stub |
+| TRR merge | Create rc tag, create GitHub pre-release |
+| Release sign-off merge | Create `release/.../approved` tag |
+| Release PR merge | Create production tag, run KiBot, attach manufacturing outputs to GitHub Release |
 
 ---
 

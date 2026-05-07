@@ -8,7 +8,7 @@ for dir in schematics pcb simulations/models calculations \
             analysis/mtbf analysis/stress analysis/thermal analysis/doe \
             bom bring-up/scripts circuit-mods \
             production/fptcs production/test-programs production/aoi \
-            decisions ci-results reviews requirements; do
+            decisions ci-results reviews requirements datasheet; do
   mkdir -p "$FEATURE_DIR/$dir"
 done
 
@@ -28,5 +28,25 @@ cp -n "scripts/ci/stubs/feature-requirements.yaml"   "$FEATURE_DIR/requirements/
 cp -n "scripts/ci/stubs/interface-requirements.yaml" "$FEATURE_DIR/requirements/interface-requirements.yaml"
 cp -n "scripts/ci/stubs/verification-matrix.md"      "$FEATURE_DIR/requirements/verification-matrix.md"
 cp -n "scripts/ci/stubs/DDR-000.md"                  "$FEATURE_DIR/decisions/DDR-000-feature-overview.md"
+
+# Feature README — navigation hub for the feature directory
+cp -n "scripts/ci/stubs/README.md"               "$FEATURE_DIR/README.md"
+
+# Datasheet source stubs — engineer fills these in between CDR and TRR
+mkdir -p "$FEATURE_DIR/datasheet"
+cp -n "scripts/ci/stubs/specs.yaml"              "$FEATURE_DIR/datasheet/specs.yaml"
+cp -n "scripts/ci/stubs/application-notes.md"    "$FEATURE_DIR/datasheet/application-notes.md"
+cp -n "scripts/ci/stubs/errata.md"               "$FEATURE_DIR/datasheet/errata.md"
+
+# Replace FEATURE_NAME placeholder in scaffolded files
+for f in \
+  "$FEATURE_DIR/README.md" \
+  "$FEATURE_DIR/datasheet/specs.yaml" \
+  "$FEATURE_DIR/datasheet/application-notes.md" \
+  "$FEATURE_DIR/datasheet/errata.md"; do
+  if [[ -f "$f" ]]; then
+    sed -i "s/FEATURE_NAME/$FEATURE/g" "$f"
+  fi
+done
 
 echo "✅ Scaffolded: $FEATURE_DIR"

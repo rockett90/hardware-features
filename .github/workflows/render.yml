@@ -61,22 +61,6 @@ jobs:
             bash -c "kicad-cli sch export svg --help 2>&1 || true; echo '---'; which inkscape 2>/dev/null && echo 'inkscape: found' || echo 'inkscape: not found'; python3 -c 'import cairosvg; print(\"cairosvg: found\")' 2>/dev/null || echo 'cairosvg: not found'; python3 -c 'import PIL; print(\"Pillow: found\")' 2>/dev/null || echo 'Pillow: not found'" 2>&1 || true
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: Install analysis tools
-        run: |
-          sudo apt-get install -y --no-install-recommends ngspice poppler-utils python3-pip
-          # Clone kicad-happy action and install its Python dependencies
-          git clone --depth=1 --branch v1.3.0 https://github.com/aklofas/kicad-happy.git \
-            "$RUNNER_TEMP/kicad-happy-action"
-          if [[ -f "$RUNNER_TEMP/kicad-happy-action/requirements.txt" ]]; then
-            pip3 install -q -r "$RUNNER_TEMP/kicad-happy-action/requirements.txt"
-          fi
-          # Install dependencies for the action scripts themselves
-          for req in \
-            "$RUNNER_TEMP/kicad-happy-action/skills/kicad/requirements.txt" \
-            "$RUNNER_TEMP/kicad-happy-action/action/requirements.txt"; do
-            [[ -f "$req" ]] && pip3 install -q -r "$req" || true
-          done
-
       - name: Find all changed features
         id: find
         run: |
@@ -110,6 +94,23 @@ jobs:
               echo "EOF"
             } >> $GITHUB_OUTPUT
           fi
+
+      - name: Install analysis tools
+        if: steps.find.outputs.has_any_feature == 'true'
+        run: |
+          sudo apt-get install -y --no-install-recommends ngspice poppler-utils python3-pip
+          # Clone kicad-happy action and install its Python dependencies
+          git clone --depth=1 --branch v1.3.0 https://github.com/aklofas/kicad-happy.git \
+            "$RUNNER_TEMP/kicad-happy-action"
+          if [[ -f "$RUNNER_TEMP/kicad-happy-action/requirements.txt" ]]; then
+            pip3 install -q -r "$RUNNER_TEMP/kicad-happy-action/requirements.txt"
+          fi
+          # Install dependencies for the action scripts themselves
+          for req in \
+            "$RUNNER_TEMP/kicad-happy-action/skills/kicad/requirements.txt" \
+            "$RUNNER_TEMP/kicad-happy-action/action/requirements.txt"; do
+            [[ -f "$req" ]] && pip3 install -q -r "$req" || true
+          done
 
       - name: Run KiBot per feature
         id: kibot

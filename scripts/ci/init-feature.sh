@@ -18,7 +18,7 @@ cp_template() {
   else echo "⚠️  Template not found, skipping: $1"; fi
 }
 cp_template "templates/kicad-project-template.kicad_pro" "$FEATURE_DIR/$FEATURE.kicad_pro"
-cp_template "templates/schematic-template.kicad_sch"     "$FEATURE_DIR/schematics/$FEATURE.kicad_sch"
+cp_template "templates/schematic-template.kicad_sch"     "$FEATURE_DIR/$FEATURE.kicad_sch"
 cp_template "templates/pcb-template.kicad_pcb"           "$FEATURE_DIR/pcb/$FEATURE.kicad_pcb"
 cp_template "config/kibot/base-feature.kibot.yml"        "$FEATURE_DIR/.kibot.yml"
 

@@ -104,6 +104,7 @@ jobs:
             fi
 
             echo "▶  kicad-visual-diff: ${FEATURE}${PCB_FLAG:+ (with PCB)}"
+            # Note: external repos can use the reusable action at kicad-visual-diff/action.yml instead.
             docker run --rm \
               -v "$PWD/scripts:/scripts" \
               -v "$BASEDIR:/vdiff-base" \

@@ -10,6 +10,14 @@ inputs:
     description: 'Base git ref to compare against'
     required: false
     default: 'main'
+  base-sha:
+    description: 'Base commit SHA — overrides event default. Required for workflow_dispatch and issue_comment events.'
+    required: false
+    default: ''
+  head-sha:
+    description: 'Head commit SHA — overrides event default. Required for workflow_dispatch and issue_comment events.'
+    required: false
+    default: ''
   output-dir:
     description: 'Output directory for diff report files'
     required: false
@@ -54,14 +62,14 @@ runs:
         PCB_FLAG=""
         [[ "${{ inputs.pcb }}" == "true" ]] && PCB_FLAG="--pcb"
         docker run --rm \
-          -v "${{ github.workspace }}/scripts:/scripts" \
+          -v "${{ github.action_path }}:/action" \
           -v "$RUNNER_TEMP/kv-base:/kv-base" \
           -v "$RUNNER_TEMP/kv-head:/kv-head" \
           -v "${{ inputs.output-dir }}:/kv-out" \
-          -e BASE_SHA="${{ github.event.pull_request.base.sha }}" \
-          -e HEAD_SHA="${{ github.sha }}" \
+          -e BASE_SHA="${{ inputs.base-sha || github.event.pull_request.base.sha }}" \
+          -e HEAD_SHA="${{ inputs.head-sha || github.sha }}" \
           "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
-          python3 /scripts/ci/kicad-visual-diff.py \
+          python3 /action/kicad-visual-diff.py \
             --base-dir /kv-base \
             --head-dir /kv-head \
             --feature "${{ inputs.feature }}" \

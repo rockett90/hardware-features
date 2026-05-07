@@ -14,6 +14,12 @@
 - [ ] `decisions/DDR-000-feature-overview.md` contains real content — problem statement, design approach, key decisions (not stub text)
 - [ ] Feature scope is clearly bounded — what this feature does and what it does not do
 
+## Feature README
+
+- [ ] `README.md` intent paragraph describes what this feature does and where it fits in the wider system
+- [ ] External links section updated with Jira, SharePoint, or other relevant project links (or explicitly marked N/A)
+- [ ] Contacts section populated with feature lead name
+
 ## Repository configuration
 
 - [ ] Feature scope added to `commitlint.config.js` so PR titles with this feature's scope are valid

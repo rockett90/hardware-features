@@ -71,8 +71,8 @@ Replace `FamilyName` with the actual footprint library folder name. The same `${
 
 Coordinate with the lead before upgrading. The steps are:
 
-1. Test the new version locally against `tests/reference-designs/poc-test/`.
-2. Re-run the CI pipeline against `poc-test/` inside the new KiBot Docker image.
+1. Test the new version locally where possible.
+2. Re-run the KiCad regression tests inside the new KiBot Docker image once a reference design is available; see `tests/README.md`.
 3. Update the Docker image digest in `config/kibot/`.
 4. Update [docs/versions.md](../versions.md) with the new KiCad version and Docker digest.
 5. Raise a `chore(library): upgrade KiCad to <version>` PR with lead approval.

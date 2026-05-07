@@ -346,7 +346,9 @@ def _generate_markdown(
         ]
         rows = [
             [
-                item.get("interface", ""),
+                # specs.yaml uses 'name' as the key — fall back to 'interface' for
+                # any legacy specs files that may use the old key name.
+                item.get("name", item.get("interface", "")),
                 item.get("type", ""),
                 item.get("connector", ""),
                 item.get("pin", ""),

@@ -26,7 +26,7 @@ All four template files are present and will be copied by `init-feature.sh` when
 | File | Copied to |
 |---|---|
 | `kicad-project-template.kicad_pro` | `features/<feature>/<feature>.kicad_pro` |
-| `schematic-template.kicad_sch` | `features/<feature>/schematics/<feature>.kicad_sch` |
+| `schematic-template.kicad_sch` | `features/<feature>/<feature>.kicad_sch` |
 | `pcb-template.kicad_pcb` | `features/<feature>/pcb/<feature>.kicad_pcb` |
 | `title-block.kicad_wks` | Referenced by path — not copied per feature |
 

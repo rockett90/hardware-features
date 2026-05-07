@@ -41,35 +41,31 @@ jobs:
           fi
           echo "Feature directory confirmed: features/$FEATURE"
 
-      - name: Run KiBot — schematic and BOM outputs
-        # These outputs are reliable across KiCad versions
-        uses: INTI-CMNB/KiBot@v2_k9
-        with:
-          config: config/kibot/base.kibot.yml
-          dir: features/${{ steps.tag.outputs.feature }}/fab/release
-          schema: features/${{ steps.tag.outputs.feature }}/${{ steps.tag.outputs.feature }}.kicad_sch
-          board: features/${{ steps.tag.outputs.feature }}/${{ steps.tag.outputs.feature }}.kicad_pcb
-          targets: pdf_schematic,bom_csv,bom_html,erc_report
-        continue-on-error: false
-
-      - name: Run KiBot — PCB manufacturing outputs
-        # PCB outputs (gerbers, drill, IPC netlist, CPL) need confirming against the
-        # KiCad 10 Docker image. continue-on-error: true per Technical Intent Document
-        # to avoid blocking release if PCB outputs fail on a KiCad version mismatch.
-        uses: INTI-CMNB/KiBot@v2_k9
-        with:
-          config: config/kibot/base.kibot.yml
-          dir: features/${{ steps.tag.outputs.feature }}/fab/release
-          schema: features/${{ steps.tag.outputs.feature }}/${{ steps.tag.outputs.feature }}.kicad_sch
-          board: features/${{ steps.tag.outputs.feature }}/${{ steps.tag.outputs.feature }}.kicad_pcb
-          targets: gerbers,drill,ipc_netlist,cpl,pdf_pcb_print
+      - name: Run KiBot manufacturing outputs
+        id: kibot_outputs
         continue-on-error: true
-        id: pcb_outputs
-
-      - name: Warn if PCB outputs failed
-        if: steps.pcb_outputs.outcome == 'failure'
         run: |
-          echo "::warning::PCB manufacturing outputs (gerbers/drill/IPC/CPL) failed — check KiBot/KiCad version compatibility. Schematic and BOM outputs are still attached."
+          FEATURE="${{ steps.tag.outputs.feature }}"
+          FAB_DIR="features/$FEATURE/fab/release"
+          mkdir -p "$FAB_DIR"
+          docker run --rm \
+            -v "$PWD:/repo" \
+            -w "/repo/features/$FEATURE" \
+            "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
+            kibot \
+              -c /repo/config/kibot/base.kibot.yml \
+              -e "$FEATURE.kicad_sch" \
+              -b "pcb/$FEATURE.kicad_pcb" \
+              -d /repo/$FAB_DIR \
+              2>&1
+
+      - name: Error if KiBot outputs failed
+        if: steps.kibot_outputs.outcome == 'failure'
+        run: |
+          echo "::error::Manufacturing outputs FAILED — this release pack may be INCOMPLETE. Do NOT send to manufacturer without verifying outputs."
+          echo "## ⛔ Manufacturing outputs FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "KiBot did not complete successfully. Gerbers, drill files, CPL, and/or BOM may be missing or incomplete." >> $GITHUB_STEP_SUMMARY
+          echo "**Do NOT release to manufacturer.** Investigate the KiBot run above and resolve before proceeding." >> $GITHUB_STEP_SUMMARY
 
       - name: Create manufacturing ZIP
         run: |

@@ -4,7 +4,7 @@ global:
   out_dir: fab
 preflight:
   run_erc: true
-  run_drc: false
+  run_drc: true
   ignore_unconnected: false
 outputs:
   - name: schematic_svg

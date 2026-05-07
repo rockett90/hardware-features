@@ -30,8 +30,10 @@ jobs:
 
       - name: Create CDR gate tag
         run: |
-          git tag "cdr/${{ steps.feature.outputs.name }}/approved"
-          git push origin "cdr/${{ steps.feature.outputs.name }}/approved"
+          # Use -f to handle re-CDR: the approved tag is force-updated to the new commit.
+          # This ensures the tag always reflects the most recent CDR approval.
+          git tag -f "cdr/${{ steps.feature.outputs.name }}/approved"
+          git push --force origin "cdr/${{ steps.feature.outputs.name }}/approved"
 
       - name: Create library.lock
         run: |
@@ -47,7 +49,7 @@ jobs:
           library-submodule-url: $LIB_SUBMODULE_URL
           library-submodule-commit: $LIB_SHA
           feature-commit: $FEA_SHA
-          locked-at-gate: cdr
+          locked-at-gate: $(echo "${{ github.event.pull_request.head.ref }}" | sed 's|^signoff/[^/]*/||')
           locked-date: $(date +%Y-%m-%d)
           EOF
           git config user.name  "github-actions[bot]"

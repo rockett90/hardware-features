@@ -79,6 +79,7 @@ The dispatcher reacts with 👀 immediately on receipt, ✅ on success, ❌ on f
 | CDR sign-off | `signoff/<feature>/cdr` |
 | TRR sign-off | `signoff/<feature>/trr` |
 | Re-TRR | `signoff/<feature>/trr-N` |
+| Release sign-off | `signoff/<feature>/release` |
 | Library change | `library/<desc>` |
 | Tooling / docs | `chore/<desc>` |
 
@@ -92,8 +93,9 @@ CI validates every PR branch name. A non-matching name fails the "Validate branc
 2. **Design work** (`artifact/<feature>/...` PRs) — schematic and PCB changes, one feature per PR.
 3. **Use slash commands** during review: `/render`, `/kicad-diff`, `/ai-review`, `/erc`, `/drc`.
 4. **CDR sign-off** (`signoff/<feature>/cdr`) — gate-check CI must pass before merge.
-5. **TRR sign-off** (`signoff/<feature>/trr`) — gate-check CI must pass before merge.
-6. **Release** — managed automatically by release-please; never close a Release PR manually.
+5. **TRR sign-off** (`signoff/<feature>/trr`) — gate-check CI must pass before merge; creates an rc pre-release automatically.
+6. **Final Release sign-off** (`signoff/<feature>/release`) — gate-check CI must pass before merge; creates the `release/<feature>/approved` tag. See [docs/how-to/release-signoff.md](docs/how-to/release-signoff.md).
+7. **Release** — merge the release-please Release PR; never close it manually. Manufacturing outputs are generated automatically from the production tag.
 
 ---
 
@@ -108,5 +110,6 @@ CI validates every PR branch name. A non-matching name fails the "Validate branc
 - [docs/how-to/design-workflow.md](docs/how-to/design-workflow.md) — day-to-day design workflow
 - [docs/how-to/cdr-signoff.md](docs/how-to/cdr-signoff.md) — how to perform a CDR sign-off
 - [docs/how-to/trr-signoff.md](docs/how-to/trr-signoff.md) — how to perform a TRR sign-off
+- [docs/how-to/release-signoff.md](docs/how-to/release-signoff.md) — how to perform a Final Release sign-off
 - [scripts/ci/README.md](scripts/ci/README.md) — CI script reference
 - [kicad-visual-diff/README.md](kicad-visual-diff/README.md) — visual diff action reference

@@ -41,6 +41,19 @@ jobs:
           fi
           echo "Feature directory confirmed: features/$FEATURE"
 
+      - name: Verify Final Release gate cleared
+        run: |
+          FEATURE="${{ steps.tag.outputs.feature }}"
+          if ! git ls-remote --tags origin "release/$FEATURE/approved" | grep -q "release/$FEATURE/approved"; then
+            echo "::error::Final Release gate not cleared — tag release/$FEATURE/approved not found."
+            echo "Raise and merge a signoff/$FEATURE/release PR before pushing a production tag."
+            echo "## ⛔ Final Release gate not cleared" >> $GITHUB_STEP_SUMMARY
+            echo "Tag \`release/$FEATURE/approved\` was not found." >> $GITHUB_STEP_SUMMARY
+            echo "Raise and merge a \`signoff/$FEATURE/release\` PR first." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "✅ Final Release gate cleared — release/$FEATURE/approved tag confirmed."
+
       - name: Run KiBot manufacturing outputs
         id: kibot_outputs
         continue-on-error: true
@@ -82,7 +95,10 @@ jobs:
             ls -lh "$ZIP_NAME"
           else
             echo "zip_created=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::No manufacturing outputs found — ZIP not created."
+            echo "::error::No manufacturing outputs found in $FAB_DIR — ZIP not created. The KiBot step likely failed. Do NOT release to manufacturer."
+            echo "## ⛔ Manufacturing ZIP not created" >> $GITHUB_STEP_SUMMARY
+            echo "No files found in \`$FAB_DIR\`. KiBot output is missing or empty." >> $GITHUB_STEP_SUMMARY
+            exit 1
           fi
         id: create_zip
 

@@ -1,5 +1,13 @@
 {
-  "packages": {},
+  "_comment": "release-please ignores this _example-feature entry because the key starts with an underscore. Copy it, rename only the key from _example-feature to your feature name, and keep package-name/changelog-path aligned to the real feature name without the underscore.",
+  "packages": {
+    "_example-feature": {
+      "release-type": "simple",
+      "package-name": "example-feature",
+      "changelog-path": "features/example-feature/CHANGELOG.md",
+      "bump-minor-pre-major": true
+    }
+  },
   "changelog-sections": [
     { "type": "feat", "section": "Features" },
     { "type": "fix",  "section": "Bug Fixes" }

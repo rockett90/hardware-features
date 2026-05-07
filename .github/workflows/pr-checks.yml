@@ -27,4 +27,38 @@ jobs:
             > changed_files.txt
           python3 scripts/ci/validate-dir-structure.py < changed_files.txt
 
+  validate-release-please-config:
+    name: Validate release-please config
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check feature registered in release-please-config.json
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          if [[ "$BRANCH" != init/* ]]; then
+            exit 0
+          fi
+          FEATURE="${BRANCH#init/}"
+          CONFIG=".github/release-please-config.json"
+          python3 - "$FEATURE" "$CONFIG" <<'PY'
+          import json
+          import sys
+
+          feature = sys.argv[1]
+          config = sys.argv[2]
+          with open(config) as fh:
+              data = json.load(fh)
+          packages = data.get("packages", {})
+
+          if feature not in packages:
+              print(f'ERROR: "{feature}" not found in {config} packages.')
+              print("Add an entry for this feature before merging the init PR.")
+              print("See the _example-feature entry in the config for the required format.")
+              sys.exit(1)
+
+          print(f'OK: "{feature}" found in release-please-config.json')
+          PY
+
   # PR title commitlint is handled by the standalone commitlint.yml workflow.

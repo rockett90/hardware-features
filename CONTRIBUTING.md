@@ -185,7 +185,10 @@ Your init PR must contain the following files inside `features/<name>/`:
 
 Your init PR must also update:
 - `.github/commitlint.config.js` — add the new scope to `scope-enum`
-- `.github/release-please-config.json` — add your feature under `packages`. Copy the `_example-feature` block, rename the key to your feature name (e.g. `buck-converter-5v`), update `package-name` and `changelog-path` to match. Remove the `_` prefix. Example:
+- `.github/release-please-config.json` — add your feature under `packages`.
+  Copy the `_example-feature` block, rename the key from `_example-feature` to your
+  feature name (e.g. `buck-converter-5v`), and update `package-name` and
+  `changelog-path` to match. Example:
 
   ```json
   "buck-converter-5v": {

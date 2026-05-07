@@ -1,5 +1,5 @@
 {
-  "_comment": "Copy the _example-feature entry, rename the key to your feature name, update package-name and changelog-path, then remove the leading underscore.",
+  "_comment": "release-please ignores this _example-feature entry because the key starts with an underscore. Copy it, rename only the key from _example-feature to your feature name, and keep package-name/changelog-path aligned to the real feature name without the underscore.",
   "packages": {
     "_example-feature": {
       "release-type": "simple",

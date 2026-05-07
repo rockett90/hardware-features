@@ -45,10 +45,13 @@ Preferences → Manage Symbol Libraries → add `library/symbols/` using `${KIPR
 | Re-CDR | `signoff/<feature>/cdr-N` | Re-CDR after a `finding: major` severity forces the design back to CDR. N starts at 1. Triggers the same CDR gate automation as the original CDR sign-off. |
 | TRR sign-off | `signoff/<feature>/trr` | TRR gate sign-off. Document-only PR. Triggers TRR checklist, rc tag, and pre-release creation. |
 | Re-TRR | `signoff/<feature>/trr-N` | Re-TRR after finding resolution. Triggers visual diff versus previous rc tag. |
+| Release sign-off | `signoff/<feature>/release` | Final Release gate. Document-only PR. Triggers release gate checklist enforcement and `release/<feature>/approved` tag creation. Must be raised and merged before manufacturing outputs are considered authorised for production. |
 | Library | `library/<desc>` | Changes to the hardware-library repository (raised in that repo, not here). |
 | Chore | `chore/<desc>` | Repository housekeeping: CI changes, guideline updates, template changes, submodule pointer updates. Uses `library` scope in PR title by convention. |
 
 > **PDR** is recorded via the `init/<feature>` PR — there is no separate `signoff/*/pdr` branch. The init PR IS the PDR baseline.
+>
+> **Final Release** is recorded via the `signoff/<feature>/release` PR. This must be merged before treating manufacturing outputs as authorised for production.
 
 CI validates every PR branch. A non-matching branch fails "Validate branch name" and cannot merge until corrected.
 

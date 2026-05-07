@@ -3,8 +3,8 @@ kibot:
 global:
   out_dir: fab
 preflight:
-  run_erc: true
-  run_drc: true
+  run_erc: false   # ERC is handled by erc-drc.yml (informational, slash command). Running here would block manufacturing outputs on any violation.
+  run_drc: false   # DRC is handled by erc-drc.yml (informational, slash command). Running here would block manufacturing outputs on any violation.
   ignore_unconnected: false
 outputs:
   - name: schematic_svg

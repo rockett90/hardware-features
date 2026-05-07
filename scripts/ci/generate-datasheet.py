@@ -215,7 +215,7 @@ def _read_changelog(path: str):
                 current.append(line)
         if current:
             entries.append("\n".join(current))
-        last_10 = entries[-10:] if len(entries) > 10 else entries
+        last_10 = entries[-10:]
         result = "\n\n".join(last_10).strip()
         return result if result else None
     except Exception:

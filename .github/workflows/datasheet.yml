@@ -146,5 +146,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: parseInt('${{ inputs.pr_number }}'),
-              body: `✅ Datasheet generated for \`${feature}\`.\n\nSee [\`features/${feature}/datasheet/${feature}-datasheet.md\`](../blob/main/features/${feature}/datasheet/${feature}-datasheet.md).${pdfNote}\n\n*Edit \`datasheet/specs.yaml\`, \`datasheet/application-notes.md\`, or \`datasheet/errata.md\` and run \`/datasheet\` again to update.*`,
+              body: `✅ Datasheet generated for \`${feature}\`.\n\nSee [\`features/${feature}/datasheet/${feature}-datasheet.md\`](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/features/${feature}/datasheet/${feature}-datasheet.md).${pdfNote}\n\n*Edit \`datasheet/specs.yaml\`, \`datasheet/application-notes.md\`, or \`datasheet/errata.md\` and run \`/datasheet\` again to update.*`,
             });

@@ -15,8 +15,9 @@ This directory contains reusable Python drivers for bench instruments. Bring-up 
 Bring-up scripts should add `bench/` to the Python path using this convention (from CONTRIBUTING.md section 15):
 
 ```python
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../../bench'))
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[4] / 'bench'))
 ```
 
 ---

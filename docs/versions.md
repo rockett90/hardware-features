@@ -60,7 +60,7 @@ Minimum version: **3.11+**
 ## How to upgrade a version
 
 1. Test the upgrade locally where possible.
-2. For KiCad or KiBot: re-run `tests/reference-designs/poc-test/` regression test inside the new Docker image first.
+2. For KiCad or KiBot: re-run the KiCad regression tests inside the new Docker image first — see `tests/README.md` for instructions once a reference design is available.
 3. Raise a `chore(library): upgrade <tool> to <version>` PR.
 4. Update this file and all inline references in the same PR.
 5. Lead approval required.

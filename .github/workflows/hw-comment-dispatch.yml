@@ -80,6 +80,7 @@ jobs:
               '/erc':        'erc-drc.yml',
               '/drc':        'erc-drc.yml',
               '/kicad-diff': 'kicad-diff.yml',
+              '/datasheet':  'datasheet.yml',
             };
             const ALL_COMMANDS = [
               ...Object.keys(DISPATCH_MAP),
@@ -103,6 +104,7 @@ jobs:
                   '| `/kicad-diff` | Generate visual diff of schematic (and PCB) changes vs base branch |',
                   '| `/erc` | Run ERC (Electrical Rules Check) — informational only |',
                   '| `/drc` | Run DRC (Design Rules Check) — informational only |',
+                  '| `/datasheet` | Generate IC-style datasheet from specs.yaml and source files |',
                   '| `/emc-check` | *(coming soon)* |',
                   '| `/spice` | *(coming soon)* |',
                   '| `/bom-check` | *(coming soon)* |',
@@ -142,16 +144,30 @@ jobs:
               return;
             }
 
+            // Build workflow inputs — /datasheet also needs a feature name
+            let dispatchInputs = {
+              pr_number: prNumber,
+              head_sha:  headSha,
+            };
+            if (command === '/datasheet') {
+              // Extract feature from branch ref: artifact/<feature>/... or signoff/<feature>/...
+              const refParts = pr.head.ref.split('/');
+              const feature = refParts.length >= 2 ? refParts[1] : '';
+              dispatchInputs = {
+                feature:   feature,
+                pr_number: prNumber,
+                head_sha:  headSha,
+                base_sha:  pr.base.sha,
+              };
+            }
+
             try {
               await github.rest.actions.createWorkflowDispatch({
                 owner:  context.repo.owner,
                 repo:   context.repo.repo,
                 workflow_id: workflow,
                 ref:    context.payload.repository.default_branch,
-                inputs: {
-                  pr_number: prNumber,
-                  head_sha:  headSha,
-                },
+                inputs: dispatchInputs,
               });
               core.setOutput('dispatched', 'true');
               core.setOutput('workflow',   workflow);

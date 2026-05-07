@@ -85,3 +85,4 @@ See [`.github/guidelines/gate-criteria.md`](../../.github/guidelines/gate-criter
 ## After CDR
 
 Once CDR is merged and tagged, the feature is cleared to proceed to build and bring-up. For the next formal gate, see [trr-signoff.md](trr-signoff.md).
+CI also creates `features/<feature>/reviews/library.lock` recording the exact library and feature commit SHAs at this gate. See [library-lock.md](library-lock.md) for what this file is and how to use it for traceability.

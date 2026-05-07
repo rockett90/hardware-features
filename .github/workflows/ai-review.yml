@@ -28,8 +28,7 @@ jobs:
       group: ai-review-pr-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
       cancel-in-progress: true
     env:
-      PRIMARY_MODEL: claude-sonnet-4-6
-      FALLBACK_MODEL: gpt-4.1
+      MODEL: gpt-4.1
     steps:
       - name: Resolve PR details
         id: pr
@@ -108,25 +107,32 @@ jobs:
             read_or_empty "${{ steps.kh.outputs.report-path }}"
           } > /tmp/review-context.txt
 
+      - name: Check review context size
+        if: steps.kicad.outputs.has_kicad == 'true'
+        run: |
+          SIZE=$(wc -c < /tmp/review-context.txt)
+          echo "Review context size: ${SIZE} bytes"
+          MAX=102400  # 100 KB
+          if [ "$SIZE" -gt "$MAX" ]; then
+            echo "::warning::Review context is ${SIZE} bytes (limit ${MAX}). Truncating to prevent context window overflow."
+            truncate -s $MAX /tmp/review-context.txt
+            echo "[TRUNCATED: context exceeded 100KB and was cut off]" >> /tmp/review-context.txt
+          fi
+
       - name: Call GitHub Models API
         if: steps.kicad.outputs.has_kicad == 'true'
         env:
-          GITHUB_TOKEN:      ${{ github.token }}
-          KH_STATUS:         ${{ steps.kh.outputs.status }}
-          KH_CRITICAL_COUNT: ${{ steps.kh.outputs.critical-count }}
-          PRIMARY_MODEL:     ${{ env.PRIMARY_MODEL }}
-          FALLBACK_MODEL:    ${{ env.FALLBACK_MODEL }}
+          GITHUB_TOKEN: ${{ github.token }}
+          MODEL:        ${{ env.MODEL }}
         run: |
           node - <<'JSEOF'
           const fs    = require('fs');
           const https = require('https');
 
-          const contextText   = fs.readFileSync('/tmp/review-context.txt', 'utf8');
-          const token         = process.env.GITHUB_TOKEN;
-          const primaryModel  = process.env.PRIMARY_MODEL;
-          const fallbackModel = process.env.FALLBACK_MODEL;
-          const khStatus      = process.env.KH_STATUS    || 'unknown';
-          const khCritical    = process.env.KH_CRITICAL_COUNT || '0';
+          const contextText = fs.readFileSync('/tmp/review-context.txt', 'utf8');
+          const token       = process.env.GITHUB_TOKEN;
+          const khStatus    = '${{ steps.kh.outputs.status }}' || 'unknown';
+          const khCritical  = '${{ steps.kh.outputs.critical-count }}' || '0';
 
           const prompt = `You are reviewing a hardware schematic.
 
@@ -141,69 +147,39 @@ jobs:
           Use CRITICAL for findings that must be resolved before merge.
           Use ADVISORY for findings that may be dismissed with reasoning.`;
 
-          function callModel(model) {
-            return new Promise((resolve, reject) => {
-              const body = JSON.stringify({
-                model,
-                messages:   [{ role: 'user', content: prompt }],
-                max_tokens: 2000,
-              });
-              const req = https.request({
-                hostname: 'models.inference.ai.azure.com',
-                path:     '/chat/completions',
-                method:   'POST',
-                headers:  {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type':  'application/json',
-                  'Content-Length': Buffer.byteLength(body),
-                },
-              }, res => {
-                let data = '';
-                res.on('data', chunk => data += chunk);
-                res.on('end', () => {
-                  if (res.statusCode === 429 || res.statusCode === 404) {
-                    reject({ retryable: true, code: res.statusCode, body: data });
-                  } else if (res.statusCode !== 200) {
-                    reject({ retryable: false, code: res.statusCode, body: data });
-                  } else {
-                    resolve(JSON.parse(data).choices[0].message.content);
-                  }
-                });
-              });
-              req.on('error', err => reject({ retryable: false, body: err.message }));
-              req.write(body);
-              req.end();
-            });
-          }
-
-          async function main() {
-            let review, modelUsed;
-            try {
-              review    = await callModel(primaryModel);
-              modelUsed = primaryModel;
-            } catch (err) {
-              if (err.retryable) {
-                console.log(`Primary model ${primaryModel} unavailable (${err.code}), falling back to ${fallbackModel}`);
-                try {
-                  review    = await callModel(fallbackModel);
-                  modelUsed = `${fallbackModel} (fallback — ${primaryModel} unavailable)`;
-                } catch (err2) {
-                  review    = `AI review unavailable: ${err2.body || err2}`;
-                  modelUsed = 'none';
-                }
+          const body = JSON.stringify({
+            model: process.env.MODEL,
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 8000,
+          });
+          const req = https.request({
+            hostname: 'api.githubcopilot.com',
+            path: '/chat/completions',
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(body),
+            },
+          }, res => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              if (res.statusCode !== 200) {
+                fs.writeFileSync('/tmp/ai-review.txt', `AI review unavailable: HTTP ${res.statusCode}\n${data}`);
+                fs.writeFileSync('/tmp/model-used.txt', 'none');
               } else {
-                review    = `AI review unavailable: HTTP ${err.code}\n${err.body}`;
-                modelUsed = 'none';
+                fs.writeFileSync('/tmp/ai-review.txt', JSON.parse(data).choices[0].message.content);
+                fs.writeFileSync('/tmp/model-used.txt', process.env.MODEL);
               }
-            }
-            fs.writeFileSync('/tmp/ai-review.txt',    review);
-            fs.writeFileSync('/tmp/model-used.txt',   modelUsed);
-          }
-
-          main().catch(e => {
-            fs.writeFileSync('/tmp/ai-review.txt',  `AI review unavailable: ${e}`);
+            });
+          });
+          req.on('error', err => {
+            fs.writeFileSync('/tmp/ai-review.txt', `AI review unavailable: ${err.message}`);
             fs.writeFileSync('/tmp/model-used.txt', 'none');
           });
+          req.write(body);
+          req.end();
           JSEOF
 
       - name: Post AI review comment

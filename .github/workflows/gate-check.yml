@@ -33,6 +33,8 @@ jobs:
             if (unchecked > 0) {
               core.setFailed(`Gate PR has ${unchecked} unchecked item(s) in the checklist. All items must be checked before merge.`);
             } else {
-              const gateType = branch.startsWith('init/') ? 'PDR' : 'CDR/TRR';
+              const gateType = branch.startsWith('init/') ? 'PDR'
+                             : branch.includes('/release') ? 'Final Release'
+                             : 'CDR/TRR';
               console.log(`All ${gateType} checklist items checked ✅`);
             }

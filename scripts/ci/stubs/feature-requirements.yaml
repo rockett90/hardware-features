@@ -1,3 +1,15 @@
+# ─── Document metadata ───────────────────────────────────────────────────────
+# document-version: Increment on every substantive change to requirements content.
+#   Use semantic versioning: 0.x for pre-PDR drafts, 1.0 at PDR baseline, etc.
+# baseline: The gate at which this version was formally approved.
+#   Values: DRAFT | PDR | CDR | TRR
+# approved-date: Set at gate sign-off. Format: YYYY-MM-DD.
+# approved-by: Lead engineer name at gate sign-off.
+document-version: "0.1"
+baseline: DRAFT
+approved-date: ""
+approved-by: ""
+# ─────────────────────────────────────────────────────────────────────────────
 feature: FEATURE_NAME
 created-at-gate: pdr
 last-updated: YYYY-MM-DD

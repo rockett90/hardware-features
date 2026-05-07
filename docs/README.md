@@ -28,6 +28,7 @@
 
 | Guide | Description |
 |---|---|
+| [how-to/worked-example.md](how-to/worked-example.md) | Complete worked example — hardware feature from idea to release |
 | [how-to/init-feature.md](how-to/init-feature.md) | How to initialise a brand-new hardware feature |
 | [how-to/design-workflow.md](how-to/design-workflow.md) | Day-to-day workflow for working on a hardware feature |
 | [how-to/cdr-signoff.md](how-to/cdr-signoff.md) | How to perform a Critical Design Review (CDR) sign-off |

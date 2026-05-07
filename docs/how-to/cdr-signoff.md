@@ -1,5 +1,11 @@
 # How to perform a CDR sign-off
 
+> **Opening the CDR PR:** Use the following URL to open your PR with the CDR template pre-loaded (replace `<branch>` with your branch name):
+> ```
+> https://github.com/rockett90/hardware-features/compare/main...<branch>?template=cdr-signoff.md
+> ```
+> Do not open the PR from the GitHub branch page directly — it will load the default template instead of the CDR template.
+>
 > Critical Design Review (CDR) — a formal gate in the hardware feature lifecycle that must be passed before a design moves to build.
 
 ---

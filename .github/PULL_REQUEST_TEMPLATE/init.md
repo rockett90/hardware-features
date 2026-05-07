@@ -12,6 +12,7 @@
 - [ ] `requirements/feature-requirements.yaml` contains real REQ-IDs (not just stub placeholder text)
 - [ ] `requirements/interface-requirements.yaml` contains real interface definitions with voltage, current, and signal levels
 - [ ] `requirements/verification-matrix.md` lists all REQ-IDs with a verification method for each
+- [ ] `document-version` and `baseline` fields populated in `feature-requirements.yaml`, `interface-requirements.yaml`, `verification-matrix.md`, and `DDR-000.md`
 
 ## Design intent
 

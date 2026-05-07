@@ -55,6 +55,24 @@ Your PR must also update these two repository-level files:
 
 > ⚠️ Warning: CI will reject an init PR that contains placeholder content in the required documents. The files must contain real information about the feature.
 
+#### Document version and baseline fields
+
+Each controlled document stub (`feature-requirements.yaml`, `interface-requirements.yaml`, `verification-matrix.md`, `DDR-000.md`) contains a metadata block at the top:
+
+```yaml
+document-version: "0.1"
+baseline: DRAFT
+approved-date: ""
+approved-by: ""
+```
+
+**What to fill in at init:**
+- `document-version`: Start at `"0.1"`. Increment the minor version (0.2, 0.3…) on every substantive change to the document content. Set to `"1.0"` when the document is approved at PDR.
+- `baseline`: Set to `DRAFT` until PDR sign-off. Update to `PDR`, `CDR`, or `TRR` at each gate as the document is formally approved.
+- `approved-date` and `approved-by`: Leave blank at init — filled in by the lead at gate sign-off.
+
+These fields are the traceability record for the document. They answer: "which version of the requirements was reviewed at CDR?"
+
 ---
 
 ### 3. Open a draft PR

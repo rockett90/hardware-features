@@ -111,3 +111,31 @@ jobs:
               draft:      false,
               body:       'IVV baseline. Not for production. Created automatically at TRR gate.',
             });
+
+  release-gate:
+    if: github.event.pull_request.merged == true &&
+        startsWith(github.event.pull_request.head.ref, 'signoff/') &&
+        endsWith(github.event.pull_request.head.ref, '/release')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-gate-${{ github.event.pull_request.head.ref }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Extract feature name
+        id: feature
+        run: |
+          REF="${{ github.event.pull_request.head.ref }}"
+          FEATURE=$(echo "$REF" | sed 's|^signoff/||;s|/release$||')
+          echo "name=$FEATURE" >> $GITHUB_OUTPUT
+
+      - name: Create release gate tag
+        run: |
+          git tag "release/${{ steps.feature.outputs.name }}/approved"
+          git push origin "release/${{ steps.feature.outputs.name }}/approved"

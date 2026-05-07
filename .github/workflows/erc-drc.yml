@@ -30,6 +30,10 @@ jobs:
   erc-drc:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      KICAD_IMAGE: ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257
+      # NOTE: This SHA must match the value in render.yml, erc-drc.yml, and hw-release.yml.
+      # When updating, update all three files.
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,7 +71,7 @@ jobs:
             docker run --rm \
               -v "$PWD:/repo" \
               -w "/repo" \
-              "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
+              "${{ env.KICAD_IMAGE }}" \
               kicad-cli sch run-erc \
                 --output "/repo/$(dirname $SCH)/erc-report.txt" \
                 "/repo/$SCH" 2>&1 | tee "/tmp/erc-results/${FEATURE}-erc.txt" || true
@@ -95,7 +99,7 @@ jobs:
             docker run --rm \
               -v "$PWD:/repo" \
               -w "/repo" \
-              "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
+              "${{ env.KICAD_IMAGE }}" \
               kicad-cli pcb run-drc \
                 --output "/repo/$(dirname $PCB)/drc-report.txt" \
                 "/repo/$PCB" 2>&1 | tee "/tmp/drc-results/${FEATURE}-drc.txt" || true

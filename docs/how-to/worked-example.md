@@ -45,7 +45,8 @@ On the first push to your `init/<feature>` branch, CI automatically commits the 
 
 | File | Location |
 |---|---|
-| `DDR-000-feature-overview.md` | `features/<feature>/decisions/` |
+| `DDR-000-design-intent.md` | `features/<feature>/decisions/` |
+| `DDR-000-decisions.md` | `features/<feature>/decisions/` |
 | `feature-requirements.yaml` | `features/<feature>/requirements/` |
 | `interface-requirements.yaml` | `features/<feature>/requirements/` |
 | `verification-matrix.md` | `features/<feature>/requirements/` |
@@ -76,7 +77,9 @@ PR title format:
 feat(buck-converter-5v): initialise feature
 ```
 
-Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
+> 💡 **Template autofill:** When you open a PR from the yellow banner on GitHub.com or via GitHub Desktop, the `PR template autofill` workflow will automatically fill the correct checklist into the PR body within a few seconds. Refresh the page if you see a blank body — do not type in the body before it fills in.
+
+> ERC/DRC and AI schematic review do not run on `init/**` PRs — these checks are only relevant once design content exists on an `artifact/` branch.
 
 ### 1.5 Tick all PDR checklist items
 
@@ -86,10 +89,11 @@ The PR description contains the PDR gate checklist. Tick every item:
 - `feature-requirements.yaml` contains real REQ-IDs
 - `interface-requirements.yaml` contains real interface definitions
 - `verification-matrix.md` lists all REQ-IDs
-- `DDR-000-feature-overview.md` contains real content
+- `DDR-000-design-intent.md` captures the problem statement, scope, and constraints
+- `DDR-000-decisions.md` contains at least one decision entry
 - Feature scope present in `commitlint.config.js` (added automatically by CI)
 - Feature package present in `release-please-config.json` (added automatically by CI)
-- PDR date and lead name recorded
+- PDR date and owner name recorded
 
 `gate-check.yml` runs on every push and **blocks merge** if any `- [ ]` item remains unchecked.
 
@@ -134,6 +138,62 @@ Open a **draft PR** immediately after the first push. PR title format:
 feat(buck-converter-5v): add initial schematic
 ```
 
+### Commit naming for artifact work
+
+Use Conventional Commits for every commit:
+
+- `feat` — new design content being added for the first time (schematic, PCB, BOM)
+- `fix` — correcting something already committed (wrong component value, netlist error)
+- `docs` — calculations, analysis documents, notes, simulation write-ups
+- `test` — bring-up results, measurement data, test evidence
+- `chore` — housekeeping, config changes, non-design updates
+
+Scope is always the feature name exactly as it appears in the directory:
+```
+feat(buck-converter-5v): add initial schematic
+```
+
+Description rules:
+- lowercase
+- no full stop at end
+- imperative mood (`add`, `fix`, `update` — not `added`, `fixed`, `updated`)
+
+Good examples:
+```
+feat(buck-converter-5v): add initial schematic
+feat(buck-converter-5v): add PCB layout
+fix(buck-converter-5v): correct feedback resistor values
+docs(buck-converter-5v): add inductor ripple current calculations
+test(buck-converter-5v): add efficiency measurement data at 1A load
+chore(buck-converter-5v): update kibot config
+```
+
+Bad examples:
+```
+Added schematic          ← no type or scope, past tense
+feat: add schematic      ← missing scope
+feat(buck-converter-5v): Added the initial schematic.  ← past tense, capital, full stop
+update stuff             ← meaningless
+```
+
+### PR title rules
+
+PR titles follow exactly the same format as commit messages:
+
+- The title becomes the squash-merge commit message, so it must be valid
+- One title per PR, and one PR per discrete artifact
+- The scope must match a registered feature name (CI validates this via commitlint)
+
+Examples by stage:
+```
+feat(buck-converter-5v): initialise feature          ← init PR
+feat(buck-converter-5v): add initial schematic       ← artifact PR
+fix(buck-converter-5v): correct gate drive resistor  ← finding PR
+chore(buck-converter-5v): CDR sign-off               ← CDR PR
+chore(buck-converter-5v): TRR sign-off               ← TRR PR
+chore(buck-converter-5v): final release sign-off     ← release sign-off PR
+```
+
 ### Slash commands during design
 
 Post these as PR comments to trigger CI actions. Write access is required.
@@ -147,6 +207,10 @@ Post these as PR comments to trigger CI actions. Write access is required.
 | `/drc` | Design Rules Check — informational, does not block merge |
 
 The dispatcher reacts 👀 on receipt, ✅ on success, ❌ on failure.
+
+> **ERC/DRC** runs automatically on every push that changes a `.kicad_sch` or `.kicad_pcb` file. Results are posted as a PR comment. These are **informational only** — they do not block merge. Evidence is reviewed at CDR (ERC) and TRR (DRC).
+>
+> **AI schematic review** runs when you mark the PR as **Ready for Review** (not while it's a draft). It posts a comment with CRITICAL and ADVISORY findings. CRITICAL findings must be resolved or explicitly dismissed with reasoning before requesting human review.
 
 ### Before marking ready for review
 
@@ -179,7 +243,7 @@ PR title format:
 chore(buck-converter-5v): CDR sign-off
 ```
 
-Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
+> 💡 **Template autofill:** When you open a PR from the yellow banner on GitHub.com or via GitHub Desktop, the `PR template autofill` workflow will automatically fill the correct checklist into the PR body within a few seconds. Refresh the page if you see a blank body — do not type in the body before it fills in.
 
 ### 3.3 Post `/render`
 
@@ -204,7 +268,7 @@ The CDR template checklist includes:
 - All REQ-IDs have evidence or a documented plan
 - DDR-000 complete and reviewed
 - All CRITICAL AI review findings resolved
-- CDR date and lead name recorded
+- CDR date and owner name recorded
 
 `gate-check.yml` blocks merge if any `- [ ]` item remains unchecked.
 
@@ -258,7 +322,7 @@ The TRR checklist requires all `[COMPLETE BEFORE TRR]` placeholders to be replac
 If a defect is found:
 
 1. Raise a GitHub Issue using the IVV Finding issue template.
-2. The lead confirms the severity label: `finding: minor`, `finding: moderate`, or `finding: major`.
+2. The owner confirms the severity label: `finding: minor`, `finding: moderate`, or `finding: major`.
 3. Create a `finding/<feature>/<N>-<desc>` branch where `N` is the GitHub Issue number:
 
 ```bash
@@ -273,7 +337,7 @@ fix(buck-converter-5v): correct feedback resistor divider — IVV finding #42
 CI automatically adds `finding: in-progress` to the issue when the PR opens, and `finding: resolved` plus the merge commit SHA when it merges.
 
 **Severity and gate re-entry:**
-- `finding: minor` — no gate re-entry required unless the lead decides otherwise
+- `finding: minor` — no gate re-entry required unless the owner decides otherwise
 - `finding: moderate` — re-TRR required (`signoff/buck-converter-5v/trr-1`)
 - `finding: major` — re-CDR then re-TRR required (`signoff/buck-converter-5v/cdr-1` then `signoff/buck-converter-5v/trr-1`)
 
@@ -302,7 +366,7 @@ PR title format:
 chore(buck-converter-5v): TRR sign-off
 ```
 
-Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
+> 💡 **Template autofill:** When you open a PR from the yellow banner on GitHub.com or via GitHub Desktop, the `PR template autofill` workflow will automatically fill the correct checklist into the PR body within a few seconds. Refresh the page if you see a blank body — do not type in the body before it fills in.
 
 ### 5.3 Post `/render`
 
@@ -326,9 +390,9 @@ The TRR template checklist includes:
 - All REQ-IDs evidenced
 - `datasheet/specs.yaml` complete — no `[COMPLETE BEFORE TRR]` placeholders remaining
 - `datasheet/application-notes.md` complete
-- Datasheet committed and reviewed by lead
+- Datasheet committed and reviewed by owner
 - All CRITICAL AI review findings resolved
-- TRR date and lead name recorded
+- TRR date and owner name recorded
 
 `gate-check.yml` blocks merge if any `- [ ]` item remains unchecked.
 
@@ -375,7 +439,7 @@ PR title format:
 chore(buck-converter-5v): final release sign-off
 ```
 
-Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
+> 💡 **Template autofill:** When you open a PR from the yellow banner on GitHub.com or via GitHub Desktop, the `PR template autofill` workflow will automatically fill the correct checklist into the PR body within a few seconds. Refresh the page if you see a blank body — do not type in the body before it fills in.
 
 ### 6.4 Tick all Release checklist items
 
@@ -388,7 +452,7 @@ The release sign-off template checklist includes:
 - ERC report clean
 - All CDR-gate checklist items remain satisfied
 - All TRR-gate checklist items remain satisfied
-- All P1 and P2 findings resolved or formally deferred with lead sign-off
+- All P1 and P2 findings resolved or formally deferred with owner sign-off
 - Manufacturing outputs generated by CI without errors (verify the rc pre-release has no ⛔ in its Actions step summary)
 - Gerbers visually verified against PCB layout
 - DRC confirmed clean
@@ -396,7 +460,7 @@ The release sign-off template checklist includes:
 - CPL file verified against placement drawing
 - CHANGELOG reviewed and accurate
 - Version number correct
-- Release date and lead name recorded
+- Release date and owner name recorded
 
 `gate-check.yml` blocks merge if any `- [ ]` item remains unchecked.
 
@@ -484,11 +548,14 @@ Types: `feat`, `fix`, `docs`, `test`, `chore`
 
 **CI that runs automatically (no command needed):**
 
-PRs opened from the yellow banner or GitHub Desktop will have the correct template auto-filled within seconds — no URL needed.
+PRs opened from the yellow banner or GitHub Desktop will have the correct template auto-filled within seconds — no URL needed. If the body is blank at first, refresh and wait for `PR template autofill` to complete before typing.
 
 | Event | What CI does |
 |---|---|
 | Init branch push (`init/**`) | Scaffold directories, copy stubs/templates, patch commitlint and release-please config on the init branch |
+| Init PRs (`init/**`) | `PR template autofill` fills the PR body; ERC/DRC and AI schematic review do not run |
+| Artifact PR push with `.kicad_sch` or `.kicad_pcb` change | ERC/DRC runs automatically and posts an informational PR comment |
+| Artifact PR marked Ready for Review | AI schematic review runs and posts CRITICAL/ADVISORY findings |
 | Init PR merge | Create `pdr/.../approved` tag |
 | CDR merge | Create `cdr/.../approved` tag, commit `library.lock`, generate datasheet stub |
 | TRR merge | Create rc tag, create GitHub pre-release |

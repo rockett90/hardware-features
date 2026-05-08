@@ -1,8 +1,8 @@
 (kicad_sch
-  (version 20231120)
-  (generator eeschema)
-  (generator_version 8.0)
-  (paper "A3")
+  (version 20240101)
+  (generator "eeschema")
+  (generator_version "10.0")
+  (paper "A4")
   (title_block
     (title "")
     (date "")
@@ -13,6 +13,7 @@
     (comment 3 "")
     (comment 4 "")
   )
+  (page_layout_descr_file "../../templates/title-block.kicad_wks")
   (lib_symbols
   )
   (sheet_instances

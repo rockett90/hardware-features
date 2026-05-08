@@ -44,7 +44,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "template.kicad_pro",
+    "filename": "kicad-project-template.kicad_pro",
     "version": 1
   },
   "net_settings": {

@@ -13,3 +13,4 @@ approved-by: ""
 | REQ ID  | Description   | Method | Gate | Evidence        | Status     |
 |---------|---------------|--------|------|-----------------|------------|
 | REQ-001 | [description] | Test   | TRR  | [evidence path] | ⏳ Pending |
+| REQ-001 | [description] | Test   | TRR  | [evidence path] | ⏳ Pending |

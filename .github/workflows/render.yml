@@ -56,9 +56,12 @@ jobs:
         run: |
           echo "## Pre-flight tool check" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          docker run --rm \
-            "${{ env.KICAD_IMAGE }}" \
-            bash -c "kicad-cli sch export svg --help 2>&1 || true; echo '---'; which inkscape 2>/dev/null && echo 'inkscape: found' || echo 'inkscape: not found'; python3 -c 'import cairosvg; print(\"cairosvg: found\")' 2>/dev/null || echo 'cairosvg: not found'" || true
+          docker run --rm "${{ env.KICAD_IMAGE }}" bash -c '
+            kicad-cli sch export svg --help 2>&1 || true
+            echo "---"
+            which inkscape 2>/dev/null && echo "inkscape: found" || echo "inkscape: not found"
+            python3 -c "import cairosvg; print(\"cairosvg: found\")" 2>/dev/null || echo "cairosvg: not found"
+          ' || true
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Find all changed features
@@ -181,28 +184,28 @@ jobs:
             [[ -z "$FEATURE" ]] && continue
             find "features/${FEATURE}/fab" -name "*.svg" | while read SVG; do
               python3 - "$SVG" "${{ steps.pr.outputs.sha }}" <<'PYEOF'
-import sys, datetime, xml.etree.ElementTree as ET
-try:
-    path, sha = sys.argv[1], sys.argv[2][:7]
-    ts = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
-    ET.register_namespace('', 'http://www.w3.org/2000/svg')
-    tree = ET.parse(path)
-    root = tree.getroot()
-    ns = 'http://www.w3.org/2000/svg'
-    tag = f'{{{ns}}}text' if root.tag.startswith('{') else 'text'
-    txt = ET.SubElement(root, tag)
-    txt.set('x', '98%')
-    txt.set('y', '98%')
-    txt.set('text-anchor', 'end')
-    txt.set('font-family', 'monospace')
-    txt.set('font-size', '10')
-    txt.set('fill', '#999999')
-    txt.set('opacity', '0.7')
-    txt.text = f'SHA: {sha} | {ts} | /render'
-    tree.write(path, xml_declaration=True, encoding='unicode')
-except Exception as e:
-    print(f'WARNING: watermark failed for {sys.argv[1]}: {e}', file=sys.stderr)
-PYEOF
+          import sys, datetime, xml.etree.ElementTree as ET
+          try:
+              path, sha = sys.argv[1], sys.argv[2][:7]
+              ts = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+              ET.register_namespace('', 'http://www.w3.org/2000/svg')
+              tree = ET.parse(path)
+              root = tree.getroot()
+              ns = 'http://www.w3.org/2000/svg'
+              tag = f'{{{ns}}}text' if root.tag.startswith('{') else 'text'
+              txt = ET.SubElement(root, tag)
+              txt.set('x', '98%')
+              txt.set('y', '98%')
+              txt.set('text-anchor', 'end')
+              txt.set('font-family', 'monospace')
+              txt.set('font-size', '10')
+              txt.set('fill', '#999999')
+              txt.set('opacity', '0.7')
+              txt.text = f'SHA: {sha} | {ts} | /render'
+              tree.write(path, xml_declaration=True, encoding='unicode')
+          except Exception as e:
+              print(f'WARNING: watermark failed for {sys.argv[1]}: {e}', file=sys.stderr)
+          PYEOF
             done || true
           done <<< "${{ steps.find.outputs.features }}"
 

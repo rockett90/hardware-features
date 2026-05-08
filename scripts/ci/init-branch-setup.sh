@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Phase 1 of the init flow — runs on branch push via init-branch-setup.yml.
+# Idempotently scaffolds the 4 PDR content files (cp -n, no-clobber) and
+# patches commitlint.config.js and release-please-config.json.
+# Phase 2 (post-merge) is handled by init-feature.sh via init-feature.yml.
 
 FEATURE="${1:?Usage: init-branch-setup.sh <feature-name>}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

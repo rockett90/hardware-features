@@ -211,6 +211,8 @@ The dispatcher reacts 👀 on receipt, ✅ on success, ❌ on failure.
 > **ERC/DRC** runs automatically on every push that changes a `.kicad_sch` or `.kicad_pcb` file. Results are posted as a PR comment. These are **informational only** — they do not block merge. Evidence is reviewed at CDR (ERC) and TRR (DRC).
 >
 > **AI schematic review** runs when you mark the PR as **Ready for Review** (not while it's a draft). It posts a comment with CRITICAL and ADVISORY findings. CRITICAL findings must be resolved or explicitly dismissed with reasoning before requesting human review.
+>
+> 💡 **AI review setup:** For AI review to run automatically when a PR is marked Ready for Review, add a repository secret named `MODELS_TOKEN` containing a GitHub PAT with `models: read` scope (Settings → Secrets and variables → Actions → New repository secret). Without this secret, automatic AI review will show an HTTP 400 message — you can still trigger it manually with `/ai-review` as the repository owner.
 
 ### Before marking ready for review
 

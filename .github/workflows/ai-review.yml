@@ -122,7 +122,7 @@ jobs:
       - name: Call GitHub Models API
         if: steps.kicad.outputs.has_kicad == 'true'
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.MODELS_TOKEN || github.token }}
           MODEL:        ${{ env.MODEL }}
         run: |
           node - <<'JSEOF'
@@ -166,7 +166,9 @@ jobs:
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
               if (res.statusCode === 400) {
-                const msg = "AI review unavailable: HTTP 400 — the GitHub Models API does not support the token type used in this workflow context. Run `/ai-review` manually as the repository owner to use your personal token.";
+                const msg = "AI review unavailable: HTTP 400 — a personal access token with `models: read` scope is required.\n\n" +
+                  "To fix: create a PAT with `models: read` scope and add it as a repository secret named `MODELS_TOKEN`.\n\n" +
+                  "Until then, use `/ai-review` as the repository owner (your personal token is used for comment-triggered runs).";
                 fs.writeFileSync('/tmp/ai-review.txt', msg);
                 fs.writeFileSync('/tmp/model-used.txt', 'none');
               } else if (res.statusCode !== 200) {

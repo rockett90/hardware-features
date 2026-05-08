@@ -1,0 +1,17 @@
+---
+document-version: "0.1"
+baseline: DRAFT
+approved-date: ""
+approved-by: ""
+---
+<!-- document-version: increment on every substantive change.
+     baseline: DRAFT | PDR | CDR | TRR — set to the gate this version was approved at.
+     approved-date: set at gate sign-off (YYYY-MM-DD).
+     approved-by: lead engineer name. -->
+
+# DDR-000 — Feature Overview: audio-buffer
+**Date:** YYYY-MM-DD | **Author:** [name]
+## Purpose
+## Scope
+## Key Architectural Choices at Outset
+## Constraints and Drivers

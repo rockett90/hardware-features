@@ -24,7 +24,7 @@ A hardware feature passes through seven stages before production-authorised manu
 
 ### What this stage achieves
 
-The Init PR registers the feature in the repository. On merge, CI scaffolds the full directory structure automatically and creates the `pdr/buck-converter-5v/approved` git tag.
+The Init PR registers the feature in the repository. On first push to `init/<feature>`, CI scaffolds the full directory structure and stubs on your branch. On merge, `init-feature.yml` creates the `pdr/buck-converter-5v/approved` git tag.
 
 ### 1.1 Create the branch
 
@@ -41,7 +41,7 @@ Push the branch immediately after creating it — this triggers the `Init branch
 
 ### 1.2 Create the required files
 
-On the first push to your `init/<feature>` branch, CI automatically commits the 4 required PDR stub files directly to your branch:
+On the first push to your `init/<feature>` branch, CI automatically commits the full scaffold directly to your branch:
 
 | File | Location |
 |---|---|
@@ -49,6 +49,15 @@ On the first push to your `init/<feature>` branch, CI automatically commits the 
 | `feature-requirements.yaml` | `features/<feature>/requirements/` |
 | `interface-requirements.yaml` | `features/<feature>/requirements/` |
 | `verification-matrix.md` | `features/<feature>/requirements/` |
+| `README.md` | `features/<feature>/` |
+| `specs.yaml` | `features/<feature>/datasheet/` |
+| `application-notes.md` | `features/<feature>/datasheet/` |
+| `errata.md` | `features/<feature>/datasheet/` |
+| `<feature>.kicad_pro` | `features/<feature>/` |
+| `<feature>.kicad_sch` | `features/<feature>/` |
+| `<feature>.kicad_pcb` | `features/<feature>/pcb/` |
+| `.kibot.yml` | `features/<feature>/` |
+| `.gitkeep` placeholders | `schematics/`, `pcb/`, `simulations/models/`, `calculations/`, `analysis/*`, `bom/`, `bring-up/scripts/`, `circuit-mods/`, `production/*`, `decisions/`, `ci-results/`, `reviews/`, `requirements/`, `datasheet/` |
 
 Wait for the `Init branch setup` workflow to complete (usually under 30 seconds), then run `git pull` to get the stubs. Open each file and replace the placeholder content with real content for your feature.
 
@@ -95,11 +104,9 @@ The PR description contains the PDR gate checklist. Tick every item:
 Once CI passes and approvals are in place, merge the PR.
 
 **On merge, `init-feature.yml` automatically:**
-- Copies KiCad project files from `templates/` into the feature directory
-- Creates `README.md` and `datasheet/` stubs
 - Creates the git tag `pdr/buck-converter-5v/approved`
 
-The full directory structure and the 4 PDR content files are already on your `init/<feature>` branch before merge (committed by the `Init branch setup` workflow). On merge, `init-feature.yml` adds the KiCad project files and remaining stubs without overwriting anything already there.
+All scaffolding (directories, stubs, KiCad templates, and repo config patches) is already committed on your `init/<feature>` branch by the `Init branch setup` workflow before merge.
 
 ---
 
@@ -491,7 +498,8 @@ Types: `feat`, `fix`, `docs`, `test`, `chore`
 
 | Event | What CI does |
 |---|---|
-| Init PR merge | Scaffold directories, copy stubs, create `pdr/.../approved` tag |
+| Init branch push (`init/**`) | Scaffold directories, copy stubs/templates, patch commitlint and release-please config on the init branch |
+| Init PR merge | Create `pdr/.../approved` tag |
 | CDR merge | Create `cdr/.../approved` tag, commit `library.lock`, generate datasheet stub |
 | TRR merge | Create rc tag, create GitHub pre-release |
 | Release sign-off merge | Create `release/.../approved` tag |

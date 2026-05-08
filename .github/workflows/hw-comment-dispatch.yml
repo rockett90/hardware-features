@@ -143,6 +143,7 @@ jobs:
               core.setOutput('dispatched', 'false');
               return;
             }
+            core.setOutput('workflow', workflow);
 
             // Build workflow inputs — /datasheet also needs a feature name
             let dispatchInputs = {
@@ -194,6 +195,7 @@ jobs:
         uses: actions/github-script@v7
         env:
           DISPATCH_ERROR: ${{ steps.dispatch.outputs.dispatch_error }}
+          DISPATCHED_WORKFLOW: ${{ steps.dispatch.outputs.workflow }}
         with:
           script: |
             await github.rest.reactions.createForIssueComment({
@@ -203,9 +205,18 @@ jobs:
               content:    '-1',
             });
             const errorMsg = process.env.DISPATCH_ERROR || 'unknown error';
+            const workflow = process.env.DISPATCHED_WORKFLOW || 'unknown';
+            const body = [
+              `❌ Failed to dispatch workflow: ${errorMsg}`,
+              '',
+              `Workflow: \`${workflow}\``,
+              `Ref: \`${context.payload.repository.default_branch}\``,
+              '',
+              'If the error says "Workflow does not have workflow_dispatch trigger", check that the workflow file parses correctly as valid YAML.',
+            ].join('\n');
             await github.rest.issues.createComment({
               owner:        context.repo.owner,
               repo:         context.repo.repo,
               issue_number: context.issue.number,
-              body: `❌ Failed to dispatch workflow: ${errorMsg}`,
+              body,
             });

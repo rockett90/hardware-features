@@ -20,8 +20,8 @@ jobs:
     # For pull_request events: skip draft PRs.
     # For workflow_dispatch: always run (dispatcher already verified permission).
     if: |
-      github.event_name == 'workflow_dispatch' ||
-      !github.event.pull_request.draft
+      (github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft) &&
+      !startsWith(github.head_ref, 'init/')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
@@ -165,7 +165,11 @@ jobs:
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
-              if (res.statusCode !== 200) {
+              if (res.statusCode === 400) {
+                const msg = "AI review unavailable: HTTP 400 — the GitHub Models API does not support the token type used in this workflow context. Run `/ai-review` manually as the repository owner to use your personal token.";
+                fs.writeFileSync('/tmp/ai-review.txt', msg);
+                fs.writeFileSync('/tmp/model-used.txt', 'none');
+              } else if (res.statusCode !== 200) {
                 fs.writeFileSync('/tmp/ai-review.txt', `AI review unavailable: HTTP ${res.statusCode}\n${data}`);
                 fs.writeFileSync('/tmp/model-used.txt', 'none');
               } else {

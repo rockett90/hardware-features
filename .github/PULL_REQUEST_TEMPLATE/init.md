@@ -2,7 +2,7 @@
 
 **Feature name:**
 **PDR date:**
-**Lead:**
+**Owner:**
 
 ---
 
@@ -12,12 +12,17 @@
 - [ ] `requirements/feature-requirements.yaml` contains real REQ-IDs (not just stub placeholder text)
 - [ ] `requirements/interface-requirements.yaml` contains real interface definitions with voltage, current, and signal levels
 - [ ] `requirements/verification-matrix.md` lists all REQ-IDs with a verification method for each
-- [ ] `document-version` and `baseline` fields populated in `feature-requirements.yaml`, `interface-requirements.yaml`, `verification-matrix.md`, and `DDR-000.md`
+- [ ] `document-version` and `baseline` fields populated in `feature-requirements.yaml`, `interface-requirements.yaml`, `verification-matrix.md`, `DDR-000-design-intent.md`, and `DDR-000-decisions.md`
 
 ## Design intent
 
-- [ ] `decisions/DDR-000-feature-overview.md` contains real content — problem statement, design approach, key decisions (not stub text)
-- [ ] Feature scope is clearly bounded — what this feature does and what it does not do
+- [ ] `decisions/DDR-000-design-intent.md` contains real content — problem statement, design approach, feature scope, and constraints (not stub text)
+- [ ] Feature scope is clearly bounded — what this feature does and what it explicitly does not do
+
+## Engineering decisions
+
+- [ ] `decisions/DDR-000-decisions.md` has at least one decision entry — even if only the initial topology or approach decision
+- [ ] Each decision entry has a rationale and alternatives considered
 
 ## Repository configuration
 
@@ -33,7 +38,7 @@
 ## Sign-off
 
 - [ ] PDR date recorded above
-- [ ] Lead name recorded above
+- [ ] Owner name recorded above
 
 ---
 
@@ -47,7 +52,7 @@
 
 ## Key design decisions (summary)
 
-<!-- Summarise the main design choices captured in DDR-000 -->
+<!-- Summarise the main design choices captured in DDR-000-design-intent.md and DDR-000-decisions.md -->
 
 ## Linked requirements
 

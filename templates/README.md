@@ -33,3 +33,12 @@ All four template files are present and will be copied by `init-feature.sh` when
 The templates are minimal starters. The team's standard stackup, design rules, and approval fields will be added to `pcb-template.kicad_pcb` and `title-block.kicad_wks` as they are agreed. See [docs/versions.md](../docs/versions.md) for the KiCad version these templates target.
 
 When updating a template, all existing features will be unaffected (the template was already copied). Only new features created after the update will use the new template.
+
+---
+
+## KiCad project structure notes
+
+- The `.kicad_pro` and `.kicad_sch` template files are intended to live at the feature root as `features/<feature>/<feature>.kicad_pro` and `features/<feature>/<feature>.kicad_sch`. This is the correct KiCad project structure, not a mistake.
+- KiCad's project panel may show parent directories when you open one of these feature projects. This is normal KiCad UI behaviour.
+- The title block is referenced from `templates/title-block.kicad_wks` relative to the repository root using `../../templates/title-block.kicad_wks` from the feature root. If the repository is moved or copied to a different relative location, that path may need updating.
+- These templates target KiCad 10.

@@ -39,7 +39,7 @@ jobs:
 
             const fs = require('fs');
             if (!fs.existsSync(templatePath)) {
-              core.warning(`Template not found: ${templatePath} — skipping.`);
+              console.warn(`Template not found: ${templatePath} — skipping.`);
               return;
             }
             const body = fs.readFileSync(templatePath, 'utf8');

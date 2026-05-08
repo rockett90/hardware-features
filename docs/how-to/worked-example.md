@@ -69,20 +69,14 @@ Wait for the `Init branch setup` workflow to complete (usually under 30 seconds)
 
 To verify CI ran correctly, check the `Init branch setup` workflow run on your branch and confirm the auto-commit `chore(<feature>): scaffold PDR stubs and register feature config` is present.
 
-### 1.4 Open a draft PR using the init template
-
-Open the PR using this URL (replace `<branch>` with `init/buck-converter-5v`):
-
-```
-https://github.com/rockett90/hardware-features/compare/main...init/buck-converter-5v?template=init.md
-```
+### 1.4 Open a draft PR
 
 PR title format:
 ```
 feat(buck-converter-5v): initialise feature
 ```
 
-Open as a **draft** immediately — CI starts running on the first push.
+Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
 
 ### 1.5 Tick all PDR checklist items
 
@@ -178,16 +172,14 @@ git checkout -b signoff/buck-converter-5v/cdr
 
 This is a **document-only branch** — no KiCad file changes. The CDR sign-off PR records the gate evidence; the design artefacts are already on `main` via the artifact PRs.
 
-### 3.2 Open the CDR PR using the CDR template
-
-```
-https://github.com/rockett90/hardware-features/compare/main...signoff/buck-converter-5v/cdr?template=cdr-signoff.md
-```
+### 3.2 Open the CDR PR
 
 PR title format:
 ```
 chore(buck-converter-5v): CDR sign-off
 ```
+
+Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
 
 ### 3.3 Post `/render`
 
@@ -303,16 +295,14 @@ git checkout -b signoff/buck-converter-5v/trr
 
 This is a **document-only branch**.
 
-### 5.2 Open the TRR PR using the TRR template
-
-```
-https://github.com/rockett90/hardware-features/compare/main...signoff/buck-converter-5v/trr?template=trr-signoff.md
-```
+### 5.2 Open the TRR PR
 
 PR title format:
 ```
 chore(buck-converter-5v): TRR sign-off
 ```
+
+Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
 
 ### 5.3 Post `/render`
 
@@ -378,16 +368,14 @@ git checkout -b signoff/buck-converter-5v/release
 
 This is a **document-only branch**.
 
-### 6.3 Open the release sign-off PR using the release template
-
-```
-https://github.com/rockett90/hardware-features/compare/main...signoff/buck-converter-5v/release?template=release-signoff.md
-```
+### 6.3 Open the release sign-off PR
 
 PR title format:
 ```
 chore(buck-converter-5v): final release sign-off
 ```
+
+Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
 
 ### 6.4 Tick all Release checklist items
 
@@ -495,6 +483,8 @@ Types: `feat`, `fix`, `docs`, `test`, `chore`
 ```
 
 **CI that runs automatically (no command needed):**
+
+PRs opened from the yellow banner or GitHub Desktop will have the correct template auto-filled within seconds — no URL needed.
 
 | Event | What CI does |
 |---|---|

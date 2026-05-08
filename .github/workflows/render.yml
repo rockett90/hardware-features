@@ -58,7 +58,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           docker run --rm \
             "${{ env.KICAD_IMAGE }}" \
-            bash -c "kicad-cli sch export svg --help 2>&1 || true; echo '---'; which inkscape 2>/dev/null && echo 'inkscape: found' || echo 'inkscape: not found'; python3 -c 'import cairosvg; print(\"cairosvg: found\")' 2>/dev/null || echo 'cairosvg: not found'; python3 -c 'import PIL; print(\"Pillow: found\")' 2>/dev/null || echo 'Pillow: not found'" 2>&1 || true
+            bash -c "kicad-cli sch export svg --help 2>&1 || true; echo '---'; which inkscape 2>/dev/null && echo 'inkscape: found' || echo 'inkscape: not found'; python3 -c 'import cairosvg; print(\"cairosvg: found\")' 2>/dev/null || echo 'cairosvg: not found'" || true
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Find all changed features
@@ -144,6 +144,9 @@ jobs:
               continue
             fi
 
+            # Pass a directory (trailing slash) to --output so kicad-cli exports
+            # ALL sheets — including sub-sheets in hierarchical designs.
+            # Each sheet is written as a separate numbered SVG file.
             mkdir -p "features/${FEATURE}/fab"
             echo "▶  Rendering feature: ${FEATURE}"
             docker run --rm \
@@ -151,7 +154,7 @@ jobs:
               -w "/repo" \
               "${{ env.KICAD_IMAGE }}" \
               kicad-cli sch export svg \
-                --output "/repo/features/${FEATURE}/fab/${FEATURE}.svg" \
+                --output "/repo/features/${FEATURE}/fab/" \
                 "/repo/${SCH_FILE}" 2>&1 || true
 
             SVG_COUNT=$(find "features/${FEATURE}/fab" -name "*.svg" 2>/dev/null | wc -l)
@@ -329,7 +332,7 @@ PYEOF
                 } else {
                   body += noSvg.has(f)
                     ? '⚠️ SVG render failed — check [workflow logs](' + runUrl + ')\n'
-                    : '✅ SVG render complete (all pages)\n';
+                    : '✅ SVG render complete (all sheets)\n';
 
                   if (happyMap[f]) {
                     body += '\n<details>\n<summary>📋 Design analysis & change summary</summary>\n\n';

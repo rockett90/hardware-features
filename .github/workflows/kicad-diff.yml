@@ -73,6 +73,11 @@ jobs:
             { echo "pcb_features<<EOF"; echo "$PCB_FEATURES"; echo "EOF"; } >> $GITHUB_OUTPUT
           fi
 
+      - name: Install analysis tools
+        if: steps.find.outputs.has_any_feature == 'true'
+        run: |
+          sudo apt-get install -y --no-install-recommends python3-cairosvg inkscape
+
       - name: Run kicad-visual-diff per feature
         id: visual_diff
         if: steps.find.outputs.has_any_feature == 'true'

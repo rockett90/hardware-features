@@ -1,4 +1,12 @@
 name: Init branch setup
+# Phase 1 of the init flow (branch-time).
+# Runs on every push to an init/** branch by a human actor.
+# Scaffolds the 4 required PDR content files, patches commitlint.config.js,
+# and patches release-please-config.json onto the branch so the engineer
+# can fill in real content before opening the PR.
+#
+# Phase 2 is init-feature.yml (post-merge): scaffolds the full directory
+# tree, copies KiCad project files, and creates the PDR gate tag.
 on:
   push:
     branches:

@@ -32,9 +32,12 @@ The Init PR registers the feature in the repository. On merge, CI scaffolds the 
 git checkout main
 git pull
 git checkout -b init/buck-converter-5v
+git push -u origin init/buck-converter-5v
 ```
 
 The branch name must match `init/<feature>` exactly. CI will fail the "Validate branch name" check if it does not.
+
+Push the branch immediately after creating it — this triggers the `Init branch setup` workflow which scaffolds the PDR stub files and patches the repo config onto your branch automatically. Wait for it to complete (usually under 30 seconds) before continuing to step 1.2.
 
 ### 1.2 Create the required files
 

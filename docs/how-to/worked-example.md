@@ -76,7 +76,7 @@ PR title format:
 feat(buck-converter-5v): initialise feature
 ```
 
-Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. Open as a **draft** immediately.
+Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
 
 ### 1.5 Tick all PDR checklist items
 
@@ -179,7 +179,7 @@ PR title format:
 chore(buck-converter-5v): CDR sign-off
 ```
 
-Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. Open as a **draft** immediately.
+Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
 
 ### 3.3 Post `/render`
 
@@ -302,7 +302,7 @@ PR title format:
 chore(buck-converter-5v): TRR sign-off
 ```
 
-Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. Open as a **draft** immediately.
+Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
 
 ### 5.3 Post `/render`
 
@@ -375,7 +375,7 @@ PR title format:
 chore(buck-converter-5v): final release sign-off
 ```
 
-Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. Open as a **draft** immediately.
+Open a PR from the yellow banner on GitHub or via GitHub Desktop — the correct checklist template will be automatically filled into the PR body within a few seconds. Refresh the page if you see a blank body. If it stays blank, wait for the `PR template autofill` workflow run to finish and refresh again. Open as a **draft** immediately.
 
 ### 6.4 Tick all Release checklist items
 

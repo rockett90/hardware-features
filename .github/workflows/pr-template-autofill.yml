@@ -38,6 +38,10 @@ jobs:
             }
 
             const fs = require('fs');
+            if (!fs.existsSync(templatePath)) {
+              core.warning(`Template not found: ${templatePath} — skipping.`);
+              return;
+            }
             const body = fs.readFileSync(templatePath, 'utf8');
 
             await github.rest.pulls.update({

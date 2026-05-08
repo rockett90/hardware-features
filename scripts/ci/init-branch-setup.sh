@@ -23,7 +23,8 @@ for dir in schematics pcb simulations/models calculations \
   touch "$FEATURE_DIR/$dir/.gitkeep"
 done
 
-cp -n "scripts/ci/stubs/DDR-000.md"                  "$FEATURE_DIR/decisions/DDR-000-feature-overview.md"
+cp -n "scripts/ci/stubs/DDR-000-design-intent.md"    "$FEATURE_DIR/decisions/DDR-000-design-intent.md"
+cp -n "scripts/ci/stubs/DDR-000-decisions.md"         "$FEATURE_DIR/decisions/DDR-000-decisions.md"
 cp -n "scripts/ci/stubs/feature-requirements.yaml"   "$FEATURE_DIR/requirements/feature-requirements.yaml"
 cp -n "scripts/ci/stubs/interface-requirements.yaml" "$FEATURE_DIR/requirements/interface-requirements.yaml"
 cp -n "scripts/ci/stubs/verification-matrix.md"      "$FEATURE_DIR/requirements/verification-matrix.md"
@@ -45,7 +46,8 @@ cp_template "templates/pcb-template.kicad_pcb"           "$FEATURE_DIR/pcb/$FEAT
 cp_template "config/kibot/base-feature.kibot.yml"        "$FEATURE_DIR/.kibot.yml"
 
 for file in \
-  "$FEATURE_DIR/decisions/DDR-000-feature-overview.md" \
+  "$FEATURE_DIR/decisions/DDR-000-design-intent.md" \
+  "$FEATURE_DIR/decisions/DDR-000-decisions.md" \
   "$FEATURE_DIR/requirements/feature-requirements.yaml" \
   "$FEATURE_DIR/requirements/interface-requirements.yaml" \
   "$FEATURE_DIR/requirements/verification-matrix.md" \

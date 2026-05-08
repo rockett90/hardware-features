@@ -84,9 +84,9 @@ jobs:
             REPORT_FILE="/tmp/erc-results/${FEATURE}-erc.txt"
             # Parse violation count from the report line "ERC report (N violations)"
             VIOLATIONS=$(grep -oP '(?<=\()[0-9]+(?= violation)' "$REPORT_FILE" 2>/dev/null | head -1 || echo "")
-            # Fallback: count lines containing "ERC " if pattern not found
+            # If pattern not found, default to 0 — do NOT use bracket fallback (over-counts section headers)
             if [[ -z "$VIOLATIONS" ]]; then
-              VIOLATIONS=$(grep -c "^\[" "$REPORT_FILE" 2>/dev/null || echo "0")
+              VIOLATIONS=0
             fi
             if [[ "$VIOLATIONS" -eq 0 ]]; then
               erc_summary="${erc_summary}✅ ERC clean — \`$SCH\` (0 violations)\n"
@@ -118,7 +118,7 @@ jobs:
             REPORT_FILE="/tmp/drc-results/${FEATURE}-drc.txt"
             VIOLATIONS=$(grep -oP '(?<=\()[0-9]+(?= violation)' "$REPORT_FILE" 2>/dev/null | head -1 || echo "")
             if [[ -z "$VIOLATIONS" ]]; then
-              VIOLATIONS=$(grep -c "^\[" "$REPORT_FILE" 2>/dev/null || echo "0")
+              VIOLATIONS=0
             fi
             if [[ "$VIOLATIONS" -eq 0 ]]; then
               drc_summary="${drc_summary}✅ DRC clean — \`$PCB\` (0 violations)\n"

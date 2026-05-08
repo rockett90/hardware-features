@@ -177,6 +177,41 @@ jobs:
           echo "features_no_pro=${features_no_pro}"   >> $GITHUB_OUTPUT
           echo "features_no_svg=${features_no_svg}"   >> $GITHUB_OUTPUT
 
+      - name: Export schematic PDF per feature
+        id: pdf_export
+        if: steps.find.outputs.has_any_feature == 'true'
+        env:
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+        run: |
+          features_no_pdf=""
+
+          while IFS= read -r FEATURE; do
+            [[ -z "$FEATURE" ]] && continue
+
+            SCH_FILE="features/${FEATURE}/${FEATURE}.kicad_sch"
+            if [[ ! -f "$SCH_FILE" ]]; then
+              SCH_FILE="features/${FEATURE}/schematics/${FEATURE}.kicad_sch"
+            fi
+            if [[ ! -f "$SCH_FILE" ]]; then
+              features_no_pdf="${features_no_pdf}${FEATURE},"
+              continue
+            fi
+
+            mkdir -p "features/${FEATURE}/fab"
+            echo "▶  Exporting PDF: ${FEATURE}"
+            docker run --rm \
+              -v "$PWD:/repo" \
+              -w "/repo" \
+              "${{ env.KICAD_IMAGE }}" \
+              kicad-cli sch export pdf \
+                --output "/repo/features/${FEATURE}/fab/${FEATURE}.pdf" \
+                "/repo/${SCH_FILE}" 2>&1 || true
+
+          done <<< "${{ steps.find.outputs.features }}"
+
+          features_no_pdf="${features_no_pdf%,}"
+          echo "features_no_pdf=${features_no_pdf}" >> $GITHUB_OUTPUT
+
       - name: Watermark SVG renders
         if: steps.find.outputs.has_any_feature == 'true'
         run: |
@@ -279,12 +314,14 @@ jobs:
           happy_reports="${happy_reports%,}"
           echo "happy_reports=${happy_reports}" >> $GITHUB_OUTPUT
 
-      - name: Upload SVG artifacts
+      - name: Upload SVG and PDF artifacts
         if: steps.find.outputs.has_any_feature == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name:              schematic-svgs-pr${{ steps.pr.outputs.pr_number }}
-          path:              features/*/fab/*.svg
+          name:              schematic-renders-pr${{ steps.pr.outputs.pr_number }}
+          path: |
+            features/*/fab/*.svg
+            features/*/fab/*.pdf
           retention-days:    90
           if-no-files-found: warn
 
@@ -335,7 +372,7 @@ jobs:
                 } else {
                   body += noSvg.has(f)
                     ? '⚠️ SVG render failed — check [workflow logs](' + runUrl + ')\n'
-                    : '✅ SVG render complete (all sheets)\n';
+                    : '✅ Render complete — SVG and PDF exported (all sheets)\n';
 
                   if (happyMap[f]) {
                     body += '\n<details>\n<summary>📋 Design analysis & change summary</summary>\n\n';
@@ -345,7 +382,7 @@ jobs:
                   body += '\n';
                 }
               }
-              body += `📥 [Download SVGs from workflow artifacts](${runUrl})\n\n`;
+              body += `📥 [Download SVGs and PDFs from workflow artifacts](${runUrl})\n\n`;
               body += '---\n';
               body += `*Commit: \`${sha}\` — ${ts} · [Workflow run](${runUrl})*`;
             }

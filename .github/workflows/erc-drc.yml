@@ -81,11 +81,17 @@ jobs:
                 --output "/repo/$(dirname $SCH)/erc-report.txt" \
                 "/repo/$SCH" 2>&1 | tee "/tmp/erc-results/${FEATURE}-erc.txt" || true
             EXIT_CODE=${PIPESTATUS[0]}
-            VIOLATIONS=$(grep -c "ERC " "/tmp/erc-results/${FEATURE}-erc.txt" 2>/dev/null || echo 0)
-            if [[ "$EXIT_CODE" -eq 0 ]]; then
-              erc_summary="${erc_summary}✅ ERC passed — \`$SCH\` (0 violations)\n"
+            REPORT_FILE="/tmp/erc-results/${FEATURE}-erc.txt"
+            # Parse violation count from the report line "ERC report (N violations)"
+            VIOLATIONS=$(grep -oP '(?<=\()[0-9]+(?= violation)' "$REPORT_FILE" 2>/dev/null | head -1 || echo "")
+            # Fallback: count lines containing "ERC " if pattern not found
+            if [[ -z "$VIOLATIONS" ]]; then
+              VIOLATIONS=$(grep -c "^\[" "$REPORT_FILE" 2>/dev/null || echo "0")
+            fi
+            if [[ "$VIOLATIONS" -eq 0 ]]; then
+              erc_summary="${erc_summary}✅ ERC clean — \`$SCH\` (0 violations)\n"
             else
-              erc_summary="${erc_summary}⚠️ ERC found violations — \`$SCH\` (~${VIOLATIONS} issue(s))\n"
+              erc_summary="${erc_summary}⚠️ ERC found violations — \`$SCH\` (${VIOLATIONS} violation(s)) — see report\n"
             fi
           done <<< "${{ steps.changed.outputs.sch_files }}"
           { echo "erc_summary<<EOF"; printf "$erc_summary"; echo "EOF"; } >> $GITHUB_OUTPUT
@@ -109,11 +115,15 @@ jobs:
                 --output "/repo/$(dirname $PCB)/drc-report.txt" \
                 "/repo/$PCB" 2>&1 | tee "/tmp/drc-results/${FEATURE}-drc.txt" || true
             EXIT_CODE=${PIPESTATUS[0]}
-            VIOLATIONS=$(grep -c "DRC " "/tmp/drc-results/${FEATURE}-drc.txt" 2>/dev/null || echo 0)
-            if [[ "$EXIT_CODE" -eq 0 ]]; then
-              drc_summary="${drc_summary}✅ DRC passed — \`$PCB\` (0 violations)\n"
+            REPORT_FILE="/tmp/drc-results/${FEATURE}-drc.txt"
+            VIOLATIONS=$(grep -oP '(?<=\()[0-9]+(?= violation)' "$REPORT_FILE" 2>/dev/null | head -1 || echo "")
+            if [[ -z "$VIOLATIONS" ]]; then
+              VIOLATIONS=$(grep -c "^\[" "$REPORT_FILE" 2>/dev/null || echo "0")
+            fi
+            if [[ "$VIOLATIONS" -eq 0 ]]; then
+              drc_summary="${drc_summary}✅ DRC clean — \`$PCB\` (0 violations)\n"
             else
-              drc_summary="${drc_summary}⚠️ DRC found violations — \`$PCB\` (~${VIOLATIONS} issue(s))\n"
+              drc_summary="${drc_summary}⚠️ DRC found violations — \`$PCB\` (${VIOLATIONS} violation(s)) — see report\n"
             fi
           done <<< "${{ steps.changed.outputs.pcb_files }}"
           { echo "drc_summary<<EOF"; printf "$drc_summary"; echo "EOF"; } >> $GITHUB_OUTPUT
@@ -159,7 +169,7 @@ jobs:
               }
               body += '---\n';
               body += '> ℹ️ These results are **informational only** and do not block merge. ';
-              body += 'ERC/DRC evidence is reviewed by the hardware lead at CDR (ERC) and TRR (DRC).\n\n';
+              body += 'ERC/DRC evidence is reviewed by the hardware owner at CDR (ERC) and TRR (DRC).\n\n';
               body += `📥 [Download full ERC/DRC reports](${runUrl})`;
             }
 

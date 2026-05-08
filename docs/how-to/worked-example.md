@@ -95,12 +95,11 @@ The PR description contains the PDR gate checklist. Tick every item:
 Once CI passes and approvals are in place, merge the PR.
 
 **On merge, `init-feature.yml` automatically:**
-- Scaffolds all directories inside `features/buck-converter-5v/` — `schematics/`, `pcb/`, `simulations/`, `calculations/`, `analysis/mtbf`, `analysis/stress`, `analysis/thermal`, `analysis/doe`, `bom/`, `bring-up/`, `circuit-mods/`, `production/`, `reviews/`
-- Copies KiCad project files from `templates/`
+- Copies KiCad project files from `templates/` into the feature directory
 - Creates `README.md` and `datasheet/` stubs
 - Creates the git tag `pdr/buck-converter-5v/approved`
 
-The 4 PDR content files were already committed to your `init/<feature>` branch before merge. On merge, CI scaffolds the remaining directories and KiCad project files without overwriting those files.
+The full directory structure and the 4 PDR content files are already on your `init/<feature>` branch before merge (committed by the `Init branch setup` workflow). On merge, `init-feature.yml` adds the KiCad project files and remaining stubs without overwriting anything already there.
 
 ---
 

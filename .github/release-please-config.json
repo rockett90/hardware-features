@@ -6,10 +6,22 @@
       "package-name": "example-feature",
       "changelog-path": "features/example-feature/CHANGELOG.md",
       "bump-minor-pre-major": true
+    },
+    "audio-buffer": {
+      "release-type": "simple",
+      "package-name": "audio-buffer",
+      "changelog-path": "features/audio-buffer/CHANGELOG.md",
+      "bump-minor-pre-major": true
     }
   },
   "changelog-sections": [
-    { "type": "feat", "section": "Features" },
-    { "type": "fix",  "section": "Bug Fixes" }
+    {
+      "type": "feat",
+      "section": "Features"
+    },
+    {
+      "type": "fix",
+      "section": "Bug Fixes"
+    }
   ]
 }

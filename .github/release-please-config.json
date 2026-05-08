@@ -12,6 +12,12 @@
       "package-name": "audio-buffer",
       "changelog-path": "features/audio-buffer/CHANGELOG.md",
       "bump-minor-pre-major": true
+    },
+    "simple-amplifier": {
+      "release-type": "simple",
+      "package-name": "simple-amplifier",
+      "changelog-path": "features/simple-amplifier/CHANGELOG.md",
+      "bump-minor-pre-major": true
     }
   },
   "changelog-sections": [

@@ -1,21 +1,279 @@
 (kicad_sch
-  (version 20231120)
-  (generator eeschema)
-  (generator_version 8.0)
-  (paper "A3")
-  (title_block
-    (title "")
-    (date "")
-    (rev "A")
-    (company "")
-    (comment 1 "")
-    (comment 2 "")
-    (comment 3 "")
-    (comment 4 "")
-  )
-  (lib_symbols
-  )
-  (sheet_instances
-    (path "/" (page "1"))
-  )
+	(version 20260306)
+	(generator "eeschema")
+	(generator_version "10.0")
+	(uuid "b5096a5b-7eb5-4b6d-ab4d-f26b7572c575")
+	(paper "A5")
+	(title_block
+		(rev "A")
+	)
+	(lib_symbols)
+	(wire
+		(pts
+			(xy 132.08 53.34) (xy 132.08 48.26)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0fe8ff96-1f18-49ed-a10b-f171bff0832b")
+	)
+	(wire
+		(pts
+			(xy 132.08 48.26) (xy 86.36 48.26)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3286536f-3129-4ef2-acf7-f1905aa9a0ef")
+	)
+	(wire
+		(pts
+			(xy 110.49 67.31) (xy 116.84 67.31)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3334946a-d9bd-4c7b-8ccc-477e1cde47c2")
+	)
+	(wire
+		(pts
+			(xy 86.36 48.26) (xy 86.36 53.34)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6005b483-6eae-42c4-afec-35bb831874f8")
+	)
+	(wire
+		(pts
+			(xy 104.14 59.69) (xy 110.49 59.69)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "90684666-cfad-490a-a945-66cf3eb673c3")
+	)
+	(wire
+		(pts
+			(xy 97.79 76.2) (xy 146.05 76.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d456cc38-a3d9-4f5c-8a44-51ffe012a3c2")
+	)
+	(wire
+		(pts
+			(xy 110.49 59.69) (xy 110.49 67.31)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "dc288593-9a9b-4aff-b5b8-d9788c798683")
+	)
+	(wire
+		(pts
+			(xy 146.05 76.2) (xy 146.05 72.39)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e1308f01-e89a-44e0-8558-d259a227b32b")
+	)
+	(wire
+		(pts
+			(xy 97.79 72.39) (xy 97.79 76.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "eb3727dd-58c2-420e-a932-12ee42c46e10")
+	)
+	(sheet
+		(at 66.04 53.34)
+		(size 38.1 19.05)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "7cab90dc-3b93-4f7f-826b-dd55670e1a17")
+		(property "Sheetname" "amplifier"
+			(at 66.04 52.6284 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "amplifier.kicad_sch"
+			(at 66.04 72.9746 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "amp_input" input
+			(at 66.04 66.04 180)
+			(uuid "0686cd23-e02d-4929-b354-740855256305")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "amp_output" input
+			(at 104.14 59.69 0)
+			(uuid "0bca1a42-61f8-4a6b-a241-cbe7a8f86b64")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "GND" input
+			(at 97.79 72.39 270)
+			(uuid "4e39a7f7-1826-46de-92ea-f47bb2888531")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "VCC" input
+			(at 86.36 53.34 90)
+			(uuid "ccc7cdf7-4e55-4a34-a510-5b2b2fc7302f")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "simple-amplifier"
+				(path "/b5096a5b-7eb5-4b6d-ab4d-f26b7572c575"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 116.84 53.34)
+		(size 33.02 19.05)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "b8dfab6c-8ac2-46d8-8899-d80fec3cb850")
+		(property "Sheetname" "buffer"
+			(at 116.84 52.6284 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "buffer.kicad_sch"
+			(at 116.84 72.9746 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "amp_output" input
+			(at 116.84 67.31 180)
+			(uuid "787ab844-21c4-4e88-af25-f778a6769a7f")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "GND" input
+			(at 146.05 72.39 270)
+			(uuid "1eb02f41-d374-4bad-84bb-b006f73a237c")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "output" input
+			(at 149.86 59.69 0)
+			(uuid "e4cc1338-9015-4449-8a9d-0242abb6c5a7")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "VCC" input
+			(at 132.08 53.34 90)
+			(uuid "0d6efb7e-d73d-4fd5-af65-63d1bb825ff8")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "simple-amplifier"
+				(path "/b5096a5b-7eb5-4b6d-ab4d-f26b7572c575"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
 )

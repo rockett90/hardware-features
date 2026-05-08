@@ -113,7 +113,7 @@ jobs:
               -e BASE_SHA="${BASE_SHA}" \
               -e HEAD_SHA="${HEAD_SHA}" \
               "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
-              bash -c "pip3 install -q cairosvg pillow sexpdata 2>/dev/null || true; \
+              bash -c "pip3 install -q --break-system-packages cairosvg pillow sexpdata 2>&1 || true; \
                        python3 /scripts/ci/kicad-visual-diff.py \
                          --base-dir /vdiff-base \
                          --head-dir /vdiff-head \

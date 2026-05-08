@@ -73,11 +73,6 @@ jobs:
             { echo "pcb_features<<EOF"; echo "$PCB_FEATURES"; echo "EOF"; } >> $GITHUB_OUTPUT
           fi
 
-      - name: Install analysis tools
-        if: steps.find.outputs.has_any_feature == 'true'
-        run: |
-          sudo apt-get install -y --no-install-recommends python3-cairosvg inkscape
-
       - name: Run kicad-visual-diff per feature
         id: visual_diff
         if: steps.find.outputs.has_any_feature == 'true'
@@ -118,12 +113,13 @@ jobs:
               -e BASE_SHA="${BASE_SHA}" \
               -e HEAD_SHA="${HEAD_SHA}" \
               "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
-              python3 /scripts/ci/kicad-visual-diff.py \
-                --base-dir /vdiff-base \
-                --head-dir /vdiff-head \
-                --feature "${FEATURE}" \
-                --output-dir /vdiff-out \
-                $PCB_FLAG 2>&1 || true
+              bash -c "pip3 install -q cairosvg pillow sexpdata 2>/dev/null || true; \
+                       python3 /scripts/ci/kicad-visual-diff.py \
+                         --base-dir /vdiff-base \
+                         --head-dir /vdiff-head \
+                         --feature \"${FEATURE}\" \
+                         --output-dir /vdiff-out \
+                         $PCB_FLAG" 2>&1 || true
 
             mkdir -p "features/${FEATURE}/fab/visual-diff"
             cp -r "$OUTDIR/." "features/${FEATURE}/fab/visual-diff/" 2>/dev/null || true

@@ -1,0 +1,50 @@
+name: PR template autofill
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  autofill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fill PR body from template
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+
+            let templatePath = null;
+            if (branch.startsWith('init/')) {
+              templatePath = '.github/PULL_REQUEST_TEMPLATE/init.md';
+            } else if (branch.match(/^signoff\/[^/]+\/cdr/)) {
+              templatePath = '.github/PULL_REQUEST_TEMPLATE/cdr-signoff.md';
+            } else if (branch.match(/^signoff\/[^/]+\/trr/)) {
+              templatePath = '.github/PULL_REQUEST_TEMPLATE/trr-signoff.md';
+            } else if (branch.match(/^signoff\/[^/]+\/release/)) {
+              templatePath = '.github/PULL_REQUEST_TEMPLATE/release-signoff.md';
+            } else if (branch.startsWith('artifact/')) {
+              templatePath = '.github/PULL_REQUEST_TEMPLATE/artifact.md';
+            }
+
+            if (!templatePath) {
+              console.log(`No template for branch: ${branch} — skipping.`);
+              return;
+            }
+
+            const fs = require('fs');
+            const body = fs.readFileSync(templatePath, 'utf8');
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              body,
+            });
+
+            console.log(`PR body set from template: ${templatePath}`);

@@ -4,7 +4,7 @@
 # baseline: The gate at which this version was formally approved.
 #   Values: DRAFT | PDR | CDR | TRR
 # approved-date: Set at gate sign-off. Format: YYYY-MM-DD.
-# approved-by: Lead engineer name at gate sign-off.
+# approved-by: Owner name at gate sign-off.
 document-version: "0.1"
 baseline: DRAFT
 approved-date: ""
@@ -15,6 +15,16 @@ created-at-gate: pdr
 last-updated: YYYY-MM-DD
 requirements:
   - id: REQ-001
-    description: "[Replace with first requirement]"
+    version: "0.1"
+    baseline: DRAFT
+    description: "[Replace with first requirement — be specific and measurable]"
     category: performance
     verification-method: test
+    rationale: "[Why is this requirement needed?]"
+  - id: REQ-002
+    version: "0.1"
+    baseline: DRAFT
+    description: "[Replace with second requirement]"
+    category: interface
+    verification-method: inspection
+    rationale: "[Why is this requirement needed?]"

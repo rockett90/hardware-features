@@ -16,7 +16,7 @@
 
 ## Gate history
 
-| Gate | Date | Tag | Lead |
+| Gate | Date | Tag | Owner |
 |---|---|---|---|
 | PDR | <!-- date --> | `pdr/FEATURE_NAME/approved` | <!-- name --> |
 | CDR | <!-- date --> | `cdr/FEATURE_NAME/approved` | <!-- name --> |
@@ -29,7 +29,8 @@
 
 <!-- Link to DDR files in decisions/ — one line each with a brief summary of the decision. -->
 
-- [DDR-000 — Feature overview](decisions/DDR-000-feature-overview.md)
+- [DDR-000 — Design intent](decisions/DDR-000-design-intent.md)
+- [DDR-000 — Engineering decisions log](decisions/DDR-000-decisions.md)
 
 ---
 
@@ -84,5 +85,5 @@ It is generated from [`datasheet/specs.yaml`](datasheet/specs.yaml) using the `/
 
 | Role | Name |
 |---|---|
-| Feature lead | <!-- name --> |
+| Feature owner | <!-- name --> |
 | Backup | <!-- name --> |

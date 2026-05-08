@@ -3,7 +3,8 @@ module.exports = {
   rules: {
     'scope-enum': [2, 'always', [
       'library',
-      'audio-buffer'
+      'audio-buffer',
+      'simple-amplifier'
     ]],
     'scope-empty': [2, 'never'],
   },

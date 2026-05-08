@@ -1,0 +1,21 @@
+(kicad_sch
+  (version 20231120)
+  (generator eeschema)
+  (generator_version 8.0)
+  (paper "A3")
+  (title_block
+    (title "")
+    (date "")
+    (rev "A")
+    (company "")
+    (comment 1 "")
+    (comment 2 "")
+    (comment 3 "")
+    (comment 4 "")
+  )
+  (lib_symbols
+  )
+  (sheet_instances
+    (path "/" (page "1"))
+  )
+)

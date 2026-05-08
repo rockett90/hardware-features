@@ -1,0 +1,45 @@
+# Feature datasheet specifications
+# Fill in actual characterised values from simulation, analysis, and test.
+# This file feeds the /datasheet generator — do NOT copy values from interface-requirements.yaml.
+# Requirements are what we must meet. Specs are what we actually achieve.
+#
+# Use ~ for "not specified" in min/max fields.
+# All [COMPLETE BEFORE TRR] markers must be replaced before the TRR gate can pass.
+
+feature: simple-amplifier
+version: "1.0.0"
+status: draft  # draft | released
+
+# ── Absolute Maximum Ratings ────────────────────────────────────────────────
+# Values beyond which permanent damage may occur. Do not operate at these limits.
+absolute-maximums:
+  - parameter: "[COMPLETE BEFORE TRR]"
+    value: ~
+    unit: ""
+    note: ""
+
+# ── Interface Specifications ─────────────────────────────────────────────────
+# Characterised operating conditions for each interface.
+# min/nom/max are actual achieved values, not requirements.
+interfaces:
+  - name: "[COMPLETE BEFORE TRR]"
+    description: ""
+    type: ""          # power | digital-input | digital-output | analog | differential
+    connector: ""     # e.g. J1
+    pin: ~
+    min: ~
+    nom: ~
+    max: ~
+    unit: ""
+    absolute-max: ~
+    notes: ""
+
+# ── Electrical Characteristics ───────────────────────────────────────────────
+# Key performance parameters with test conditions.
+performance:
+  - parameter: "[COMPLETE BEFORE TRR]"
+    min: ~
+    nom: ~
+    max: ~
+    unit: ""
+    conditions: ""

@@ -38,35 +38,24 @@ The branch name must match `init/<feature>` exactly. CI will fail the "Validate 
 
 ### 1.2 Create the required files
 
-Create the following files inside `features/buck-converter-5v/`:
+On the first push to your `init/<feature>` branch, CI automatically commits the 4 required PDR stub files directly to your branch:
 
-| File | What to write |
+| File | Location |
 |---|---|
-| `decisions/DDR-000-feature-overview.md` | Problem statement, design approach, key decisions — real content, not a placeholder |
-| `requirements/feature-requirements.yaml` | Real REQ-IDs with descriptions and acceptance criteria |
-| `requirements/interface-requirements.yaml` | Real interface definitions: voltage, current, signal levels |
-| `requirements/verification-matrix.md` | All REQ-IDs with a verification method for each |
+| `DDR-000-feature-overview.md` | `features/<feature>/decisions/` |
+| `feature-requirements.yaml` | `features/<feature>/requirements/` |
+| `interface-requirements.yaml` | `features/<feature>/requirements/` |
+| `verification-matrix.md` | `features/<feature>/requirements/` |
+
+Wait for the `Init branch setup` workflow to complete (usually under 30 seconds), then run `git pull` to get the stubs. Open each file and replace the placeholder content with real content for your feature.
 
 > ⚠️ Warning: CI checks that these files contain real content. Placeholder text will cause the init PR to fail.
 
 ### 1.3 Update repository-level configuration
 
-Two repository-level files must be updated in the same PR:
+`commitlint.config.js` and `release-please-config.json` are **patched automatically** by the same `Init branch setup` CI run that creates the stubs. You do not need to edit these files manually.
 
-**`.github/commitlint.config.js`** — add `buck-converter-5v` to the `scope-enum` array so that PR titles using this feature as a scope are accepted by commitlint CI.
-
-**`.github/release-please-config.json`** — add a package entry for the feature. Copy the `_example-feature` block, rename the key, and update `package-name` and `changelog-path`:
-
-```json
-"buck-converter-5v": {
-  "release-type": "simple",
-  "package-name": "buck-converter-5v",
-  "changelog-path": "features/buck-converter-5v/CHANGELOG.md",
-  "bump-minor-pre-major": true
-}
-```
-
-CI will fail the init PR with a clear error if the `release-please-config.json` entry is missing.
+To verify CI ran correctly, check the `Init branch setup` workflow run on your branch and confirm the auto-commit `chore(<feature>): scaffold PDR stubs and register feature config` is present.
 
 ### 1.4 Open a draft PR using the init template
 
@@ -92,8 +81,8 @@ The PR description contains the PDR gate checklist. Tick every item:
 - `interface-requirements.yaml` contains real interface definitions
 - `verification-matrix.md` lists all REQ-IDs
 - `DDR-000-feature-overview.md` contains real content
-- Feature scope added to `commitlint.config.js`
-- Feature package added to `release-please-config.json`
+- Feature scope present in `commitlint.config.js` (added automatically by CI)
+- Feature package present in `release-please-config.json` (added automatically by CI)
 - PDR date and lead name recorded
 
 `gate-check.yml` runs on every push and **blocks merge** if any `- [ ]` item remains unchecked.
@@ -105,10 +94,10 @@ Once CI passes and approvals are in place, merge the PR.
 **On merge, `init-feature.yml` automatically:**
 - Scaffolds all directories inside `features/buck-converter-5v/` — `schematics/`, `pcb/`, `simulations/`, `calculations/`, `analysis/mtbf`, `analysis/stress`, `analysis/thermal`, `analysis/doe`, `bom/`, `bring-up/`, `circuit-mods/`, `production/`, `reviews/`
 - Copies KiCad project files from `templates/`
-- Creates stub files: `README.md`, `requirements/`, `decisions/`, `datasheet/` stubs
+- Creates `README.md` and `datasheet/` stubs
 - Creates the git tag `pdr/buck-converter-5v/approved`
 
-You do not create any of these directories or files manually.
+The 4 PDR content files were already committed to your `init/<feature>` branch before merge. On merge, CI scaffolds the remaining directories and KiCad project files without overwriting those files.
 
 ---
 

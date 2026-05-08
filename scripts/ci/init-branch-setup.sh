@@ -2,10 +2,9 @@
 set -euo pipefail
 # Phase 1 of the init flow — runs on branch push via init-branch-setup.yml.
 # Idempotently scaffolds the full feature directory tree (.gitkeep placeholders),
-# the 4 PDR content files (cp -n, no-clobber), and patches commitlint.config.js
-# and release-please-config.json.
-# Phase 2 (post-merge) is handled by init-feature.sh via init-feature.yml,
-# which copies KiCad project files and removes .gitkeep files as real content lands.
+# all feature stubs/templates (cp -n, no-clobber), and patches
+# commitlint.config.js and release-please-config.json.
+# Phase 2 (post-merge) is handled by init-feature.yml and only creates the PDR tag.
 
 FEATURE="${1:?Usage: init-branch-setup.sh <feature-name>}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -28,13 +27,35 @@ cp -n "scripts/ci/stubs/DDR-000.md"                  "$FEATURE_DIR/decisions/DDR
 cp -n "scripts/ci/stubs/feature-requirements.yaml"   "$FEATURE_DIR/requirements/feature-requirements.yaml"
 cp -n "scripts/ci/stubs/interface-requirements.yaml" "$FEATURE_DIR/requirements/interface-requirements.yaml"
 cp -n "scripts/ci/stubs/verification-matrix.md"      "$FEATURE_DIR/requirements/verification-matrix.md"
+cp -n "scripts/ci/stubs/README.md"                   "$FEATURE_DIR/README.md"
+cp -n "scripts/ci/stubs/specs.yaml"                  "$FEATURE_DIR/datasheet/specs.yaml"
+cp -n "scripts/ci/stubs/application-notes.md"        "$FEATURE_DIR/datasheet/application-notes.md"
+cp -n "scripts/ci/stubs/errata.md"                   "$FEATURE_DIR/datasheet/errata.md"
+
+cp_template() {
+  if [[ -f "$1" ]]; then
+    cp -n "$1" "$2"
+  else
+    echo "⚠️  Template not found, skipping: $1"
+  fi
+}
+cp_template "templates/kicad-project-template.kicad_pro" "$FEATURE_DIR/$FEATURE.kicad_pro"
+cp_template "templates/schematic-template.kicad_sch"     "$FEATURE_DIR/$FEATURE.kicad_sch"
+cp_template "templates/pcb-template.kicad_pcb"           "$FEATURE_DIR/pcb/$FEATURE.kicad_pcb"
+cp_template "config/kibot/base-feature.kibot.yml"        "$FEATURE_DIR/.kibot.yml"
 
 for file in \
   "$FEATURE_DIR/decisions/DDR-000-feature-overview.md" \
   "$FEATURE_DIR/requirements/feature-requirements.yaml" \
   "$FEATURE_DIR/requirements/interface-requirements.yaml" \
-  "$FEATURE_DIR/requirements/verification-matrix.md"; do
-  sed -i "s/FEATURE_NAME/$FEATURE/g" "$file"
+  "$FEATURE_DIR/requirements/verification-matrix.md" \
+  "$FEATURE_DIR/README.md" \
+  "$FEATURE_DIR/datasheet/specs.yaml" \
+  "$FEATURE_DIR/datasheet/application-notes.md" \
+  "$FEATURE_DIR/datasheet/errata.md"; do
+  if [[ -f "$file" ]]; then
+    sed -i "s/FEATURE_NAME/$FEATURE/g" "$file"
+  fi
 done
 
 COMMITLINT_CONFIG=".github/commitlint.config.js"

@@ -24,6 +24,12 @@
 - [ ] Feature scope added to `commitlint.config.js` so PR titles with this feature's scope are valid
 - [ ] Feature package added to `.github/release-please-config.json` so release automation works for this feature
 
+## Scaffolded files
+
+- [ ] KiCad project files are present in `features/<feature>/` and `features/<feature>/pcb/`
+- [ ] `features/<feature>/README.md` stub is present
+- [ ] Datasheet stubs are present in `features/<feature>/datasheet/`
+
 ## Sign-off
 
 - [ ] PDR date recorded above

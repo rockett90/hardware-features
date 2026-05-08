@@ -7,9 +7,10 @@ approved-by: ""
 <!-- document-version: increment on every substantive change.
      baseline: DRAFT | PDR | CDR | TRR — set to the gate this version was approved at.
      approved-date: set at gate sign-off (YYYY-MM-DD).
-     approved-by: lead engineer name. -->
+     approved-by: owner name. -->
 
 # Verification Matrix — FEATURE_NAME
-| REQ ID  | Description   | Method | Gate | Evidence        | Status     |
-|---------|---------------|--------|------|-----------------|------------|
-| REQ-001 | [description] | Test   | TRR  | [evidence path] | ⏳ Pending |
+| REQ ID  | Description   | Method     | Owner               | Evidence        | Status     |
+|---------|---------------|------------|---------------------|-----------------|------------|
+| REQ-001 | [description] | Test       | IVV                 | [evidence path] | ⏳ Pending |
+| REQ-002 | [description] | Inspection | Feature Engineering | [evidence path] | ⏳ Pending |

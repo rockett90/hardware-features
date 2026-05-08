@@ -181,7 +181,7 @@ update stuff             ← meaningless
 PR titles follow exactly the same format as commit messages:
 
 - The title becomes the squash-merge commit message, so it must be valid
-- One title per PR, and one PR per discrete artefact
+- One title per PR, and one PR per discrete artifact
 - The scope must match a registered feature name (CI validates this via commitlint)
 
 Examples by stage:

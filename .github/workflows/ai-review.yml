@@ -27,8 +27,6 @@ jobs:
     concurrency:
       group: ai-review-pr-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
       cancel-in-progress: true
-    env:
-      MODEL: gpt-4.1
     steps:
       - name: Resolve PR details
         id: pr
@@ -123,7 +121,6 @@ jobs:
         if: steps.kicad.outputs.has_kicad == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.MODELS_TOKEN || github.token }}
-          MODEL:        ${{ env.MODEL }}
         run: |
           node - <<'JSEOF'
           const fs    = require('fs');
@@ -148,7 +145,6 @@ jobs:
           Use ADVISORY for findings that may be dismissed with reasoning.`;
 
           const body = JSON.stringify({
-            model: process.env.MODEL,
             messages: [{ role: 'user', content: prompt }],
             max_tokens: 8000,
           });
@@ -175,8 +171,9 @@ jobs:
                 fs.writeFileSync('/tmp/ai-review.txt', `AI review unavailable: HTTP ${res.statusCode}\n${data}`);
                 fs.writeFileSync('/tmp/model-used.txt', 'none');
               } else {
-                fs.writeFileSync('/tmp/ai-review.txt', JSON.parse(data).choices[0].message.content);
-                fs.writeFileSync('/tmp/model-used.txt', process.env.MODEL);
+                const parsed = JSON.parse(data);
+                fs.writeFileSync('/tmp/ai-review.txt', parsed.choices[0].message.content);
+                fs.writeFileSync('/tmp/model-used.txt', parsed.model || 'auto');
               }
             });
           });

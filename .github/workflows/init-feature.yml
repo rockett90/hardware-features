@@ -10,8 +10,7 @@ permissions:
   contents: write
 jobs:
   create-pdr-tag:
-    if: github.event.pull_request.merged == true &&
-        startsWith(github.event.pull_request.head.ref, 'init/')
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -17,10 +17,10 @@ Use this template when raising a PR that delivers a design artifact (schematic, 
 
 ### Checklist
 
-- [ ] Design review completed (`guidelines/process/design-review-process.md`)
+- [ ] Design review completed — all review comments resolved or documented
 - [ ] All blocking review issues resolved
 - [ ] Relevant guideline compliance verified
-- [ ] Simulation results attached (if required by `guidelines/simulation/design-verification.md`)
+- [ ] Simulation results attached (if applicable)
 - [ ] FPTCS updated (if applicable)
 
 ### Notes

@@ -1,8 +1,6 @@
 name: Signoff branch setup
 on:
-  push:
-    branches:
-      - signoff/**
+  create:
 concurrency:
   group: signoff-branch-setup-${{ github.ref }}
   cancel-in-progress: true
@@ -10,7 +8,10 @@ permissions:
   contents: write
 jobs:
   scaffold:
-    if: github.actor != 'github-actions[bot]'
+    if: >
+      github.ref_type == 'branch' &&
+      startsWith(github.ref, 'refs/heads/signoff/') &&
+      github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +85,7 @@ jobs:
           echo ""                                                       >> "$OUT"
           echo "> Created automatically by CI. Do not edit manually." >> "$OUT"
 
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "$OUT"
           git diff --cached --quiet && exit 0

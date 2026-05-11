@@ -11,7 +11,7 @@
 
 - [ ] `pdr/<feature>/approved` tag present in repository
 - [ ] `cdr/<feature>/approved` tag present in repository
-- [ ] `<feature>-vX.Y.Z-rc.N` tag present in repository
+- [ ] `trr/<feature>/approved` tag present in repository
 - [ ] `features/<feature>/reviews/library.lock` committed
 
 ## Design evidence
@@ -22,6 +22,7 @@
 
 ## IVV completion
 
+- [ ] `requirements/verification-matrix.md` updated with IVV result references for all REQ-IDs
 - [ ] All P1 and P2 findings resolved or formally deferred with lead sign-off
 - [ ] Deferred findings documented with justification in notes below
 

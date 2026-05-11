@@ -5,7 +5,7 @@ name: Init branch setup
 # patches commitlint.config.js, and patches release-please-config.json
 # onto the branch so the engineer can fill in real content before opening the PR.
 #
-# Phase 2 is init-feature.yml (post-merge): creates the PDR gate tag only.
+# Phase 2 was init-feature.yml (post-merge): currently disabled (if: false).
 on:
   push:
     branches:

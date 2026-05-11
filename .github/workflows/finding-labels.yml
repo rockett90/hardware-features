@@ -17,7 +17,10 @@ jobs:
           script: |
             const branch = context.payload.pull_request.head.ref;
             const match  = branch.match(/^finding\/[^/]+\/(\d+)-/);
-            if (!match) { core.warning('No issue number in branch name'); return; }
+            if (!match) {
+              core.warning(`Branch name "${branch}" does not match the required format: finding/<feature>/<issue-number>-<description>. No issue label was updated. Rename the branch to include the issue number as a numeric prefix, e.g. finding/buck-converter-5v/42-output-voltage-low.`);
+              return;
+            }
             const issueNumber = parseInt(match[1]);
             const prNumber    = context.payload.pull_request.number;
             try {
@@ -49,7 +52,10 @@ jobs:
           script: |
             const branch = context.payload.pull_request.head.ref;
             const match  = branch.match(/^finding\/[^/]+\/(\d+)-/);
-            if (!match) { core.warning('No issue number in branch name'); return; }
+            if (!match) {
+              core.warning(`Branch name "${branch}" does not match the required format: finding/<feature>/<issue-number>-<description>. No issue label was updated. Rename the branch to include the issue number as a numeric prefix, e.g. finding/buck-converter-5v/42-output-voltage-low.`);
+              return;
+            }
             const issueNumber = parseInt(match[1]);
             const sha = context.payload.pull_request.merge_commit_sha?.slice(0,7) ?? 'unknown';
             try {

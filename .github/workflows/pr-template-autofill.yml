@@ -30,6 +30,8 @@ jobs:
               templatePath = '.github/PULL_REQUEST_TEMPLATE/release-signoff.md';
             } else if (branch.startsWith('artifact/')) {
               templatePath = '.github/PULL_REQUEST_TEMPLATE/artifact.md';
+            } else if (branch.startsWith('finding/')) {
+              templatePath = '.github/PULL_REQUEST_TEMPLATE/finding.md';
             }
 
             if (!templatePath) {

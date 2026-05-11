@@ -129,7 +129,7 @@ This pushes your branch to GitHub and triggers any CI workflows configured for t
 
 GitHub CLI requires Git to be installed separately.
 
-- **Windows**: Download from [git-scm.com](https://git-scm.com/download/win). During installation, accept the defaults — pay attention to the "Adjusting your PATH" step and select **"Git from the command line and also from 3rd-party software"**.
+- **Windows**: Download from [git-scm.com](https://git-scm.com/download/win). During installation, when you reach the **"Adjusting your PATH environment"** step, select **"Git from the command line and also from 3rd-party software"** (not just "from Git Bash only"). For all other steps, the default options are fine.
 - **macOS**: Git is included with Xcode Command Line Tools. Run `xcode-select --install` in Terminal, or install via [Homebrew](https://brew.sh): `brew install git`.
 - **Linux**: `sudo apt install git` (Debian/Ubuntu) or equivalent for your distribution.
 

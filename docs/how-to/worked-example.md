@@ -203,7 +203,7 @@ The PR body contains the PDR gate checklist. Tick every item by clicking the `[ 
 - `verification-matrix.md` lists all REQ-IDs
 - `DDR-000-design-intent.md` captures the problem statement, scope, and constraints
 - `DDR-000-decisions.md` contains at least one decision entry
-- Feature scope present in `commitlint.config.js` (added automatically by CI — verify by inspecting the file)
+- Feature scope present in `commitlint.config.js` (added automatically by CI — verify that `buck-converter-5v` appears in the `scopes` array in that file)
 - Feature package present in `release-please-config.json` (added automatically by CI)
 - PDR date and owner name recorded
 

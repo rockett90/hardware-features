@@ -48,7 +48,13 @@ jobs:
             echo "mode=command" >> $GITHUB_OUTPUT
           else
             # pull_request event — extract feature from branch name
+            # Only run for branches that follow feature patterns (init/, artifact/, signoff/)
             REF="${{ github.event.pull_request.head.ref }}"
+            if ! echo "$REF" | grep -qE '^(init|artifact|signoff|finding)/'; then
+              echo "Branch $REF is not a feature branch — skip"
+              echo "skip=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
             FEATURE=$(echo "$REF" | sed 's|^[^/]*/||;s|/.*$||')
             if [[ -z "$FEATURE" ]]; then
               echo "Could not extract feature name from branch $REF — skip"
@@ -123,10 +129,13 @@ jobs:
           fi
           git commit -m "chore($FEATURE): generate datasheet stub [skip ci]"
           BRANCH="${{ github.event.pull_request.head.ref }}"
-          if [[ -z "$BRANCH" ]]; then
-            BRANCH="main"
+          if [[ -n "$BRANCH" ]]; then
+            git push origin "HEAD:${BRANCH}"
+          else
+            # workflow_dispatch: push to main (regenerating on demand)
+            git pull --rebase origin main
+            git push origin HEAD:main
           fi
-          git push origin "HEAD:${BRANCH}"
 
       - name: Post PR comment
         if: |

@@ -117,7 +117,7 @@ jobs:
           mkdir -p release-pdfs
 
           # Excluded extensions (documentation, KiCad project files, metadata)
-          EXCLUDE_EXTS="md yaml yml kicad_sch kicad_pcb kicad_pro kicad_prl json lock"
+          EXCLUDE_EXTS=(md yaml yml kicad_sch kicad_pcb kicad_pro kicad_prl json lock)
 
           while IFS= read -r -d '' FILE; do
             # Build the relative path from the features/<feature>/ root
@@ -127,7 +127,7 @@ jobs:
 
             # Check if this extension is excluded
             SKIP=false
-            for X in $EXCLUDE_EXTS; do
+            for X in "${EXCLUDE_EXTS[@]}"; do
               if [[ "$EXT_LOWER" == "$X" ]]; then SKIP=true; break; fi
             done
             [[ "$SKIP" == "true" ]] && continue

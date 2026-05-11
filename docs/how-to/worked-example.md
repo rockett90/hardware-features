@@ -1,6 +1,6 @@
 # Worked example — hardware feature from idea to release
 
-> **No prior experience needed.** This guide walks through the complete hardware feature lifecycle step by step, using **GitHub Desktop** as the primary tool. GitHub CLI alternatives are shown after each step for users comfortable with the command line.
+> **No prior experience needed.** This guide walks through the complete hardware feature lifecycle step by step, using **GitHub Desktop** as the primary tool. GitHub CLI alternatives are shown where the steps differ meaningfully.
 >
 > The example feature is `buck-converter-5v`. Replace this name with your own feature name throughout.
 
@@ -10,15 +10,17 @@
 
 A hardware feature passes through seven stages before production-authorised manufacturing outputs are available:
 
-| Stage | Branch | Gate |
+| Stage | Branch | What completes the stage |
 |---|---|---|
-| 1. Init (PDR) | `init/buck-converter-5v` | All PDR checklist items ticked |
-| 2. Design work | `artifact/buck-converter-5v/<desc>` | CI checks on every push |
-| 3. CDR sign-off | `signoff/buck-converter-5v/cdr` | All CDR checklist items ticked |
-| 4. Post-CDR work | `artifact/buck-converter-5v/<desc>` | CI checks on every push |
-| 5. TRR sign-off | `signoff/buck-converter-5v/trr` | All TRR checklist items ticked |
-| 6. Final Release sign-off | `signoff/buck-converter-5v/release` | All Release checklist items ticked |
-| 7. Release PR | (opened by release-please) | `release/buck-converter-5v/approved` tag must exist |
+| 1. Init (PDR) | `init/buck-converter-5v` | All PDR checklist items ticked and PR merged |
+| 2. Design work | `artifact/buck-converter-5v/<desc>` | One or more artifact PRs merged |
+| 3. CDR sign-off | `signoff/buck-converter-5v/cdr` | All CDR checklist items ticked and PR merged |
+| 4. IVV (build and test) | `artifact/buck-converter-5v/<desc>` | Bring-up and measurement evidence committed |
+| 5. TRR sign-off | `signoff/buck-converter-5v/trr` | All TRR checklist items ticked and PR merged |
+| 6. Final Release sign-off | `signoff/buck-converter-5v/release` | All Release checklist items ticked and PR merged |
+| 7. Production release | (release PR opened by CI) | Release PR merged, manufacturing outputs generated |
+
+---
 
 ---
 
@@ -26,21 +28,21 @@ A hardware feature passes through seven stages before production-authorised manu
 
 > **Do this once only.** If you have already cloned the repository, skip to Stage 1.
 
-### Using GitHub Desktop
+### GitHub Desktop
 
 1. Open **GitHub Desktop**.
-2. Click **File → Clone repository…** (or press `Ctrl+Shift+O` / `⇧⌘O`).
+2. Click **File → Clone repository…** (or press `Ctrl+Shift+O` on Windows / `⇧⌘O` on Mac).
 3. Select the **GitHub.com** tab.
 4. Search for `hardware-features` and select `rockett90/hardware-features`.
 5. Choose a **Local path** on your computer (e.g. `Documents/hardware-features`).
 6. Expand **Advanced options** and tick **"Recurse submodules"** — this is essential to download the shared component library.
-7. Click the blue **Clone** button.
+7. Click the blue **Clone** button and wait for the download to complete.
 
 <!-- screenshot: Clone repository dialog, Recurse submodules ticked, Clone button highlighted -->
 
-> ⚠️ If you skip "Recurse submodules", KiCad will open files with empty symbol boxes. Fix with `git submodule update --init` in a terminal.
+> ⚠️ **If you skip "Recurse submodules"**, KiCad will open project files with empty symbol boxes. You can fix this later by opening a terminal in the repository folder and running `git submodule update --init`.
 
-### Alternative: GitHub CLI
+### Alternative: command line
 
 ```bash
 git clone --recurse-submodules https://github.com/rockett90/hardware-features.git
@@ -53,7 +55,7 @@ cd hardware-features
 
 ### What this stage achieves
 
-The Init PR registers the feature in the repository. On first push to `init/<feature>`, CI scaffolds the full directory structure and stubs onto your branch. On merge, the `pdr/buck-converter-5v/approved` gate record is created.
+The Init PR registers the feature in the repository and establishes the PDR baseline. You create a branch named `init/<feature>`, publish it, and CI automatically scaffolds all required directories and stub files onto your branch. When you open the PR, CI also generates the initial datasheet stub. You fill in the stubs, tick the PDR checklist, and merge.
 
 ---
 
@@ -61,15 +63,15 @@ The Init PR registers the feature in the repository. On first push to `init/<fea
 
 #### GitHub Desktop
 
-1. In GitHub Desktop, click **Current branch** (the dropdown in the top centre of the window).
+1. In GitHub Desktop, click the **Current branch** dropdown in the top centre of the window.
 2. Click **New branch**.
 3. In the **Name** field, type: `init/buck-converter-5v`
 4. Make sure **From** shows `main`. If it does not, click the dropdown and select `main`.
 5. Click the blue **Create branch** button.
 
-<!-- screenshot: New branch dialog with "init/buck-converter-5v" typed and Create branch highlighted -->
+<!-- screenshot: New branch dialog with "init/buck-converter-5v" typed and Create branch button highlighted -->
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git checkout main
@@ -81,21 +83,21 @@ git checkout -b init/buck-converter-5v
 
 ### Step 1.2 — Publish the branch immediately
 
-Publishing (pushing) the branch triggers the `Init branch setup` CI workflow, which scaffolds all required directories and stubs automatically. Do this immediately — before making any manual file edits.
+Publishing (pushing) the branch triggers the `Init branch setup` CI workflow, which scaffolds all required directories and stub files automatically. **Do this before making any manual file edits.**
 
 #### GitHub Desktop
 
-1. Click the blue **Publish branch** button in the top-right corner of GitHub Desktop.
+1. Click the blue **Publish branch** button in the top-right corner.
 
 <!-- screenshot: GitHub Desktop toolbar showing the Publish branch button highlighted -->
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git push -u origin init/buck-converter-5v
 ```
 
-> ⏱️ **Wait for CI.** The `Init branch setup` workflow runs in under 30 seconds. You can watch it at **github.com → Actions** tab. Do not continue until it completes.
+> ⏱️ **Wait for CI.** The `Init branch setup` workflow takes under 30 seconds. You can monitor it at **github.com → your repository → Actions tab**. Do not continue to the next step until it shows a green tick.
 
 ---
 
@@ -105,35 +107,41 @@ CI has committed the full directory scaffold directly to your branch. Pull these
 
 #### GitHub Desktop
 
-1. In GitHub Desktop, click **Fetch origin** in the top-right corner.
+1. Click **Fetch origin** in the top-right corner.
 2. If the button changes to **Pull origin**, click it to download the CI commit.
 
 <!-- screenshot: GitHub Desktop toolbar showing Pull origin button -->
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git pull
 ```
 
-The scaffold includes all required directories and stub files. Open each stub in a text editor and replace the placeholder content with real content for your feature.
+**What was committed by CI:**
 
-> ⚠️ CI checks that stub files contain real content. Placeholder text will cause the init PR to fail gate-check.
+- `features/buck-converter-5v/` — full directory structure with all required stubs
+- `.github/commitlint.config.js` — updated to include `buck-converter-5v` as a valid commit scope
+- `.github/release-please-config.json` — updated to register the new feature
+
+Open any of the stub files in a text editor to see their placeholder content. You will fill these in next.
 
 ---
 
 ### Step 1.4 — Edit the stub files
 
-Open each file and fill in real content:
+Open each file and replace the placeholder content with real content for your feature:
 
 | File | What to fill in |
 |---|---|
 | `features/buck-converter-5v/requirements/feature-requirements.yaml` | Real REQ-IDs and requirement statements |
-| `features/buck-converter-5v/requirements/interface-requirements.yaml` | Interface definitions (voltage, current, connector) |
-| `features/buck-converter-5v/requirements/verification-matrix.md` | All REQ-IDs listed with verification method |
+| `features/buck-converter-5v/requirements/interface-requirements.yaml` | Interface definitions (voltage, current, connector type) |
+| `features/buck-converter-5v/requirements/verification-matrix.md` | All REQ-IDs listed, each with a verification method |
 | `features/buck-converter-5v/decisions/DDR-000-design-intent.md` | Problem statement, scope, and constraints |
 | `features/buck-converter-5v/decisions/DDR-000-decisions.md` | At least one decision entry |
 | `features/buck-converter-5v/README.md` | Feature description (1–3 paragraphs) |
+
+> ⚠️ **Do not leave placeholder text in stub files.** The `gate-check` CI workflow reads the PR body and will block merge if checklist items are unticked. If stub files contain placeholder text, you will not be able to tick those checklist items honestly.
 
 ---
 
@@ -141,9 +149,9 @@ Open each file and fill in real content:
 
 #### GitHub Desktop
 
-1. After editing files, switch to GitHub Desktop. Changed files appear in the **Changes** panel on the left.
-2. All changed files should be ticked. Verify the list looks correct.
-3. In the **Summary** box at the bottom-left, type a commit message. Example:
+1. Switch to GitHub Desktop. Changed files appear in the **Changes** panel on the left.
+2. Confirm all the files you edited are ticked.
+3. In the **Summary** box at the bottom-left, type a commit message. For example:
    ```
    feat(buck-converter-5v): fill in PDR stubs
    ```
@@ -152,7 +160,7 @@ Open each file and fill in real content:
 
 <!-- screenshot: GitHub Desktop Changes panel with commit summary filled in and Commit button highlighted -->
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git add features/buck-converter-5v/
@@ -166,60 +174,95 @@ git push
 
 #### GitHub Desktop
 
-1. In GitHub Desktop, click **Branch → Create pull request** in the menu bar.
-   Your browser opens to the GitHub PR creation page.
+1. Click **Branch** in the menu bar.
+2. Click **Create pull request**. Your browser opens to the GitHub PR creation page.
 
 <!-- screenshot: GitHub Desktop Branch menu with Create pull request highlighted -->
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 gh pr create --web
 ```
 
-On the PR creation page:
+On the GitHub PR creation page:
 
 1. Set the **title** to:
    ```
    feat(buck-converter-5v): initialise feature
    ```
-2. Click the **dropdown arrow** on the green button (do not click the button itself yet).
+2. Click the **dropdown arrow** on the green button (do **not** click the button itself yet).
 3. Select **Create draft pull request**.
 4. Click **Create draft pull request**.
 
-<!-- screenshot: PR creation page showing the dropdown arrow on the green button and "Create draft pull request" option -->
-
-> 💡 **Template autofill:** Within a few seconds, the `PR template autofill` workflow fills the correct checklist into the PR body automatically. If the body is blank, wait a moment and refresh the page. **Do not type in the body before it fills in.**
+<!-- screenshot: PR creation page showing the dropdown arrow and "Create draft pull request" option -->
 
 ---
 
-### Step 1.7 — Tick all PDR checklist items
+### Step 1.7 — Wait for CI to run on the PR
 
-The PR body contains the PDR gate checklist. Tick every item by clicking the `[ ]` boxes on the GitHub PR page:
+After the PR is opened, three things happen automatically within about 30 seconds:
+
+1. **PR template autofill** fills the correct checklist into the PR body. The body will appear blank for a moment, then fill in. Do not type anything in the body before this happens.
+
+2. **Post gate checklist** posts a comment on the PR with orientation notes for the PDR gate.
+
+3. **Generate datasheet** generates the initial datasheet stub and commits it directly to your `init/buck-converter-5v` branch. You will see a new commit appear on the branch from `github-actions[bot]`.
+
+> ⏱️ **Watch the Actions tab.** Go to **github.com → Actions** and wait for the `Generate datasheet` workflow run to show a green tick. This confirms the stub has been committed.
+
+---
+
+### Step 1.8 — Pull the datasheet stub commit
+
+CI has committed the datasheet stub to your branch. Pull before doing anything else.
+
+#### GitHub Desktop
+
+1. Click **Fetch origin**, then **Pull origin** when it appears.
+
+#### Alternative: command line
+
+```bash
+git pull
+```
+
+**What was committed:**
+
+- `features/buck-converter-5v/datasheet/buck-converter-5v-datasheet.md` — the datasheet stub in Markdown
+- `features/buck-converter-5v/datasheet/buck-converter-5v-datasheet.pdf` — an initial PDF (if pandoc/LaTeX were available; the Markdown file is always created)
+
+> ℹ️ Do not edit `buck-converter-5v-datasheet.md` directly — it is regenerated from source files. The source files to edit later are `datasheet/specs.yaml`, `datasheet/application-notes.md`, and `datasheet/errata.md`.
+
+---
+
+### Step 1.9 — Tick all PDR checklist items
+
+On the GitHub PR page, read the checklist in the PR body carefully. Tick every item by clicking the `[ ]` boxes:
 
 - Feature naming convention followed
 - `feature-requirements.yaml` contains real REQ-IDs
 - `interface-requirements.yaml` contains real interface definitions
-- `verification-matrix.md` lists all REQ-IDs
+- `verification-matrix.md` lists all REQ-IDs with verification methods
 - `DDR-000-design-intent.md` captures the problem statement, scope, and constraints
 - `DDR-000-decisions.md` contains at least one decision entry
-- Feature scope present in `commitlint.config.js` (added automatically by CI — open `.github/commitlint.config.js` and verify that `buck-converter-5v` appears in the `scopes` array)
-- Feature package present in `release-please-config.json` (added automatically by CI)
+- Feature scope is present in `.github/commitlint.config.js` (added automatically by CI — open the file and confirm `buck-converter-5v` appears in the `scopes` array)
+- Feature package is present in `.github/release-please-config.json` (added automatically by CI)
 - PDR date and owner name recorded
 
-`gate-check.yml` **blocks merge** if any `- [ ]` item remains unchecked.
+> **CI enforcement:** `gate-check` blocks merge while any `- [ ]` item remains unchecked in the PR body. You will see a red ✕ on the PR until all items are ticked.
 
 ---
 
-### Step 1.8 — Mark ready for review and merge
+### Step 1.10 — Mark ready for review and merge
 
 1. On the PR page, click **"Ready for review"** once all checklist items are ticked and CI is green.
 2. Request lead approval.
-3. Once approved and CI passes, click **Squash and merge**.
+3. Once approved and all checks pass, click **Squash and merge**.
 4. Confirm the merge commit title matches the PR title format.
 5. Click **Confirm squash and merge**.
 
-> **After merge, CI creates the `pdr/buck-converter-5v/approved` gate record.**
+> **After merge:** No automated CI action is triggered by the init PR merge itself. The PDR baseline is now established. Move on to Stage 2.
 
 ---
 
@@ -227,7 +270,9 @@ The PR body contains the PDR gate checklist. Tick every item by clicking the `[ 
 
 ### What this stage achieves
 
-Design artefacts are committed through one or more `artifact/` PRs — one PR per discrete artefact. This keeps the review history clean and makes it clear what changed in each review.
+Design artefacts are committed through one or more `artifact/` PRs — one PR per discrete artefact (schematic, PCB, calculations, BOM, etc.). This keeps the review history clean and makes it clear what changed at each review.
+
+---
 
 ### Step 2.1 — Create an artifact branch
 
@@ -236,11 +281,11 @@ Design artefacts are committed through one or more `artifact/` PRs — one PR pe
 1. Click **Current branch** → **New branch**.
 2. Type the branch name, e.g.: `artifact/buck-converter-5v/initial-schematic`
 3. Confirm **From** shows `main`, then click **Create branch**.
-4. Click **Publish branch** in the top-right corner.
+4. Click **Publish branch** in the top-right corner immediately.
 
 <!-- screenshot: New branch dialog with artifact branch name typed -->
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git checkout main && git pull
@@ -248,62 +293,97 @@ git checkout -b artifact/buck-converter-5v/initial-schematic
 git push -u origin artifact/buck-converter-5v/initial-schematic
 ```
 
+---
+
 ### Step 2.2 — Open a draft PR immediately
 
-Open a draft PR right after the first push so CI checks can start running.
+Open a draft PR right after the first push so CI checks begin running as you work.
 
 #### GitHub Desktop
 
-Click **Branch → Create pull request**. Set the title, select **Create draft pull request**, and submit.
+1. Click **Branch → Create pull request**.
+2. In your browser, set the title (e.g. `feat(buck-converter-5v): add initial schematic`).
+3. Use the dropdown arrow on the green button to select **Create draft pull request**.
+4. Click **Create draft pull request**.
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 gh pr create --draft --title "feat(buck-converter-5v): add initial schematic"
 ```
 
-> The PR body auto-fills within seconds. Wait for it before typing.
+> **What CI does automatically:**
+> - **PR template autofill** fills the artifact PR checklist into the PR body within seconds. Wait for it before typing.
+
+---
 
 ### Step 2.3 — Design, commit, and push
 
-Work in KiCad. After each meaningful change:
+Work in KiCad or a text editor. After each meaningful change:
 
 #### GitHub Desktop
 
-1. Switch to GitHub Desktop — changed files appear in **Changes**.
-2. Tick the files to include, type a commit message, and click **Commit to `artifact/...`**.
-3. Click **Push origin**.
+1. Switch to GitHub Desktop — changed files appear in the **Changes** panel.
+2. Tick the files to include.
+3. Type a commit message in the **Summary** box, e.g.:
+   ```
+   feat(buck-converter-5v): add power stage schematic
+   ```
+4. Click **Commit to `artifact/...`**.
+5. Click **Push origin**.
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git add features/buck-converter-5v/
-git commit -m "feat(buck-converter-5v): add initial schematic"
+git commit -m "feat(buck-converter-5v): add power stage schematic"
 git push
 ```
 
+**What CI does automatically on push:**
+
+- If your PR contains changes to `.kicad_sch` or `.kicad_pcb` files, the **ERC/DRC** workflow runs automatically and posts a comment with any electrical rules check or design rules check violations. These results are **informational only** — they do not block merge.
+
+---
+
 ### Step 2.4 — Use slash commands during review
 
-Post these as comments on the PR (write access required):
+Post these as comments on the PR. You must have write access to the repository.
 
-| Command | When to use |
-|---|---|
-| `/render` | After significant schematic changes — exports SVG so reviewers can read it without KiCad |
-| `/kicad-diff` | Four-column visual diff of what changed vs base branch |
-| `/ai-review` | AI schematic analysis — run before requesting human review |
-| `/erc` | Electrical Rules Check (informational, does not block merge) |
-| `/drc` | Design Rules Check (informational, does not block merge) |
+| Command | What it does | When to use |
+|---|---|---|
+| `/render` | Exports schematic as SVG and PDF, posts a download link | After significant schematic changes — allows reviewers to read it without KiCad |
+| `/kicad-diff` | Generates a four-column visual diff of schematic changes vs base branch | When you want to show exactly what changed |
+| `/ai-review` | Runs an AI schematic analysis, posts CRITICAL and ADVISORY findings | Before requesting human review |
+| `/erc` | Runs ERC on demand (informational, does not block merge) | On demand |
+| `/drc` | Runs DRC on demand (informational, does not block merge) | On demand |
 
-> The dispatcher reacts 👀 on receipt, ✅ on success, ❌ on failure.
+**What the dispatcher does:**
 
-### Step 2.5 — Mark ready for review and merge
+- Reacts 👀 on your comment when it receives the command.
+- Reacts ✅ when the workflow is successfully dispatched.
+- Reacts ❌ and posts a failure comment if dispatch fails.
+- Posts a comment with available commands if you post a comment with no recognised command.
 
-1. Post `/render` to generate fresh SVGs.
-2. Post `/ai-review` and resolve all CRITICAL findings.
+---
+
+### Step 2.5 — AI review runs automatically on ready for review
+
+When you click **"Ready for review"** on any non-draft PR (for non-`init/` branches), the **AI schematic review** workflow runs automatically. It posts a comment with any CRITICAL or ADVISORY findings.
+
+Resolve all CRITICAL findings before requesting lead approval.
+
+---
+
+### Step 2.6 — Mark ready for review and merge
+
+1. Post `/render` to generate fresh SVG renders for the review record.
+2. Post `/ai-review` if you want a fresh AI review before the automatic one triggered by "Ready for review".
 3. Click **"Ready for review"** on the PR.
-4. Request lead approval and merge once approved and CI is green.
+4. Request lead approval.
+5. Once approved and all checks pass, click **Squash and merge**.
 
-Repeat for each subsequent artefact (PCB layout, calculations, BOM, etc.).
+Repeat Steps 2.1–2.6 for each subsequent artefact (PCB layout, calculations, BOM, bring-up notes, etc.).
 
 ---
 
@@ -311,7 +391,9 @@ Repeat for each subsequent artefact (PCB layout, calculations, BOM, etc.).
 
 ### What this stage achieves
 
-CDR is a formal gate confirming the design is complete and reviewed. The `gate-check.yml` workflow blocks merge until all checklist items are ticked. On merge, CI creates the `cdr/buck-converter-5v/approved` gate tag and commits `library.lock`.
+CDR (Critical Design Review) is a formal gate confirming the design is complete and fully reviewed. You create a `signoff/<feature>/cdr` branch, publish it, and CI automatically commits a gate evidence file. You open the PR, tick all CDR checklist items, get lead approval, and merge. **On merge, CI creates the `cdr/buck-converter-5v/approved` tag and commits `reviews/library.lock` to `main`.**
+
+---
 
 ### Step 3.1 — Create the CDR branch
 
@@ -324,7 +406,7 @@ CDR is a formal gate confirming the design is complete and reviewed. The `gate-c
 
 <!-- screenshot: New branch dialog with signoff branch name -->
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git checkout main && git pull
@@ -332,7 +414,9 @@ git checkout -b signoff/buck-converter-5v/cdr
 git push -u origin signoff/buck-converter-5v/cdr
 ```
 
-> ⏱️ Wait for the `Signoff branch setup` workflow to complete (usually under 30 seconds) before opening the PR. It commits `gate-evidence.md` to your branch automatically.
+> ⏱️ **Wait for CI.** The `Signoff branch setup` workflow takes under 30 seconds. It commits `gate-evidence-cdr.md` to your branch automatically. Do not open the PR until this completes (green tick on the Actions tab).
+
+---
 
 ### Step 3.2 — Pull the auto-committed gate evidence file
 
@@ -340,19 +424,25 @@ git push -u origin signoff/buck-converter-5v/cdr
 
 1. Click **Fetch origin**, then **Pull origin** when it appears.
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git pull
 ```
 
+**What was committed by CI:**
+
+- `features/buck-converter-5v/reviews/gate-evidence-cdr.md` — a pre-filled table recording the branch, date, previous gate, and commit SHA at the time the branch was created. Do not edit this file.
+
+---
+
 ### Step 3.3 — Open the CDR PR
 
 #### GitHub Desktop
 
-Click **Branch → Create pull request**. Your browser opens.
+1. Click **Branch → Create pull request**. Your browser opens.
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 gh pr create --web
@@ -363,17 +453,27 @@ Set the title:
 chore(buck-converter-5v): CDR sign-off
 ```
 
-> **Do not use Draft for signoff PRs.** Open it as a regular PR straight away. The checklist auto-fills within seconds — refresh if it is blank.
+> **Do not open this as a draft.** Open it as a regular PR straight away. The CDR checklist auto-fills into the PR body within seconds — refresh the page if it appears blank.
 
-### Step 3.4 — Post `/render`
+**What CI does automatically on opening:**
 
-Post `/render` as a PR comment. This generates SVGs for the review record.
+- **PR template autofill** fills the CDR sign-off checklist into the PR body.
+- **Post gate checklist** posts a CDR orientation comment with instructions.
+- **Gate check** starts checking the PR body for unticked items.
+
+---
+
+### Step 3.4 — Post `/render` for the review record
+
+Post `/render` as a PR comment. The renders will be attached as a workflow artifact and linked in a PR comment. This gives reviewers a readable schematic without needing KiCad.
+
+---
 
 ### Step 3.5 — Tick all CDR checklist items
 
-Tick every item in the PR body. The CDR checklist includes:
+Read each item in the PR body and tick it once satisfied. The CDR checklist includes:
 
-- ERC clean (zero errors, zero warnings unless formally accepted)
+- ERC clean (zero errors, zero warnings unless formally accepted and documented)
 - Calculations complete and reviewed
 - Simulations complete and reviewed
 - PCB reviewed
@@ -390,28 +490,34 @@ Tick every item in the PR body. The CDR checklist includes:
 - All CRITICAL AI review findings resolved
 - CDR date and owner name recorded
 
-`gate-check.yml` blocks merge if any `- [ ]` item remains unchecked.
-
-### Step 3.6 — Merge
-
-Request lead approval. Once approved and CI is green, click **Squash and merge**.
-
-> **After merge, CI automatically:**
-> - Creates the `cdr/buck-converter-5v/approved` gate tag
-> - Commits `reviews/library.lock` to `main`
-> - Generates the datasheet stub (if it does not already exist)
+> **CI enforcement:** `gate-check` blocks merge while any `- [ ]` item remains unchecked in the PR body. You will see a failing check on the PR until all items are ticked.
 
 ---
 
-## Stage 4 — Post-CDR work (CDR → TRR)
+### Step 3.6 — Merge
+
+1. Request lead approval.
+2. Once approved and all checks pass, click **Squash and merge** → **Confirm squash and merge**.
+
+> **After merge, CI automatically:**
+> - Creates the `cdr/buck-converter-5v/approved` gate tag
+> - Creates `features/buck-converter-5v/reviews/library.lock` recording the library submodule commit and feature commit SHA at this gate, then commits it to `main`
+>
+> You do not need to do anything. These happen within about a minute of merge. You can confirm by checking the **Tags** page on GitHub (`Code → Tags`).
+
+---
+
+## Stage 4 — IVV (build and test)
 
 ### What this stage achieves
 
-The physical hardware is built and brought up. Verification evidence is committed. The datasheet is filled in.
+The physical hardware is built and brought up. Bring-up notes, measurement data, and verification evidence are committed via `artifact/` PRs. The datasheet is filled in with measured values.
+
+---
 
 ### Step 4.1 — Bring-up and test evidence PRs
 
-Continue using `artifact/` branches. Examples:
+Continue using `artifact/` branches, following the same process as Stage 2. Examples:
 
 | Artefact | Branch | PR title |
 |---|---|---|
@@ -421,48 +527,59 @@ Continue using `artifact/` branches. Examples:
 
 Follow the same branch → push → draft PR → commit → merge process as Stage 2.
 
+---
+
 ### Step 4.2 — Fill in the datasheet source files
 
-Edit these files using KiCad or a text editor, then commit them via an `artifact/` PR:
+The datasheet stub was generated when you opened the init PR in Stage 1. During IVV, fill in the source files with actual measured values. Edit these files and commit them via an `artifact/` PR:
 
 | File | What to fill in |
 |---|---|
-| `features/buck-converter-5v/datasheet/specs.yaml` | Characterised min/nom/max values — actual achieved values, not requirements |
-| `features/buck-converter-5v/datasheet/application-notes.md` | Typical application, configuration guidance, layout recommendations |
+| `features/buck-converter-5v/datasheet/specs.yaml` | Characterised min/nom/max values — actual achieved values from measurement, not requirements |
+| `features/buck-converter-5v/datasheet/application-notes.md` | Typical application circuit, configuration guidance, layout recommendations |
 | `features/buck-converter-5v/datasheet/errata.md` | Known issues against specific hardware revisions |
 
-> ⚠️ Do not edit `buck-converter-5v-datasheet.md` directly — it is generated. Edit the source files above and run `/datasheet` to regenerate.
+> ⚠️ Do not edit `buck-converter-5v-datasheet.md` directly — it is generated from the source files above. Edit the source files and then run `/datasheet` (Step 4.3) to regenerate.
 
-### Step 4.3 — Run `/datasheet` to regenerate the output
+---
 
-Post `/datasheet` as a PR comment. The updated files are committed automatically.
+### Step 4.3 — Regenerate the datasheet with `/datasheet`
 
-### Step 4.4 — Finding PRs (if defects are found)
+Post `/datasheet` as a comment on an open artifact PR. CI regenerates the Markdown and PDF datasheet from the updated source files and commits the result directly to your branch.
 
-If a defect is found during bring-up:
+> ℹ️ The `/datasheet` command requires write access to the repository. The dispatcher reacts 👀 when it receives the command and ✅ when dispatched successfully. After the workflow completes, pull the new commit.
 
-1. Raise a GitHub Issue using the IVV Finding issue template.
-2. The owner confirms the severity label (`finding: minor`, `finding: moderate`, or `finding: major`).
-3. Create a finding branch:
+---
 
-   **GitHub Desktop:** New branch → `finding/buck-converter-5v/42-output-voltage-low` → Publish.
+### Step 4.4 — Finding PRs (if defects are found during IVV)
 
-   **Alternative: GitHub CLI:**
+If a defect is found:
+
+1. Raise a GitHub Issue using the **IVV Finding** issue template.
+2. The owner assigns the severity label: `finding: minor`, `finding: moderate`, or `finding: major`.
+3. Create a finding branch and open a PR:
+
+   **GitHub Desktop:** Click **Current branch** → **New branch** → type `finding/buck-converter-5v/42-output-voltage-low` → **Create branch** → **Publish branch**.
+
+   **Alternative: command line:**
    ```bash
    git checkout main && git pull
    git checkout -b finding/buck-converter-5v/42-output-voltage-low
    git push -u origin finding/buck-converter-5v/42-output-voltage-low
    ```
 
-4. Open a PR with `Resolves #42` in the **body**. PR title:
+4. Open the PR and include `Resolves #42` in the **body**. PR title:
    ```
    fix(buck-converter-5v): correct feedback resistor divider — IVV finding #42
    ```
 
 **Severity and gate re-entry:**
-- `finding: minor` — no gate re-entry required unless the owner decides otherwise
-- `finding: moderate` — re-TRR required (`signoff/buck-converter-5v/trr-1`)
-- `finding: major` — re-CDR then re-TRR required (`signoff/buck-converter-5v/cdr-1` then `signoff/buck-converter-5v/trr-1`)
+
+| Severity | Gate re-entry required |
+|---|---|
+| `finding: minor` | None, unless the owner decides otherwise |
+| `finding: moderate` | Re-TRR (`signoff/buck-converter-5v/trr-1`) |
+| `finding: major` | Re-CDR then re-TRR (`signoff/buck-converter-5v/cdr-1`, then `signoff/buck-converter-5v/trr-1`) |
 
 ---
 
@@ -470,7 +587,9 @@ If a defect is found during bring-up:
 
 ### What this stage achieves
 
-TRR confirms the hardware is built, brought up, and ready for formal verification. On merge, CI creates the `trr/buck-converter-5v/approved` tag.
+TRR (Test Readiness Review) confirms the hardware is built, brought up, and all verification evidence is committed and reviewed. **On merge, CI creates the `trr/buck-converter-5v/approved` tag.**
+
+---
 
 ### Step 5.1 — Create the TRR branch
 
@@ -478,9 +597,9 @@ TRR confirms the hardware is built, brought up, and ready for formal verificatio
 
 1. Click **Current branch** → **New branch**.
 2. Type: `signoff/buck-converter-5v/trr`
-3. From `main` → **Create branch** → **Publish branch** immediately.
+3. Confirm **From** shows `main` → **Create branch** → **Publish branch** immediately.
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git checkout main && git pull
@@ -488,16 +607,18 @@ git checkout -b signoff/buck-converter-5v/trr
 git push -u origin signoff/buck-converter-5v/trr
 ```
 
-> ⏱️ Wait for `Signoff branch setup` to complete and commit `gate-evidence.md` before opening the PR.
+> ⏱️ Wait for the `Signoff branch setup` workflow to complete and commit `gate-evidence-trr.md` to your branch before opening the PR.
 
-### Step 5.2 — Pull and open the TRR PR
+---
+
+### Step 5.2 — Pull the gate evidence file and open the PR
 
 #### GitHub Desktop
 
-1. **Fetch origin** → **Pull origin**.
-2. **Branch → Create pull request**.
+1. Click **Fetch origin** → **Pull origin**.
+2. Click **Branch → Create pull request**.
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git pull
@@ -509,11 +630,21 @@ PR title:
 chore(buck-converter-5v): TRR sign-off
 ```
 
-> The checklist auto-fills within seconds — refresh if blank.
+> **Do not open this as a draft.** The TRR checklist auto-fills within seconds — refresh if it appears blank.
 
-### Step 5.3 — Post `/render`
+**What CI does automatically on opening:**
 
-Post `/render` as a PR comment for the record.
+- **PR template autofill** fills the TRR sign-off checklist into the PR body.
+- **Post gate checklist** posts a TRR orientation comment.
+- **Gate check** starts enforcing the checklist.
+
+---
+
+### Step 5.3 — Post `/render` for the review record
+
+Post `/render` as a PR comment to generate fresh schematic renders for the record.
+
+---
 
 ### Step 5.4 — Tick all TRR checklist items
 
@@ -529,16 +660,19 @@ Post `/render` as a PR comment for the record.
 - Circuit mods documented
 - All TRR-gate verification matrix items marked Verified
 - All REQ-IDs evidenced
-- `datasheet/specs.yaml` complete — no `[COMPLETE BEFORE TRR]` placeholders
-- Datasheet committed and reviewed by owner
+- `datasheet/specs.yaml` complete — no `[COMPLETE BEFORE TRR]` placeholders remaining
+- Datasheet Markdown and PDF committed and reviewed by owner
 - All CRITICAL AI review findings resolved
 - TRR date and owner name recorded
 
+---
+
 ### Step 5.5 — Merge
 
-Request lead approval. Once CI is green and approval is in, click **Squash and merge**.
+1. Request lead approval.
+2. Once approved and all checks pass, click **Squash and merge** → **Confirm squash and merge**.
 
-> **After merge, CI creates the `trr/buck-converter-5v/approved` tag.**
+> **After merge, CI creates the `trr/buck-converter-5v/approved` tag.** This tag is force-pushed, so if you run a re-TRR the tag will be updated to point to the new merge commit. Confirm the tag exists under **Code → Tags** on GitHub.
 
 ---
 
@@ -546,22 +680,30 @@ Request lead approval. Once CI is green and approval is in, click **Squash and m
 
 ### What this stage achieves
 
-This gate formally authorises the manufacturing outputs for production. On merge, CI creates `release/buck-converter-5v/approved` and attaches release documents to a GitHub Release.
+This gate formally authorises the manufacturing outputs for production. **On merge, CI:**
+- Creates the `release/buck-converter-5v/approved` tag
+- Collects all release documents from `features/buck-converter-5v/`, converts them to PDF
+- Creates a **GitHub Release** at the tag with all release documents attached as PDF assets
+
+---
 
 ### Step 6.1 — Verify pre-conditions
 
-Before raising this PR, confirm these tags exist by checking **github.com → your repo → Releases** or by running:
+Before raising this PR, confirm that both gate tags exist. On GitHub, go to **Code → Tags** and check for:
+
+- `cdr/buck-converter-5v/approved`
+- `trr/buck-converter-5v/approved`
+
+#### Alternative: command line
 
 ```bash
 git fetch --tags
 git tag -l "*/buck-converter-5v/*"
 ```
 
-Required tags:
-- `cdr/buck-converter-5v/approved`
-- `trr/buck-converter-5v/approved`
+Also confirm all `finding: major` and `finding: moderate` IVV findings are resolved or formally deferred with owner sign-off.
 
-Also confirm all P1 and P2 IVV findings are resolved or formally deferred.
+---
 
 ### Step 6.2 — Create the release sign-off branch
 
@@ -569,9 +711,9 @@ Also confirm all P1 and P2 IVV findings are resolved or formally deferred.
 
 1. Click **Current branch** → **New branch**.
 2. Type: `signoff/buck-converter-5v/release`
-3. From `main` → **Create branch** → **Publish branch** immediately.
+3. Confirm **From** shows `main` → **Create branch** → **Publish branch** immediately.
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git checkout main && git pull
@@ -579,16 +721,18 @@ git checkout -b signoff/buck-converter-5v/release
 git push -u origin signoff/buck-converter-5v/release
 ```
 
-> ⏱️ Wait for `Signoff branch setup` to complete before opening the PR.
+> ⏱️ Wait for `Signoff branch setup` to complete and commit `gate-evidence-release.md` before opening the PR.
 
-### Step 6.3 — Pull and open the release sign-off PR
+---
+
+### Step 6.3 — Pull the gate evidence file and open the PR
 
 #### GitHub Desktop
 
-1. **Fetch origin** → **Pull origin**.
-2. **Branch → Create pull request**.
+1. Click **Fetch origin** → **Pull origin**.
+2. Click **Branch → Create pull request**.
 
-#### Alternative: GitHub CLI
+#### Alternative: command line
 
 ```bash
 git pull
@@ -600,15 +744,19 @@ PR title:
 chore(buck-converter-5v): final release sign-off
 ```
 
+> **Do not open this as a draft.** The Release checklist auto-fills within seconds.
+
+---
+
 ### Step 6.4 — Tick all Release checklist items
 
 - `cdr/buck-converter-5v/approved` tag present
 - `trr/buck-converter-5v/approved` tag present
-- `features/buck-converter-5v/reviews/library.lock` committed
+- `features/buck-converter-5v/reviews/library.lock` committed to `main`
 - ERC report clean
 - All CDR-gate checklist items remain satisfied
 - All TRR-gate checklist items remain satisfied
-- All P1 and P2 findings resolved or formally deferred with owner sign-off
+- All `finding: major` and `finding: moderate` findings resolved or formally deferred
 - Manufacturing outputs generated by CI without errors
 - Gerbers visually verified against PCB layout
 - DRC confirmed clean
@@ -618,49 +766,64 @@ chore(buck-converter-5v): final release sign-off
 - Version number correct
 - Release date and owner name recorded
 
+---
+
 ### Step 6.5 — Merge
 
-Request lead approval. Once CI is green and approval is in, click **Squash and merge**.
+1. Request lead approval.
+2. Once approved and all checks pass, click **Squash and merge** → **Confirm squash and merge**.
 
-> **After merge, CI:**
-> - Creates the `release/buck-converter-5v/approved` tag
-> - Collects and converts release documents to PDF
-> - Creates a GitHub Release at the tag with all release documents attached
+> **After merge, CI automatically:**
+> 1. Creates the `release/buck-converter-5v/approved` tag
+> 2. Installs PDF conversion tools (Inkscape, img2pdf, Ghostscript)
+> 3. Collects all files from `features/buck-converter-5v/` — PDFs are attached as-is, SVGs are converted to PDF, images (PNG/JPG) are converted to PDF
+> 4. Creates a **GitHub Release** at the `release/buck-converter-5v/approved` tag with all collected PDFs attached
+>
+> The GitHub Release will appear under **Releases** on the repository home page within a few minutes of merge.
 
 ---
 
-## Stage 7 — Release PR
+## Stage 7 — Production release
 
 ### What this stage achieves
 
-The production tag and final GitHub Release are created. Manufacturing outputs are attached and ready for the PCB manufacturer.
+Release-please automatically maintains a **Release PR** that tracks all conventional commits merged to `main`. Merging this PR creates the production version tag (e.g. `buck-converter-5v-v1.0.0`) and triggers the **Manufacturing Release** CI workflow, which generates Gerbers, BOM, CPL, and all other manufacturing outputs.
 
-### Step 7.1 — Merge the release-please Release PR
+---
 
-Release-please automatically maintains a Release PR. It opens after the first conventional commit merges to `main` and updates on every subsequent push. Merge it after the Final Release sign-off is complete.
-
-The Release PR title looks like:
-```
-chore(buck-converter-5v): release 1.0.0
-```
-
-**Merge this PR — never close it manually.** Closing prevents the production tag from being created.
-
-To merge it:
+### Step 7.1 — Find the release-please Release PR
 
 1. Go to the **Pull requests** tab on GitHub.
-2. Find the release-please Release PR (it is labelled `autorelease: pending`).
-3. Click **Squash and merge**.
+2. Look for a PR titled something like `chore(buck-converter-5v): release 1.0.0`. It will have the label `autorelease: pending`.
 
-### Step 7.2 — What happens on merge
+This PR is created and updated automatically — you do not create it. It accumulates changes from every conventional commit merged since the last release.
 
-**On merge, CI automatically:**
-- Creates the production tag, e.g. `buck-converter-5v-v1.0.0`
-- Checks that `release/buck-converter-5v/approved` exists — if the tag is absent, manufacturing CI fails immediately
-- Runs KiBot to generate Gerbers, drill files, BOM, CPL, and schematic PDF
-- Attaches all manufacturing outputs to the GitHub Release as a ZIP
+---
 
-> 💡 Check the `Manufacturing Release` Actions run triggered by the production tag. Any ⛔ in the step summary means outputs are incomplete — do not send to the manufacturer until resolved.
+### Step 7.2 — Merge the Release PR
+
+1. Open the release-please PR.
+2. Review the automatically generated CHANGELOG in the PR body.
+3. Click **Merge pull request** (not squash — merge commit is required for release-please to function correctly).
+4. Click **Confirm merge**.
+
+> **Never close this PR manually.** Closing it prevents the production tag from being created and will cause release-please to open a new PR.
+
+---
+
+### Step 7.3 — What happens on merge
+
+**CI runs automatically:**
+
+1. **Release-please** creates the production tag `buck-converter-5v-v1.0.0` and updates the GitHub Release with the CHANGELOG.
+
+2. The **Manufacturing Release** workflow (`hw-release.yml`) is triggered by the production tag. It:
+   - Verifies that the `release/buck-converter-5v/approved` gate tag exists — if it is absent, the workflow fails immediately with a clear error message
+   - Checks out the repository with all submodules
+   - Runs KiBot to generate Gerbers, drill files, assembly drawings, BOM, CPL, and schematic PDF
+   - Attaches all manufacturing outputs as a ZIP to the GitHub Release
+
+> 💡 **Check the Actions tab** for the `Manufacturing Release` workflow run triggered by the production tag. Any ⛔ in the step summary means one or more outputs failed to generate. Do not send files to the manufacturer until all steps show ✅.
 
 ---
 
@@ -670,26 +833,26 @@ After completing all seven stages, these tags exist in the repository:
 
 | Tag | Created by | Meaning |
 |---|---|---|
-| `cdr/buck-converter-5v/approved` | CDR sign-off merge | CDR gate passed |
-| `trr/buck-converter-5v/approved` | TRR sign-off merge | TRR gate passed |
-| `release/buck-converter-5v/approved` | Release sign-off merge | Manufacturing authorised |
-| `buck-converter-5v-v1.0.0` | Release PR merge | Production release |
+| `cdr/buck-converter-5v/approved` | CDR sign-off PR merged | CDR gate passed |
+| `trr/buck-converter-5v/approved` | TRR sign-off PR merged | TRR gate passed |
+| `release/buck-converter-5v/approved` | Final Release sign-off PR merged | Manufacturing authorised |
+| `buck-converter-5v-v1.0.0` | Release PR merged | Production release |
 
 ---
 
 ## Quick reference
 
-**Branch names (CI-validated):**
+**Branch names (validated by CI):**
 ```
 init/buck-converter-5v
 artifact/buck-converter-5v/<desc>
 signoff/buck-converter-5v/cdr
 signoff/buck-converter-5v/trr
 signoff/buck-converter-5v/release
-finding/buck-converter-5v/<N>-<desc>
+finding/buck-converter-5v/<issue-number>-<desc>
 ```
 
-> **Signoff branches** (`signoff/**`) are scaffolded automatically on first push — same as `init/**` branches. Publish the branch immediately and wait for `Signoff branch setup` to commit `gate-evidence.md` before opening your PR.
+> **Signoff branches** (`signoff/**`) are scaffolded automatically on first push — same as `init/**` branches. Publish the branch immediately and wait for `Signoff branch setup` to commit the gate evidence file before opening the PR.
 
 **PR title format:**
 ```
@@ -697,13 +860,13 @@ type(buck-converter-5v): description
 ```
 Types: `feat`, `fix`, `docs`, `test`, `chore`
 
-**Slash commands (post as PR comment):**
+**Slash commands (post as a PR comment — write access required):**
 ```
-/render         — export schematic SVG
+/render         — export schematic as SVG and PDF
 /kicad-diff     — four-column visual diff vs base branch
-/ai-review      — AI schematic review
-/erc            — Electrical Rules Check (informational)
-/drc            — Design Rules Check (informational)
+/ai-review      — AI schematic review (CRITICAL / ADVISORY findings)
+/erc            — Electrical Rules Check (informational, does not block merge)
+/drc            — Design Rules Check (informational, does not block merge)
 /datasheet      — regenerate datasheet from specs.yaml and application-notes.md
 ```
 
@@ -711,15 +874,16 @@ Types: `feat`, `fix`, `docs`, `test`, `chore`
 
 | Event | What CI does |
 |---|---|
-| Init branch push (`init/**`) | Scaffold directories, copy stubs/templates, patch commitlint and release-please config |
-| Signoff branch push (`signoff/**`) | Commit `gate-evidence.md` to the branch |
-| Any PR opened | `PR template autofill` fills the correct checklist into the PR body |
-| Artifact PR with `.kicad_sch` or `.kicad_pcb` change | ERC/DRC runs automatically and posts a comment |
-| Artifact PR marked Ready for Review | AI schematic review runs and posts CRITICAL/ADVISORY findings |
-| CDR merge | Create `cdr/.../approved` tag, commit `library.lock`, generate datasheet stub |
-| TRR merge | Create `trr/.../approved` tag |
-| Release sign-off merge | Create `release/.../approved` tag, attach release documents to GitHub Release |
-| Release PR merge | Create production tag, run KiBot, attach manufacturing outputs to GitHub Release |
+| Push to `init/**` branch | Scaffolds feature directory, stubs, and config files; commits back to branch |
+| Push to `signoff/**` branch | Commits gate evidence file to branch |
+| Any PR opened | Fills PR body with the correct template for the branch type |
+| Init PR opened | Generates datasheet stub and commits it to the init branch |
+| Artifact PR with `.kicad_sch` or `.kicad_pcb` changes | ERC/DRC runs and posts a comment (informational) |
+| PR marked Ready for Review (non-`init/`, non-draft) | AI schematic review runs and posts findings |
+| CDR sign-off PR merged | Creates `cdr/.../approved` tag; commits `library.lock` to `main` |
+| TRR sign-off PR merged | Creates (or updates) `trr/.../approved` tag |
+| Release sign-off PR merged | Creates `release/.../approved` tag; creates GitHub Release with PDF document pack |
+| Release PR merged | Creates production tag; runs KiBot; attaches manufacturing outputs to GitHub Release |
 
 ---
 
@@ -732,4 +896,3 @@ Types: `feat`, `fix`, `docs`, `test`, `chore`
 - [docs/how-to/trr-signoff.md](trr-signoff.md) — detailed steps for TRR sign-off
 - [docs/how-to/release-signoff.md](release-signoff.md) — detailed steps for Final Release sign-off
 - [docs/how-to/datasheet.md](datasheet.md) — how to generate the feature datasheet
-

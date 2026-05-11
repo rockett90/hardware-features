@@ -203,7 +203,7 @@ The PR body contains the PDR gate checklist. Tick every item by clicking the `[ 
 - `verification-matrix.md` lists all REQ-IDs
 - `DDR-000-design-intent.md` captures the problem statement, scope, and constraints
 - `DDR-000-decisions.md` contains at least one decision entry
-- Feature scope present in `commitlint.config.js` (added automatically by CI — verify that `buck-converter-5v` appears in the `scopes` array in that file)
+- Feature scope present in `commitlint.config.js` (added automatically by CI — open `.github/commitlint.config.js` and verify that `buck-converter-5v` appears in the `scopes` array)
 - Feature package present in `release-please-config.json` (added automatically by CI)
 - PDR date and owner name recorded
 
@@ -670,7 +670,6 @@ After completing all seven stages, these tags exist in the repository:
 
 | Tag | Created by | Meaning |
 |---|---|---|
-| `pdr/buck-converter-5v/approved` | Init PR merge | PDR gate passed |
 | `cdr/buck-converter-5v/approved` | CDR sign-off merge | CDR gate passed |
 | `trr/buck-converter-5v/approved` | TRR sign-off merge | TRR gate passed |
 | `release/buck-converter-5v/approved` | Release sign-off merge | Manufacturing authorised |

@@ -171,8 +171,9 @@ jobs:
                 fs.writeFileSync('/tmp/ai-review.txt', `AI review unavailable: HTTP ${res.statusCode}\n${data}`);
                 fs.writeFileSync('/tmp/model-used.txt', 'none');
               } else {
-                fs.writeFileSync('/tmp/ai-review.txt', JSON.parse(data).choices[0].message.content);
-                fs.writeFileSync('/tmp/model-used.txt', JSON.parse(data).model || 'auto');
+                const parsed = JSON.parse(data);
+                fs.writeFileSync('/tmp/ai-review.txt', parsed.choices[0].message.content);
+                fs.writeFileSync('/tmp/model-used.txt', parsed.model || 'auto');
               }
             });
           });

@@ -128,9 +128,8 @@ jobs:
             exit 0
           fi
           git commit -m "chore($FEATURE): generate datasheet stub [skip ci]"
-          BRANCH="${{ github.event.pull_request.head.ref }}"
-          if [[ -n "$BRANCH" ]]; then
-            git push origin "HEAD:${BRANCH}"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
           else
             # workflow_dispatch: push to main (regenerating on demand)
             git pull --rebase origin main

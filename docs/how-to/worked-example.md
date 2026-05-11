@@ -234,7 +234,10 @@ CDR is a formal gate confirming the design is complete and reviewed before proce
 git checkout main
 git pull
 git checkout -b signoff/buck-converter-5v/cdr
+git push -u origin signoff/buck-converter-5v/cdr
 ```
+
+Push the branch immediately after creating it. CI will automatically commit a `gate-evidence.md` file to the branch recording the state of `main` at this point. Wait for the `Signoff branch setup` workflow to complete (usually under 30 seconds), then open your PR from the yellow banner on GitHub — the PR template autofill workflow will fill in the CDR checklist automatically.
 
 This is a **document-only branch** — no KiCad file changes. The CDR sign-off PR records the gate evidence; the design artefacts are already on `main` via the artifact PRs.
 
@@ -357,7 +360,10 @@ TRR is a formal gate confirming the hardware is built, brought up, and ready to 
 git checkout main
 git pull
 git checkout -b signoff/buck-converter-5v/trr
+git push -u origin signoff/buck-converter-5v/trr
 ```
+
+Push the branch immediately after creating it. CI will automatically commit a `gate-evidence.md` file to the branch recording the state of `main` at this point. Wait for the `Signoff branch setup` workflow to complete (usually under 30 seconds), then open your PR from the yellow banner on GitHub — the PR template autofill workflow will fill in the TRR checklist automatically.
 
 This is a **document-only branch**.
 
@@ -430,7 +436,10 @@ Before raising the release sign-off PR, confirm:
 git checkout main
 git pull
 git checkout -b signoff/buck-converter-5v/release
+git push -u origin signoff/buck-converter-5v/release
 ```
+
+Push the branch immediately after creating it. CI will automatically commit a `gate-evidence.md` file to the branch recording the state of `main` at this point. Wait for the `Signoff branch setup` workflow to complete (usually under 30 seconds), then open your PR from the yellow banner on GitHub — the PR template autofill workflow will fill in the Release checklist automatically.
 
 This is a **document-only branch**.
 
@@ -532,6 +541,8 @@ signoff/buck-converter-5v/release
 finding/buck-converter-5v/<N>-<desc>
 ```
 
+> **Signoff branches** (`signoff/**`) are scaffolded automatically on first push — same as `init/**` branches. Push immediately after creating and wait for the `Signoff branch setup` workflow to commit the `gate-evidence.md` file before opening your PR.
+
 **PR title format:**
 ```
 type(buck-converter-5v): description
@@ -555,6 +566,7 @@ PRs opened from the yellow banner or GitHub Desktop will have the correct templa
 | Event | What CI does |
 |---|---|
 | Init branch push (`init/**`) | Scaffold directories, copy stubs/templates, patch commitlint and release-please config on the init branch |
+| Signoff branch push (`signoff/**`) | Commit `gate-evidence.md` to the branch so a PR can be opened |
 | Init PRs (`init/**`) | `PR template autofill` fills the PR body; ERC/DRC and AI schematic review do not run |
 | Artifact PR push with `.kicad_sch` or `.kicad_pcb` change | ERC/DRC runs automatically and posts an informational PR comment |
 | Artifact PR marked Ready for Review | AI schematic review runs and posts CRITICAL/ADVISORY findings |

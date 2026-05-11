@@ -54,8 +54,7 @@ jobs:
               return;
             }
 
-            // Release-please and library PRs: post the checklist file as a comment.
-            let file = '';
+            // init/ PRs: post PDR orientation comment
             if (/^init\//.test(branch)) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
@@ -68,32 +67,60 @@ jobs:
                   '',
                   '**CI enforcement:** `gate-check` will block merge while any `- [ ]` item remains unchecked in the PR description.',
                   '',
-                  '**After this PR merges:** CI will scaffold the feature directory, copy stub files, and create the `pdr/<feature>/approved` tag automatically.',
+                  '**Note:** The feature directory scaffold (stubs, KiCad templates, commitlint and release-please config) was committed to this branch automatically when the branch was first pushed. Pull the latest commits before editing any files if you have not already done so.',
                   '',
-                  '**Required files to commit in this PR:**',
+                  '**Note:** The initial datasheet stub has been generated and committed to this branch automatically when this PR was opened. Pull the latest commits if you have not already.',
+                  '',
+                  '**Required content in this PR:**',
                   '- `features/<feature>/requirements/feature-requirements.yaml` — with real REQ-IDs',
                   '- `features/<feature>/requirements/interface-requirements.yaml` — with real interface definitions',
                   '- `features/<feature>/requirements/verification-matrix.md` — with all REQ-IDs listed',
-                  '- `features/<feature>/decisions/DDR-000-feature-overview.md` — with real content',
+                  '- `features/<feature>/decisions/DDR-000-design-intent.md` — with real content',
+                  '- `features/<feature>/decisions/DDR-000-decisions.md` — with at least one decision entry',
                 ].join('\n'),
               });
               return;
             }
-            if (/^release-please--/.test(branch))  file = 'checklists/gates/release-checklist.md';
-            else if (/^library\//.test(branch))    file = 'checklists/library/component-addition.md';
-            if (!file) return;
 
-            let body;
-            try {
-              body = require('fs').readFileSync(file, 'utf8');
-            } catch (e) {
-              core.warning(`Checklist file not found: ${file}`);
+            if (/^release-please--/.test(branch)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: prNumber,
+                body: [
+                  '## 📦 Release PR',
+                  '',
+                  'This PR was opened automatically by release-please. It tracks all conventional commits merged to `main` since the last release.',
+                  '',
+                  '**Before merging:**',
+                  '- Confirm the `release/<feature>/approved` gate tag exists (Final Release sign-off must be complete)',
+                  '- Review the CHANGELOG in the PR body — ensure all entries are accurate',
+                  '- Confirm the version number is correct',
+                  '',
+                  '**How to merge:** Use **Merge pull request** (not squash). Release-please requires a true merge commit.',
+                  '',
+                  '> ⚠️ Never close this PR manually. Closing it prevents the production tag from being created.',
+                ].join('\n'),
+              });
               return;
             }
-            if (!body.trim()) { core.warning(`Checklist empty: ${file}`); return; }
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo:  context.repo.repo,
-              issue_number: prNumber,
-              body,
-            });
+
+            // library/ PRs: post a brief orientation comment
+            if (/^library\//.test(branch)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: prNumber,
+                body: [
+                  '## 📚 Library update PR',
+                  '',
+                  'This PR updates the shared component library submodule.',
+                  '',
+                  'Before merging, confirm:',
+                  '- The new library commit has been reviewed and tested with at least one feature',
+                  '- No existing features are broken by the library change',
+                  '- The submodule pointer is updated to the correct commit',
+                ].join('\n'),
+              });
+              return;
+            }

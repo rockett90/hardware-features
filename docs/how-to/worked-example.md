@@ -10,7 +10,7 @@
 
 A hardware feature passes through seven stages before production-authorised manufacturing outputs are available:
 
-| Stage | Branch | What completes the stage |
+| Stage | Branch | Exit criteria |
 |---|---|---|
 | 1. Init (PDR) | `init/buck-converter-5v` | All PDR checklist items ticked and PR merged |
 | 2. Design work | `artifact/buck-converter-5v/<desc>` | One or more artifact PRs merged |
@@ -141,7 +141,7 @@ Open each file and replace the placeholder content with real content for your fe
 | `features/buck-converter-5v/decisions/DDR-000-decisions.md` | At least one decision entry |
 | `features/buck-converter-5v/README.md` | Feature description (1–3 paragraphs) |
 
-> ⚠️ **Do not leave placeholder text in stub files.** The `gate-check` CI workflow reads the PR body and will block merge if checklist items are unticked. If stub files contain placeholder text, you will not be able to tick those checklist items honestly.
+> ⚠️ **Do not leave placeholder text in stub files.** Each checklist item in the PDR gate corresponds to content that must exist in a stub file. If a file still contains placeholder text the work is not done, and you will not be able to tick that item honestly. `gate-check` blocks merge while any item is unchecked.
 
 ---
 
@@ -229,10 +229,10 @@ git pull
 
 **What was committed:**
 
-- `features/buck-converter-5v/datasheet/buck-converter-5v-datasheet.md` — the datasheet stub in Markdown
-- `features/buck-converter-5v/datasheet/buck-converter-5v-datasheet.pdf` — an initial PDF (if pandoc/LaTeX were available; the Markdown file is always created)
+- `features/buck-converter-5v/datasheet/buck-converter-5v-datasheet.md` — the datasheet stub in Markdown (always created)
+- `features/buck-converter-5v/datasheet/buck-converter-5v-datasheet.pdf` — an initial PDF, if PDF tools were available in the CI runner; if not, only the Markdown file is created
 
-> ℹ️ Do not edit `buck-converter-5v-datasheet.md` directly — it is regenerated from source files. The source files to edit later are `datasheet/specs.yaml`, `datasheet/application-notes.md`, and `datasheet/errata.md`.
+> ℹ️ Do not edit `buck-converter-5v-datasheet.md` directly. It is regenerated from source files (`datasheet/specs.yaml`, `datasheet/application-notes.md`, `datasheet/errata.md`) when you run `/datasheet` during Stage 4 (IVV). The source files are the ones to edit.
 
 ---
 
@@ -804,7 +804,7 @@ This PR is created and updated automatically — you do not create it. It accumu
 
 1. Open the release-please PR.
 2. Review the automatically generated CHANGELOG in the PR body.
-3. Click **Merge pull request** (not squash — merge commit is required for release-please to function correctly).
+3. Click **Merge pull request** — **not** squash. Release-please requires a true merge commit to record which commits were included in the release. Squashing would cause it to re-open the same PR on the next push.
 4. Click **Confirm merge**.
 
 > **Never close this PR manually.** Closing it prevents the production tag from being created and will cause release-please to open a new PR.

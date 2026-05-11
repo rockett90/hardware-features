@@ -54,8 +54,7 @@ jobs:
               return;
             }
 
-            // Release-please and library PRs: post the checklist file as a comment.
-            let file = '';
+            // init/ PRs: post PDR orientation comment
             if (/^init\//.test(branch)) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
@@ -82,21 +81,46 @@ jobs:
               });
               return;
             }
-            if (/^release-please--/.test(branch))  file = 'checklists/gates/release-checklist.md';
-            else if (/^library\//.test(branch))    file = 'checklists/library/component-addition.md';
-            if (!file) return;
 
-            let body;
-            try {
-              body = require('fs').readFileSync(file, 'utf8');
-            } catch (e) {
-              core.warning(`Checklist file not found: ${file}`);
+            if (/^release-please--/.test(branch)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: prNumber,
+                body: [
+                  '## 📦 Release PR',
+                  '',
+                  'This PR was opened automatically by release-please. It tracks all conventional commits merged to `main` since the last release.',
+                  '',
+                  '**Before merging:**',
+                  '- Confirm the `release/<feature>/approved` gate tag exists (Final Release sign-off must be complete)',
+                  '- Review the CHANGELOG in the PR body — ensure all entries are accurate',
+                  '- Confirm the version number is correct',
+                  '',
+                  '**How to merge:** Use **Merge pull request** (not squash). Release-please requires a true merge commit.',
+                  '',
+                  '> ⚠️ Never close this PR manually. Closing it prevents the production tag from being created.',
+                ].join('\n'),
+              });
               return;
             }
-            if (!body.trim()) { core.warning(`Checklist empty: ${file}`); return; }
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo:  context.repo.repo,
-              issue_number: prNumber,
-              body,
-            });
+
+            // library/ PRs: post a brief orientation comment
+            if (/^library\//.test(branch)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: prNumber,
+                body: [
+                  '## 📚 Library update PR',
+                  '',
+                  'This PR updates the shared component library submodule.',
+                  '',
+                  'Before merging, confirm:',
+                  '- The new library commit has been reviewed and tested with at least one feature',
+                  '- No existing features are broken by the library change',
+                  '- The submodule pointer is updated to the correct commit',
+                ].join('\n'),
+              });
+              return;
+            }

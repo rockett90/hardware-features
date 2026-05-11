@@ -8,17 +8,18 @@
 
 ## Overview
 
-A hardware feature passes through seven stages before production-authorised manufacturing outputs are available:
+A hardware feature passes through eight stages before production-authorised manufacturing outputs are available:
 
 | Stage | Branch | Exit criteria |
 |---|---|---|
 | 1. Init (PDR) | `init/buck-converter-5v` | All PDR checklist items ticked and PR merged |
 | 2. Design work | `artifact/buck-converter-5v/<desc>` | One or more artifact PRs merged |
 | 3. CDR sign-off | `signoff/buck-converter-5v/cdr` | All CDR checklist items ticked and PR merged |
-| 4. IVV (build and test) | `artifact/buck-converter-5v/<desc>` | Bring-up and measurement evidence committed |
-| 5. TRR sign-off | `signoff/buck-converter-5v/trr` | All TRR checklist items ticked and PR merged |
-| 6. Final Release sign-off | `signoff/buck-converter-5v/release` | All Release checklist items ticked and PR merged |
-| 7. Production release | (release PR opened by CI) | Release PR merged, manufacturing outputs generated |
+| 4. Build, bring-up, and designer testing | `artifact/buck-converter-5v/<desc>` | Bring-up notes, measurements, and tweaks committed; all designer findings resolved |
+| 5. TRR sign-off | `signoff/buck-converter-5v/trr` | Hardware built and brought up; ready to hand to IVV |
+| 6. IVV | `artifact/buck-converter-5v/<desc>` | IVV tests complete externally; verification matrix updated with result links |
+| 7. Final Release sign-off | `signoff/buck-converter-5v/release` | All IVV requirements evidenced; manufacturing authorised |
+| 8. Production release | (release PR opened by CI) | Release PR merged, manufacturing outputs generated |
 
 ---
 
@@ -232,7 +233,7 @@ git pull
 - `features/buck-converter-5v/datasheet/buck-converter-5v-datasheet.md` — the datasheet stub in Markdown (always created)
 - `features/buck-converter-5v/datasheet/buck-converter-5v-datasheet.pdf` — an initial PDF, if PDF tools were available in the CI runner; if not, only the Markdown file is created
 
-> ℹ️ Do not edit `buck-converter-5v-datasheet.md` directly. It is regenerated from source files (`datasheet/specs.yaml`, `datasheet/application-notes.md`, `datasheet/errata.md`) when you run `/datasheet` during Stage 4 (IVV). The source files are the ones to edit.
+> ℹ️ Do not edit `buck-converter-5v-datasheet.md` directly. It is regenerated from source files (`datasheet/specs.yaml`, `datasheet/application-notes.md`, `datasheet/errata.md`) when you run `/datasheet` during Stage 4 (build, bring-up, and designer testing). The source files are the ones to edit.
 
 ---
 
@@ -507,11 +508,11 @@ Read each item in the PR body and tick it once satisfied. The CDR checklist incl
 
 ---
 
-## Stage 4 — IVV (build and test)
+## Stage 4 — Build, bring-up, and designer testing
 
 ### What this stage achieves
 
-The physical hardware is built and brought up. Bring-up notes, measurement data, and verification evidence are committed via `artifact/` PRs. The datasheet is filled in with measured values.
+The physical hardware is built and brought up. Bring-up notes, measurement data, and verification evidence are committed via `artifact/` PRs. The datasheet source files are filled in with actual measured values. Any defects found by the designer are raised as finding PRs and resolved. This stage ends when the hardware is stable and ready to be handed to the independent IVV team.
 
 ---
 
@@ -531,7 +532,7 @@ Follow the same branch → push → draft PR → commit → merge process as Sta
 
 ### Step 4.2 — Fill in the datasheet source files
 
-The datasheet stub was generated when you opened the init PR in Stage 1. During IVV, fill in the source files with actual measured values. Edit these files and commit them via an `artifact/` PR:
+The datasheet stub was generated when you opened the init PR in Stage 1. During this stage, fill in the source files with actual measured values. Edit these files and commit them via an `artifact/` PR:
 
 | File | What to fill in |
 |---|---|
@@ -551,11 +552,11 @@ Post `/datasheet` as a comment on an open artifact PR. CI regenerates the Markdo
 
 ---
 
-### Step 4.4 — Finding PRs (if defects are found during IVV)
+### Step 4.4 — Finding PRs (if defects are found during designer testing)
 
 If a defect is found:
 
-1. Raise a GitHub Issue using the **IVV Finding** issue template.
+1. Raise a GitHub Issue using the appropriate finding issue template.
 2. The owner assigns the severity label: `finding: minor`, `finding: moderate`, or `finding: major`.
 3. Create a finding branch and open a PR:
 
@@ -570,7 +571,7 @@ If a defect is found:
 
 4. Open the PR and include `Resolves #42` in the **body**. PR title:
    ```
-   fix(buck-converter-5v): correct feedback resistor divider — IVV finding #42
+   fix(buck-converter-5v): correct feedback resistor divider — finding #42
    ```
 
 **Severity and gate re-entry:**
@@ -587,7 +588,7 @@ If a defect is found:
 
 ### What this stage achieves
 
-TRR (Test Readiness Review) confirms the hardware is built, brought up, and all verification evidence is committed and reviewed. **On merge, CI creates the `trr/buck-converter-5v/approved` tag.**
+TRR (Test Readiness Review) confirms the hardware is built, brought up by the designer, and stable enough to hand to the independent IVV team. It does not confirm that IVV has passed — that happens in Stage 6. **On merge, CI creates the `trr/buck-converter-5v/approved` tag.**
 
 ---
 
@@ -676,7 +677,65 @@ Post `/render` as a PR comment to generate fresh schematic renders for the recor
 
 ---
 
-## Stage 6 — Final Release sign-off
+## Stage 6 — IVV
+
+### What this stage achieves
+
+The independent IVV (Integration, Verification and Validation) team runs their tests using their own test systems and tooling. Test evidence and results are stored in the IVV team's own systems — not in this repository. The only update made here is to `requirements/verification-matrix.md`, which is updated with links to the IVV test results so there is a traceable pointer from each REQ-ID to its evidence.
+
+This stage uses the same `artifact/` PR process as Stage 2 and Stage 4. There is no dedicated branch type or gate PR for IVV itself.
+
+---
+
+### Step 6.1 — IVV team runs tests externally
+
+The IVV team works independently using their own test equipment and management systems. You do not need to create any branches or PRs during this phase — wait for IVV to complete their testing.
+
+If IVV finds defects, they raise GitHub Issues using the IVV Finding issue template. Handle these the same way as designer findings in Stage 4: create a `finding/` branch, fix the defect, and merge. Severity determines whether gate re-entry is required:
+
+| Severity | Gate re-entry |
+|---|---|
+| `finding: minor` | None, unless the owner decides otherwise |
+| `finding: moderate` | Re-TRR (`signoff/buck-converter-5v/trr-1`) |
+| `finding: major` | Re-CDR then re-TRR |
+
+---
+
+### Step 6.2 — Update the verification matrix with IVV result links
+
+Once IVV is complete and all requirements are evidenced, update `requirements/verification-matrix.md` with links to the IVV test results. Each REQ-ID should reference where its verification evidence lives in the IVV system.
+
+Create an `artifact/` PR for this update:
+
+#### GitHub Desktop
+
+1. Click **Current branch** → **New branch**.
+2. Type: `artifact/buck-converter-5v/ivv-evidence`
+3. Confirm **From** shows `main` → **Create branch** → **Publish branch**.
+4. Edit `features/buck-converter-5v/requirements/verification-matrix.md` — add result links or references against each REQ-ID.
+5. Commit and push. Open a PR titled:
+   ```
+   docs(buck-converter-5v): update verification matrix with IVV result references
+   ```
+6. Get lead review and merge.
+
+#### Alternative: command line
+
+```bash
+git checkout main && git pull
+git checkout -b artifact/buck-converter-5v/ivv-evidence
+git push -u origin artifact/buck-converter-5v/ivv-evidence
+# Edit verification-matrix.md, then:
+git add features/buck-converter-5v/requirements/verification-matrix.md
+git commit -m "docs(buck-converter-5v): update verification matrix with IVV result references"
+git push
+```
+
+Once this PR is merged, move on to Stage 7 — Final Release sign-off.
+
+---
+
+## Stage 7 — Final Release sign-off
 
 ### What this stage achieves
 
@@ -687,7 +746,7 @@ This gate formally authorises the manufacturing outputs for production. **On mer
 
 ---
 
-### Step 6.1 — Verify pre-conditions
+### Step 7.1 — Verify pre-conditions
 
 Before raising this PR, confirm that both gate tags exist. On GitHub, go to **Code → Tags** and check for:
 
@@ -705,7 +764,7 @@ Also confirm all `finding: major` and `finding: moderate` IVV findings are resol
 
 ---
 
-### Step 6.2 — Create the release sign-off branch
+### Step 7.2 — Create the release sign-off branch
 
 #### GitHub Desktop
 
@@ -725,7 +784,7 @@ git push -u origin signoff/buck-converter-5v/release
 
 ---
 
-### Step 6.3 — Pull the gate evidence file and open the PR
+### Step 7.3 — Pull the gate evidence file and open the PR
 
 #### GitHub Desktop
 
@@ -748,7 +807,7 @@ chore(buck-converter-5v): final release sign-off
 
 ---
 
-### Step 6.4 — Tick all Release checklist items
+### Step 7.4 — Tick all Release checklist items
 
 - `cdr/buck-converter-5v/approved` tag present
 - `trr/buck-converter-5v/approved` tag present
@@ -768,7 +827,7 @@ chore(buck-converter-5v): final release sign-off
 
 ---
 
-### Step 6.5 — Merge
+### Step 7.5 — Merge
 
 1. Request lead approval.
 2. Once approved and all checks pass, click **Squash and merge** → **Confirm squash and merge**.
@@ -783,7 +842,7 @@ chore(buck-converter-5v): final release sign-off
 
 ---
 
-## Stage 7 — Production release
+## Stage 8 — Production release
 
 ### What this stage achieves
 
@@ -791,7 +850,7 @@ Release-please automatically maintains a **Release PR** that tracks all conventi
 
 ---
 
-### Step 7.1 — Find the release-please Release PR
+### Step 8.1 — Find the release-please Release PR
 
 1. Go to the **Pull requests** tab on GitHub.
 2. Look for a PR titled something like `chore(buck-converter-5v): release 1.0.0`. It will have the label `autorelease: pending`.
@@ -800,7 +859,7 @@ This PR is created and updated automatically — you do not create it. It accumu
 
 ---
 
-### Step 7.2 — Merge the Release PR
+### Step 8.2 — Merge the Release PR
 
 1. Open the release-please PR.
 2. Review the automatically generated CHANGELOG in the PR body.
@@ -811,7 +870,7 @@ This PR is created and updated automatically — you do not create it. It accumu
 
 ---
 
-### Step 7.3 — What happens on merge
+### Step 8.3 — What happens on merge
 
 **CI runs automatically:**
 
@@ -829,7 +888,7 @@ This PR is created and updated automatically — you do not create it. It accumu
 
 ## Tag summary
 
-After completing all seven stages, these tags exist in the repository:
+After completing all eight stages, these tags exist in the repository:
 
 | Tag | Created by | Meaning |
 |---|---|---|

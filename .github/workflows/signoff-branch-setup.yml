@@ -75,7 +75,7 @@ jobs:
               NEXT_GATE="TRR"
               ;;
             release)
-              PREV_TAG="cdr/${FEATURE}/approved"
+              PREV_TAG="trr/${FEATURE}/approved"
               PREV_GATE="TRR"
               NEXT_GATE="Release"
               ;;

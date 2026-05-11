@@ -19,7 +19,7 @@ on:
         required: false
         default: ''
   pull_request:
-    types: [closed]
+    types: [opened]
     branches: [main]
 
 permissions:
@@ -32,8 +32,8 @@ jobs:
     runs-on: ubuntu-latest
 
     # For workflow_dispatch: always run.
-    # For pull_request: only run when a signoff/*/cdr branch is merged
-    #   AND the datasheet does not already exist (never overwrite).
+    # For pull_request opened: create the datasheet stub on the PR branch
+    #   if it does not already exist (never overwrite).
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,32 +47,27 @@ jobs:
             echo "name=${{ inputs.feature }}" >> $GITHUB_OUTPUT
             echo "mode=command" >> $GITHUB_OUTPUT
           else
-            # pull_request event — check it's a CDR merge
+            # pull_request event — extract feature from branch name
             REF="${{ github.event.pull_request.head.ref }}"
-            if [[ "${{ github.event.pull_request.merged }}" != "true" ]]; then
-              echo "Not merged — skip"
+            FEATURE=$(echo "$REF" | sed 's|^[^/]*/||;s|/.*$||')
+            if [[ -z "$FEATURE" ]]; then
+              echo "Could not extract feature name from branch $REF — skip"
               echo "skip=true" >> $GITHUB_OUTPUT
               exit 0
             fi
-            if ! echo "$REF" | grep -qE '^signoff/[^/]+/cdr'; then
-              echo "Not a CDR branch — skip"
-              echo "skip=true" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-            FEATURE=$(echo "$REF" | sed 's|^signoff/||;s|/cdr.*$||')
             echo "name=$FEATURE" >> $GITHUB_OUTPUT
-            echo "mode=cdr-auto" >> $GITHUB_OUTPUT
+            echo "mode=pr-auto" >> $GITHUB_OUTPUT
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Check if datasheet already exists (CDR auto mode only)
+      - name: Check if datasheet already exists (auto mode only)
         id: check
         if: steps.feature.outputs.skip != 'true'
         run: |
           FEATURE="${{ steps.feature.outputs.name }}"
           MODE="${{ steps.feature.outputs.mode }}"
           DATASHEET="features/$FEATURE/datasheet/$FEATURE-datasheet.md"
-          if [[ "$MODE" == "cdr-auto" && -f "$DATASHEET" ]]; then
+          if [[ "$MODE" != "command" && -f "$DATASHEET" ]]; then
             echo "Datasheet already exists — skipping auto-generation to avoid overwrite."
             echo "skip=true" >> $GITHUB_OUTPUT
           else
@@ -124,11 +119,14 @@ jobs:
           git add "features/$FEATURE/datasheet/$FEATURE-datasheet.pdf" 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No changes to commit."
-          else
-            git commit -m "chore($FEATURE): regenerate datasheet [skip ci]"
-            git pull --rebase origin main
-            git push origin HEAD:main
+            exit 0
           fi
+          git commit -m "chore($FEATURE): generate datasheet stub [skip ci]"
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          if [[ -z "$BRANCH" ]]; then
+            BRANCH="main"
+          fi
+          git push origin "HEAD:${BRANCH}"
 
       - name: Post PR comment
         if: |

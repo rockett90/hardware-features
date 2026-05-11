@@ -15,7 +15,6 @@ permissions:
   pull-requests: write
 jobs:
   render:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -99,7 +98,6 @@ jobs:
           fi
 
       - name: Install analysis tools
-        if: steps.find.outputs.has_any_feature == 'true'
         run: |
           sudo apt-get install -y --no-install-recommends ngspice poppler-utils python3-pip python3-cairosvg inkscape
           # Clone kicad-happy action and install its Python dependencies
@@ -117,7 +115,6 @@ jobs:
 
       - name: Export schematic SVG per feature
         id: kibot
-        if: steps.find.outputs.has_any_feature == 'true'
         env:
           BASE_REF: ${{ steps.pr.outputs.base_ref }}
         run: |
@@ -179,7 +176,6 @@ jobs:
 
       - name: Export schematic PDF per feature
         id: pdf_export
-        if: steps.find.outputs.has_any_feature == 'true'
         env:
           BASE_REF: ${{ steps.pr.outputs.base_ref }}
         run: |
@@ -213,7 +209,6 @@ jobs:
           echo "features_no_pdf=${features_no_pdf}" >> $GITHUB_OUTPUT
 
       - name: Watermark SVG renders
-        if: steps.find.outputs.has_any_feature == 'true'
         run: |
           while IFS= read -r FEATURE; do
             [[ -z "$FEATURE" ]] && continue
@@ -315,7 +310,6 @@ jobs:
           echo "happy_reports=${happy_reports}" >> $GITHUB_OUTPUT
 
       - name: Upload SVG and PDF artifacts
-        if: steps.find.outputs.has_any_feature == 'true'
         uses: actions/upload-artifact@v4
         with:
           name:              schematic-renders-pr${{ steps.pr.outputs.pr_number }}

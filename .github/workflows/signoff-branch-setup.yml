@@ -51,7 +51,7 @@ jobs:
           HEAD_SHA=$(git rev-parse HEAD)
 
           case "$GATE_TYPE" in
-            cdr)     PREV_TAG="pdr/${FEATURE}/approved"; PREV_GATE="PDR"; NEXT_GATE="CDR" ;;
+            cdr)     PREV_TAG=""; PREV_GATE="PDR (no tag)"; NEXT_GATE="CDR" ;;
             trr)     PREV_TAG="cdr/${FEATURE}/approved"; PREV_GATE="CDR"; NEXT_GATE="TRR" ;;
             release) PREV_TAG="trr/${FEATURE}/approved"; PREV_GATE="TRR"; NEXT_GATE="Release" ;;
             *)       PREV_TAG=""; PREV_GATE="unknown";   NEXT_GATE="$GATE_FULL" ;;
@@ -79,9 +79,11 @@ jobs:
           echo "| Branch created | ${DATE} |"                          >> "$OUT"
           echo "| main SHA at branch creation | \`${HEAD_SHA}\` |"    >> "$OUT"
           echo "| Previous gate | ${PREV_GATE} |"                     >> "$OUT"
-          echo "| Previous gate tag | \`${PREV_TAG}\` |"              >> "$OUT"
-          echo "| Previous gate SHA | \`${PREV_SHA}\` |"              >> "$OUT"
-          echo "| Previous gate date | ${PREV_DATE} |"                >> "$OUT"
+          if [[ -n "$PREV_TAG" ]]; then
+            echo "| Previous gate tag | \`${PREV_TAG}\` |"              >> "$OUT"
+            echo "| Previous gate SHA | \`${PREV_SHA}\` |"              >> "$OUT"
+            echo "| Previous gate date | ${PREV_DATE} |"                >> "$OUT"
+          fi
           echo ""                                                       >> "$OUT"
           echo "> Created automatically by CI. Do not edit manually." >> "$OUT"
 

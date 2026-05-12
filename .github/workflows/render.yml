@@ -78,12 +78,35 @@ jobs:
             grep "^features/" | grep "\.kicad_pcb$" | \
             cut -d'/' -f2 | sort -u || true)
           FEATURES=$(printf '%s\n%s\n' "$SCH_FEATURES" "$PCB_FEATURES" | sort -u | grep -v '^[[:space:]]*$' || true)
-          if [[ -z "$FEATURES" ]]; then
-            echo "has_any_feature=false" >> $GITHUB_OUTPUT
-            echo "features="             >> $GITHUB_OUTPUT
-            echo "pcb_features="         >> $GITHUB_OUTPUT
-          else
-            echo "has_any_feature=true"  >> $GITHUB_OUTPUT
+          HAS_ANY_FEATURE=false
+          FALLBACK_USED=false
+          FALLBACK_FEATURE=""
+
+          if [[ -n "$FEATURES" ]]; then
+            HAS_ANY_FEATURE=true
+          fi
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "$HAS_ANY_FEATURE" == "false" ]]; then
+            BRANCH_REF="${{ steps.pr.outputs.ref }}"
+            FEATURE_FROM_BRANCH=$(echo "$BRANCH_REF" | cut -d'/' -f2)
+            if [[ -n "$FEATURE_FROM_BRANCH" && -d "features/$FEATURE_FROM_BRANCH" ]]; then
+              FEATURES="$FEATURE_FROM_BRANCH"
+              HAS_ANY_FEATURE=true
+              FALLBACK_USED=true
+              FALLBACK_FEATURE="$FEATURE_FROM_BRANCH"
+              if find "features/$FEATURE_FROM_BRANCH/pcb" -maxdepth 1 -name "*.kicad_pcb" -print -quit 2>/dev/null | grep -q .; then
+                PCB_FEATURES="$FEATURE_FROM_BRANCH"
+              else
+                PCB_FEATURES=""
+              fi
+            fi
+          fi
+
+          echo "has_any_feature=${HAS_ANY_FEATURE}" >> $GITHUB_OUTPUT
+          echo "fallback_used=${FALLBACK_USED}"     >> $GITHUB_OUTPUT
+          echo "fallback_feature=${FALLBACK_FEATURE}" >> $GITHUB_OUTPUT
+
+          if [[ "$HAS_ANY_FEATURE" == "true" ]]; then
             # Encode as newline-separated list in output
             {
               echo "features<<EOF"
@@ -95,6 +118,9 @@ jobs:
               echo "$PCB_FEATURES"
               echo "EOF"
             } >> $GITHUB_OUTPUT
+          else
+            echo "features="     >> $GITHUB_OUTPUT
+            echo "pcb_features=" >> $GITHUB_OUTPUT
           fi
 
       - name: Install analysis tools
@@ -332,6 +358,8 @@ jobs:
             const prNumber = parseInt('${{ steps.pr.outputs.pr_number }}', 10);
 
             const hasAnyFeature = '${{ steps.find.outputs.has_any_feature }}' === 'true';
+            const fallbackUsed  = '${{ steps.find.outputs.fallback_used }}' === 'true';
+            const fallbackFeature = '${{ steps.find.outputs.fallback_feature }}';
             const featuresList  = '${{ steps.kibot.outputs.features_list }}';
             const featuresNoPro = '${{ steps.kibot.outputs.features_no_pro }}';
             const featuresNoSvg = '${{ steps.kibot.outputs.features_no_svg }}';
@@ -358,6 +386,9 @@ jobs:
             if (!hasAnyFeature) {
               body += 'No KiCad schematic changes found in this PR.';
             } else {
+              if (fallbackUsed && fallbackFeature) {
+                body += `Rendered all schematics for \`${fallbackFeature}\` (no schematic changes detected in this PR — rendered full feature on request).\n\n`;
+              }
               const features = featuresList ? featuresList.split(',').filter(Boolean) : [];
               for (const f of features) {
                 body += `### \`${f}\`\n\n`;

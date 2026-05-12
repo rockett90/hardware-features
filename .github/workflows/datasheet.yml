@@ -102,6 +102,8 @@ jobs:
 
       - name: Commit datasheet to branch
         if: steps.feature.outputs.skip != 'true' && steps.check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           FEATURE="${{ steps.feature.outputs.name }}"
           git config user.name  "github-actions[bot]"
@@ -115,9 +117,14 @@ jobs:
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
           else
-            # workflow_dispatch: push to main (regenerating on demand)
-            git pull --rebase origin main
-            git push origin HEAD:main
+            # workflow_dispatch (slash command): push to the PR's head branch
+            PR_BRANCH=$(gh api repos/${{ github.repository }}/pulls/${{ inputs.pr_number }} --jq '.head.ref')
+            if [[ -z "$PR_BRANCH" ]]; then
+              echo "::error::Could not resolve PR branch for PR ${{ inputs.pr_number }}"
+              exit 1
+            fi
+            git pull --rebase origin "$PR_BRANCH" || true
+            git push origin "HEAD:$PR_BRANCH"
           fi
 
       - name: Post PR comment

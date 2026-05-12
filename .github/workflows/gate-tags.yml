@@ -111,16 +111,41 @@ jobs:
           token: ${{ github.token }}
 
       - name: Extract feature name
-        id: feature
+        id: gate
         run: |
           REF="${{ github.event.pull_request.head.ref }}"
           FEATURE=$(echo "$REF" | sed 's|^signoff/||;s|/release$||')
-          echo "name=$FEATURE" >> $GITHUB_OUTPUT
+          echo "feature=$FEATURE" >> $GITHUB_OUTPUT
 
       - name: Create release gate tag
         run: |
-          git tag "release/${{ steps.feature.outputs.name }}/approved"
-          git push origin "release/${{ steps.feature.outputs.name }}/approved"
+          git tag "release/${{ steps.gate.outputs.feature }}/approved"
+          git push origin "release/${{ steps.gate.outputs.feature }}/approved"
+
+      - name: Generate datasheet Markdown
+        run: |
+          FEATURE="${{ steps.gate.outputs.feature }}"
+          if [[ -f "features/$FEATURE/datasheet/specs.yaml" ]]; then
+            pip install pyyaml --quiet
+            python3 scripts/ci/generate-datasheet.py \
+              --feature "$FEATURE" \
+              --repo-root "$PWD"
+            echo "Datasheet Markdown regenerated."
+          else
+            echo "No specs.yaml found — skipping Markdown regeneration."
+          fi
+
+      - name: Generate datasheet PDF
+        uses: docker://pandoc/latex:3.6
+        with:
+          args: >-
+            features/${{ steps.gate.outputs.feature }}/datasheet/${{ steps.gate.outputs.feature }}-datasheet.md
+            -o features/${{ steps.gate.outputs.feature }}/datasheet/${{ steps.gate.outputs.feature }}-datasheet.pdf
+            --pdf-engine=pdflatex
+            -V geometry:margin=2cm
+            -V fontsize=11pt
+            --standalone
+        continue-on-error: true
 
       - name: Install PDF tools
         run: |
@@ -130,7 +155,7 @@ jobs:
       - name: Collect and convert release documents to PDF
         id: collect_pdfs
         run: |
-          FEATURE="${{ steps.feature.outputs.name }}"
+          FEATURE="${{ steps.gate.outputs.feature }}"
           mkdir -p release-pdfs
 
           # Excluded extensions (documentation, KiCad project files, metadata)
@@ -167,20 +192,22 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: release/${{ steps.feature.outputs.name }}/approved
-          name: "${{ steps.feature.outputs.name }} — Release"
+          tag_name: release/${{ steps.gate.outputs.feature }}/approved
+          name: "${{ steps.gate.outputs.feature }} — Release"
           body: |
-            Production-authorised release for `${{ steps.feature.outputs.name }}`.
+            Production-authorised release for `${{ steps.gate.outputs.feature }}`.
 
-            This release was created automatically when the `signoff/${{ steps.feature.outputs.name }}/release`
+            This release was created automatically when the `signoff/${{ steps.gate.outputs.feature }}/release`
             PR was merged and all gate checklist items were satisfied.
 
             Gate tags present at release:
-            - `cdr/${{ steps.feature.outputs.name }}/approved`
-            - `trr/${{ steps.feature.outputs.name }}/approved`
-            - `release/${{ steps.feature.outputs.name }}/approved`
+            - `cdr/${{ steps.gate.outputs.feature }}/approved`
+            - `trr/${{ steps.gate.outputs.feature }}/approved`
+            - `release/${{ steps.gate.outputs.feature }}/approved`
 
             Attached files are the release document pack — see the workflow run for full manufacturing outputs.
-          files: release-pdfs/*.pdf
+          files: |
+            release-pdfs/*.pdf
+            features/${{ steps.gate.outputs.feature }}/datasheet/${{ steps.gate.outputs.feature }}-datasheet.pdf
           fail_on_unmatched_files: false
           prerelease: false

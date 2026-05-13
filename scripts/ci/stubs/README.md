@@ -59,7 +59,13 @@ It is generated from [`datasheet/specs.yaml`](datasheet/specs.yaml) using the `/
 
 ## External links
 
-<!-- Add links to external systems here. Examples below — replace or remove as needed. -->
+<!-- 
+  Populate this table with links to external project systems at PDR.
+  SharePoint folder structure may change — update these links if they become stale.
+  Use N/A for rows that do not apply to this feature.
+  Formal design review minutes and sign-off records should be stored in SharePoint
+  and linked here — they are not committed to the repository.
+-->
 
 | System | Link | Contents |
 |---|---|---|
@@ -68,6 +74,7 @@ It is generated from [`datasheet/specs.yaml`](datasheet/specs.yaml) using the `/
 | Test plans / reports | <!-- SharePoint folder URL --> | IVV test plans and results |
 | Supplier correspondence | <!-- SharePoint folder URL --> | Quotes, NDA, lead time |
 | Reference datasheets | <!-- SharePoint folder URL --> | Component datasheets |
+| Design review records | <!-- SharePoint folder URL --> | Review minutes and sign-off records |
 
 ---
 

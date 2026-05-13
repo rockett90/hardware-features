@@ -43,6 +43,7 @@ jobs:
             core.setOutput('pr_number', String(prNumber));
             core.setOutput('ref',       data.head.ref);
             core.setOutput('sha',       data.head.sha);
+            core.setOutput('sha_short', data.head.sha.slice(0, 7));
             core.setOutput('base_ref',  data.base.ref);
 
       - uses: actions/checkout@v4
@@ -267,6 +268,7 @@ jobs:
 
       - name: Write render traceability manifest
         run: |
+          GENERATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           while IFS= read -r FEATURE; do
             [[ -z "$FEATURE" ]] && continue
             mkdir -p "features/${FEATURE}/fab"
@@ -274,11 +276,11 @@ jobs:
           # KiCad Render Traceability Manifest
           feature: ${FEATURE}
           sha: ${{ steps.pr.outputs.sha }}
-          sha_short: $(echo "${{ steps.pr.outputs.sha }}" | cut -c1-7)
+          sha_short: ${{ steps.pr.outputs.sha_short }}
           pr_number: ${{ steps.pr.outputs.pr_number }}
           branch: ${{ steps.pr.outputs.ref }}
           workflow_run_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          generated_at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          generated_at: ${GENERATED_AT}
           kicad_image: ${{ env.KICAD_IMAGE }}
           EOF
           done <<< "${{ steps.find.outputs.features }}"

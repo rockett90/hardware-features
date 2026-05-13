@@ -10,6 +10,15 @@
 
 ## Artefacts
 
+<!-- 
+  Before ticking the artefact items below, work through the relevant review checklists:
+  - Schematic: checklists/review/schematic-review.md
+  - PCB: checklists/review/pcb-review.md
+  - BOM: checklists/review/bom-review.md
+  - Thermal / stress: checklists/review/thermal-review.md, checklists/review/stress-analysis-review.md
+  These checklists are engineer reference documents — they are not auto-posted to this PR.
+-->
+
 - [ ] ERC clean (zero errors, zero warnings unless formally accepted)
 - [ ] Calculations complete and reviewed
 - [ ] Simulations complete and reviewed

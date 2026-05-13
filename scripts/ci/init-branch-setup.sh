@@ -28,6 +28,8 @@ cp -n "scripts/ci/stubs/DDR-000-decisions.md"         "$FEATURE_DIR/decisions/DD
 cp -n "scripts/ci/stubs/feature-requirements.yaml"   "$FEATURE_DIR/requirements/feature-requirements.yaml"
 cp -n "scripts/ci/stubs/interface-requirements.yaml" "$FEATURE_DIR/requirements/interface-requirements.yaml"
 cp -n "scripts/ci/stubs/verification-matrix.md"      "$FEATURE_DIR/requirements/verification-matrix.md"
+cp -n "scripts/ci/stubs/fptcs.yaml"                  "$FEATURE_DIR/production/fptcs/fptcs.yaml"
+cp -n "scripts/ci/stubs/fptcs-notes.md"              "$FEATURE_DIR/production/fptcs/fptcs-notes.md"
 cp -n "scripts/ci/stubs/README.md"                   "$FEATURE_DIR/README.md"
 cp -n "scripts/ci/stubs/specs.yaml"                  "$FEATURE_DIR/datasheet/specs.yaml"
 cp -n "scripts/ci/stubs/application-notes.md"        "$FEATURE_DIR/datasheet/application-notes.md"
@@ -53,6 +55,8 @@ for file in \
   "$FEATURE_DIR/requirements/feature-requirements.yaml" \
   "$FEATURE_DIR/requirements/interface-requirements.yaml" \
   "$FEATURE_DIR/requirements/verification-matrix.md" \
+  "$FEATURE_DIR/production/fptcs/fptcs.yaml" \
+  "$FEATURE_DIR/production/fptcs/fptcs-notes.md" \
   "$FEATURE_DIR/README.md" \
   "$FEATURE_DIR/datasheet/specs.yaml" \
   "$FEATURE_DIR/datasheet/application-notes.md" \

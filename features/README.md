@@ -48,7 +48,7 @@ features/<feature>/
 │   └── scripts/              — Bring-up scripts (import from bench/)
 ├── circuit-mods/             — Approved circuit modifications
 ├── production/
-│   ├── fptcs/                — Functional performance test case specifications
+│   ├── fptcs/                — Feature Production Test and Calibration Specification (fptcs.yaml + fptcs-notes.md)
 │   ├── test-programs/        — Automated test programs
 │   └── aoi/                  — AOI inspection files
 ├── decisions/                — Design decision records (DDRs)

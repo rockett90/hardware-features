@@ -152,6 +152,18 @@ jobs:
             --standalone
         continue-on-error: true
 
+      - name: Generate FPTCS notes PDF
+        uses: docker://pandoc/latex:3.6
+        with:
+          args: >-
+            features/${{ steps.gate.outputs.feature }}/production/fptcs/fptcs-notes.md
+            -o features/${{ steps.gate.outputs.feature }}/production/fptcs/fptcs-notes.pdf
+            --pdf-engine=pdflatex
+            -V geometry:margin=2cm
+            -V fontsize=11pt
+            --standalone
+        continue-on-error: true
+
       - name: Install PDF tools
         run: |
           sudo apt-get update -qq
@@ -214,5 +226,6 @@ jobs:
           files: |
             release-pdfs/*.pdf
             features/${{ steps.gate.outputs.feature }}/datasheet/${{ steps.gate.outputs.feature }}-datasheet.pdf
+            features/${{ steps.gate.outputs.feature }}/production/fptcs/fptcs-notes.pdf
           fail_on_unmatched_files: false
           prerelease: false

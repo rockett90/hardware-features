@@ -18,9 +18,10 @@ This directory contains Markdown checklists used at different stages of the desi
 |---|---|---|
 | `gates/` | Checklists for formal design gate sign-offs (PDR, CDR, TRR, release) | When raising an `init/<feature>` PR or a `signoff/<feature>/...` PR |
 | `review/` | Checklists for general design reviews (schematic, PCB, BOM, bring-up, EMC, FPTCS, stress, thermal, general) | During artifact PR review |
-| `library/` | Checklist for adding a new component to the shared library | When raising a `library/<desc>` PR |
 
 ---
+
+> 💡 The component addition checklist lives in the [hardware-library repository](https://github.com/rockett90/hardware-library/blob/main/checklists/component-addition.md), where library PRs are raised.
 
 ## Gates (`gates/`)
 
@@ -44,12 +45,6 @@ This directory contains Markdown checklists used at different stages of the desi
 | `general-review.md` | General design review checklist |
 | `stress-analysis-review.md` | Stress analysis review checklist |
 | `thermal-review.md` | Thermal review checklist |
-
-## Library (`library/`)
-
-| File | Purpose |
-|---|---|
-| `component-addition.md` | Checklist for adding a new component to the shared library |
 
 ---
 

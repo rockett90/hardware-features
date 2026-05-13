@@ -16,12 +16,12 @@
 
 ## Gate history
 
-| Gate | Date | Tag | Owner |
-|---|---|---|---|
-| PDR | <!-- date --> | `pdr/FEATURE_NAME/approved` | <!-- name --> |
-| CDR | <!-- date --> | `cdr/FEATURE_NAME/approved` | <!-- name --> |
-| TRR | <!-- date --> | `FEATURE_NAME-vX.Y.Z-rc.N` | <!-- name --> |
-| Release | <!-- date --> | `release/FEATURE_NAME/approved` | <!-- name --> |
+| Gate | Cycle | Date | Tag | Owner |
+|---|---|---|---|---|
+| PDR | 1 | <!-- date --> | `pdr/FEATURE_NAME/approved` | <!-- name --> |
+| CDR | 1 | <!-- date --> | `cdr/FEATURE_NAME/approved` | <!-- name --> |
+| TRR | 1 | <!-- date --> | `FEATURE_NAME-vX.Y.Z-rc.N` | <!-- name --> |
+| Release | 1 | <!-- date --> | `release/FEATURE_NAME/approved` | <!-- name --> |
 
 ---
 

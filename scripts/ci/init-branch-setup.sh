@@ -33,6 +33,7 @@ cp -n "scripts/ci/stubs/specs.yaml"                  "$FEATURE_DIR/datasheet/spe
 cp -n "scripts/ci/stubs/application-notes.md"        "$FEATURE_DIR/datasheet/application-notes.md"
 cp -n "scripts/ci/stubs/errata.md"                   "$FEATURE_DIR/datasheet/errata.md"
 cp -n "scripts/ci/stubs/reviews/README.md"           "$FEATURE_DIR/reviews/README.md"
+cp -n "scripts/ci/stubs/ci-results/README.md"       "$FEATURE_DIR/ci-results/README.md"
 
 cp_template() {
   if [[ -f "$1" ]]; then
@@ -56,7 +57,8 @@ for file in \
   "$FEATURE_DIR/datasheet/specs.yaml" \
   "$FEATURE_DIR/datasheet/application-notes.md" \
   "$FEATURE_DIR/datasheet/errata.md" \
-  "$FEATURE_DIR/reviews/README.md"; do
+  "$FEATURE_DIR/reviews/README.md" \
+  "$FEATURE_DIR/ci-results/README.md"; do
   if [[ -f "$file" ]]; then
     sed -i "s/FEATURE_NAME/$FEATURE/g" "$file"
   fi

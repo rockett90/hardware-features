@@ -38,7 +38,7 @@ For pinned versions of all tools listed here, see [docs/versions.md](versions.md
 
 ## kicad-visual-diff
 
-**What it does:** Custom tool in this repository (`scripts/ci/kicad-visual-diff.py`, packaged as a GitHub Action in `kicad-visual-diff/`). Generates a four-column HTML visual diff report (Old / Diff / New per schematic sheet or PCB layer) when triggered by the `/kicad-diff` slash command.
+**What it does:** Custom tool in this repository (`kicad-visual-diff/kicad-visual-diff.py`, packaged as a GitHub Action in `kicad-visual-diff/`). Generates a four-column HTML visual diff report (Old / Diff / New per schematic sheet or PCB layer) when triggered by the `/kicad-diff` slash command.
 
 **Why it was chosen:** Reviewers need to see exactly what changed in a schematic or PCB, not just a raw text diff of S-expression files. The self-contained HTML report with zoom/pan makes this accessible without KiCad installed.
 

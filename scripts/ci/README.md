@@ -8,87 +8,17 @@
 
 | Script | Called by | Also runnable locally |
 |---|---|---|
-| `kicad-visual-diff.py` | `kicad-diff.yml` | Yes |
 | `init-feature.sh` | `init-feature.yml` | Not recommended |
 | `validate-branch-name.sh` | `pr-checks.yml` | Yes |
 | `validate-dir-structure.py` | `pr-checks.yml` | Yes |
 
 ---
 
-## `kicad-visual-diff.py`
+## kicad-visual-diff
 
-**Purpose:** Generates a four-column HTML visual diff report comparing KiCad schematic sheets (and optionally PCB layers) between two git refs.
+The visual diff tool lives in `kicad-visual-diff/` at the repository root, not here. It is the reusable GitHub Action copy and is the canonical source. `kicad-diff.yml` calls it from there.
 
-**Dependencies:**
-
-| Dependency | Version | Install |
-|---|---|---|
-| Python | 3.11+ | System package or pyenv |
-| Pillow | 12.2.0 | `pip install -r scripts/ci/requirements.txt` |
-| cairosvg | 2.7.1 | `pip install -r scripts/ci/requirements.txt` |
-| lxml | 6.1.0 | `pip install -r scripts/ci/requirements.txt` |
-| sexpdata | 1.0.2 | `pip install -r scripts/ci/requirements.txt` |
-| kicad-cli | pinned via Docker | Included in the KiCad Docker image |
-
-Dependency versions are pinned in `scripts/ci/requirements.txt`. See [docs/versions.md](../../docs/versions.md) for the full version reference.
-
-> 💡 Tip: The KiCad Docker image includes all Python dependencies and `kicad-cli`. Running inside Docker is the easiest way to reproduce CI output locally.
-
-**CLI reference:**
-
-```
-python3 scripts/ci/kicad-visual-diff.py \
-  --base-dir <path>      Base directory containing the feature at the base ref
-  --head-dir <path>      Head directory containing the feature at the head ref
-  --feature <name>       Feature name (e.g. buck-converter-5v)
-  --output-dir <path>    Output directory for generated files
-  [--pcb]                Also diff PCB layers (optional flag)
-```
-
-**Local run (outside Docker):**
-
-```bash
-# Extract base ref into /tmp/base
-git archive origin/main -- features/buck-converter-5v/ | tar -x -C /tmp/base
-
-# Extract head ref into /tmp/head
-git archive HEAD -- features/buck-converter-5v/ | tar -x -C /tmp/head
-
-# Run
-python3 scripts/ci/kicad-visual-diff.py \
-  --base-dir /tmp/base \
-  --head-dir /tmp/head \
-  --feature buck-converter-5v \
-  --output-dir /tmp/diff-output
-
-# Open the report
-open /tmp/diff-output/diff-report.html
-```
-
-**Docker run:**
-
-```bash
-docker run --rm \
-  -v "$(pwd)/scripts:/scripts" \
-  -v "/tmp/base:/kv-base" \
-  -v "/tmp/head:/kv-head" \
-  -v "/tmp/diff-output:/kv-out" \
-  "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
-  python3 /scripts/ci/kicad-visual-diff.py \
-    --base-dir /kv-base \
-    --head-dir /kv-head \
-    --feature buck-converter-5v \
-    --output-dir /kv-out
-```
-
-**Outputs:**
-
-| File | Description |
-|---|---|
-| `diff-report.html` | Fully self-contained HTML report with zoom/pan on each image |
-| `metadata.json` | Feature name, SHAs, sheet counts, warnings |
-| `comment.md` | Markdown summary suitable for a PR comment |
-| `changes.json` | Structured change list from the semantic diff step |
+Do not add a copy of `kicad-visual-diff.py` to this directory.
 
 ---
 
@@ -133,8 +63,12 @@ Exit code 0 = valid. Non-zero = invalid, with an error message.
 | `artifact/<feature>/<desc-HW-N>` | `artifact/buck-converter-5v/add-filter-HW-42` |
 | `finding/<feature>/<N>-<desc>` | `finding/buck-converter-5v/7-wrong-footprint` |
 | `signoff/<feature>/cdr` | `signoff/buck-converter-5v/cdr` |
+| `signoff/<feature>/cdr-rN` | `signoff/buck-converter-5v/cdr-r2` |
 | `signoff/<feature>/trr` | `signoff/buck-converter-5v/trr` |
 | `signoff/<feature>/trr-N` | `signoff/buck-converter-5v/trr-2` |
+| `signoff/<feature>/trr-rN` | `signoff/buck-converter-5v/trr-r2` |
+| `signoff/<feature>/release` | `signoff/buck-converter-5v/release` |
+| `signoff/<feature>/release-rN` | `signoff/buck-converter-5v/release-r2` |
 | `library/<desc>` | `library/add-ldo-symbol` |
 | `chore/<desc>` | `chore/update-kibot-config` |
 | `release-please--*` | (managed automatically) |
@@ -161,4 +95,3 @@ Exit code 0 = valid. Non-zero = invalid, with an error message describing the vi
 2. No more than one `features/<feature>` directory is touched in a single PR.
 
 > ⚠️ Warning: This check applies to all file types, not just KiCad files. A PR that modifies `features/feature-a/requirements/` and `features/feature-b/requirements/` will also fail.
-

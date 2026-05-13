@@ -59,3 +59,8 @@
 <!-- List the top-level REQ-IDs from feature-requirements.yaml, e.g. REQ-001, REQ-002 -->
 
 <!-- Notes -->
+
+---
+
+> 📖 **New to this workflow?** See [docs/how-to/init-feature.md](../docs/how-to/init-feature.md) for the full init process guide.
+> PR title format: `feat(<feature>): initialise feature` — validated by CI.

@@ -23,6 +23,7 @@
 ## IVV completion
 
 - [ ] `requirements/verification-matrix.md` updated with IVV result references for all REQ-IDs
+- [ ] `features/<feature>/reviews/external-references.md` has real links — no placeholder text remains
 - [ ] All P1 and P2 findings resolved or formally deferred with lead sign-off
 - [ ] Deferred findings documented with justification in notes below
 

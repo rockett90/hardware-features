@@ -26,10 +26,15 @@ jobs:
           REF="${GITHUB_REF_NAME}"
           FEATURE=$(echo "$REF" | sed 's|^signoff/||' | cut -d'/' -f1)
           GATE_FULL=$(echo "$REF" | sed 's|^signoff/||' | cut -d'/' -f2-)
-          GATE_TYPE=$(echo "$GATE_FULL" | sed 's|-[0-9]*$||')
+          # Strip cycle suffix (-r2, -r3) then re-attempt suffix (-2, -3) to get base gate type
+          GATE_TYPE=$(echo "$GATE_FULL" | sed 's|-r[0-9]*$||;s|-[0-9]*$||')
+          # Extract cycle number if present
+          CYCLE=$(echo "$GATE_FULL" | sed -n 's|.*-r\([0-9][0-9]*\)$|\1|p')
+          [[ -z "$CYCLE" ]] && CYCLE="1"
           echo "feature=$FEATURE" >> $GITHUB_OUTPUT
           echo "gate_full=$GATE_FULL" >> $GITHUB_OUTPUT
           echo "gate_type=$GATE_TYPE" >> $GITHUB_OUTPUT
+          echo "cycle=$CYCLE" >> $GITHUB_OUTPUT
 
       - name: Check if gate-evidence.md already exists
         id: check
@@ -47,14 +52,42 @@ jobs:
           FEATURE="${{ steps.gate.outputs.feature }}"
           GATE_TYPE="${{ steps.gate.outputs.gate_type }}"
           GATE_FULL="${{ steps.gate.outputs.gate_full }}"
+          CYCLE="${{ steps.gate.outputs.cycle }}"
           DATE=$(date +%Y-%m-%d)
           HEAD_SHA=$(git rev-parse HEAD)
 
           case "$GATE_TYPE" in
-            cdr)     PREV_TAG=""; PREV_GATE="PDR (no tag)"; NEXT_GATE="CDR" ;;
-            trr)     PREV_TAG="cdr/${FEATURE}/approved"; PREV_GATE="CDR"; NEXT_GATE="TRR" ;;
-            release) PREV_TAG="trr/${FEATURE}/approved"; PREV_GATE="TRR"; NEXT_GATE="Release" ;;
-            *)       PREV_TAG=""; PREV_GATE="unknown";   NEXT_GATE="$GATE_FULL" ;;
+            cdr)
+              if [[ "$CYCLE" == "1" ]]; then
+                PREV_TAG=""; PREV_GATE="PDR (no tag)"
+              elif [[ "$CYCLE" == "2" ]]; then
+                PREV_TAG="release/${FEATURE}/approved"
+                PREV_GATE="Release cycle 1"
+              else
+                PREV_TAG="release/${FEATURE}/r$((CYCLE-1))/approved"
+                PREV_GATE="Release cycle $((CYCLE-1))"
+              fi
+              NEXT_GATE="CDR (cycle ${CYCLE})"
+              ;;
+            trr)
+              if [[ "$CYCLE" == "1" ]]; then
+                PREV_TAG="cdr/${FEATURE}/approved"
+              else
+                PREV_TAG="cdr/${FEATURE}/r${CYCLE}/approved"
+              fi
+              PREV_GATE="CDR (cycle ${CYCLE})"; NEXT_GATE="TRR (cycle ${CYCLE})"
+              ;;
+            release)
+              if [[ "$CYCLE" == "1" ]]; then
+                PREV_TAG="trr/${FEATURE}/approved"
+              else
+                PREV_TAG="trr/${FEATURE}/r${CYCLE}/approved"
+              fi
+              PREV_GATE="TRR (cycle ${CYCLE})"; NEXT_GATE="Release (cycle ${CYCLE})"
+              ;;
+            *)
+              PREV_TAG=""; PREV_GATE="unknown"; NEXT_GATE="$GATE_FULL"
+              ;;
           esac
 
           PREV_SHA="tag not found"
@@ -87,9 +120,45 @@ jobs:
           echo ""                                                       >> "$OUT"
           echo "> Created automatically by CI. Do not edit manually." >> "$OUT"
 
+          SCH_SVG_GENERATED=false
+          if [[ "$GATE_TYPE" == "release" ]]; then
+            # Export schematic SVG for datasheet inclusion (release gate only)
+            KICAD_IMAGE="ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257"
+            # NOTE: This SHA must match the value in render.yml, erc-drc.yml, and hw-release.yml.
+            if [[ -f "features/${FEATURE}/kicad/${FEATURE}.kicad_sch" ]]; then
+              echo "Exporting schematic SVG for datasheet..."
+              mkdir -p "features/${FEATURE}/datasheet"
+              docker run --rm \
+                -v "$PWD:/repo" \
+                -w "/repo" \
+                "$KICAD_IMAGE" \
+                kicad-cli sch export svg \
+                  --output "/repo/features/${FEATURE}/datasheet/" \
+                  "/repo/features/${FEATURE}/kicad/${FEATURE}.kicad_sch" 2>&1 || true
+              EXPORTED_SVG="features/${FEATURE}/datasheet/${FEATURE}.svg"
+              if [[ -f "$EXPORTED_SVG" ]]; then
+                mv "$EXPORTED_SVG" "features/${FEATURE}/datasheet/${FEATURE}-schematic.svg"
+                SCH_SVG_GENERATED=true
+                echo "Circuit SVG exported: features/${FEATURE}/datasheet/${FEATURE}-schematic.svg"
+              else
+                echo "Warning: kicad-cli ran but no SVG found — datasheet will be generated without circuit image"
+              fi
+            else
+              echo "No schematic found at features/${FEATURE}/kicad/${FEATURE}.kicad_sch — skipping SVG export"
+            fi
+          fi
+
+          EXT_REF="features/${FEATURE}/reviews/external-references.md"
+          if [[ ! -f "$EXT_REF" ]]; then
+            cp "scripts/ci/stubs/reviews/external-references.md" "$EXT_REF"
+            sed -i "s/FEATURE_NAME/${FEATURE}/g" "$EXT_REF"
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "$OUT"
+          git add "$EXT_REF"
+          [[ "$SCH_SVG_GENERATED" == "true" ]] && git add "features/${FEATURE}/datasheet/${FEATURE}-schematic.svg" || true
           git diff --cached --quiet && exit 0
           git commit -m "chore(${FEATURE}): scaffold ${GATE_TYPE} gate evidence"
           git push origin "HEAD:${GITHUB_REF_NAME}"

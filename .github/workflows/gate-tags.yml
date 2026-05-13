@@ -65,6 +65,20 @@ jobs:
             fi
           done
 
+      - name: Create CDR approved tag
+        run: |
+          FEATURE="${{ steps.feature.outputs.name }}"
+          REF="${{ github.event.pull_request.head.ref }}"
+          # Check if this is a cycle-repeat (contains -rN)
+          if [[ "$REF" =~ /cdr-r([0-9]+)$ ]]; then
+            CYCLE="${BASH_REMATCH[1]}"
+            git tag "cdr/${FEATURE}/r${CYCLE}/approved"
+            git push origin "cdr/${FEATURE}/r${CYCLE}/approved"
+          fi
+          # Always update the floating approved tag (force)
+          git tag -f "cdr/${FEATURE}/approved"
+          git push --force origin "cdr/${FEATURE}/approved"
+
   trr-gate:
     if: github.event.pull_request.merged == true &&
         startsWith(github.event.pull_request.head.ref, 'signoff/') &&
@@ -90,14 +104,22 @@ jobs:
 
       - name: Create and push TRR approved tag
         run: |
-          # Force-push to handle re-TRR: the approved tag is updated to the latest commit.
-          git tag -f "trr/${{ steps.feature.outputs.name }}/approved"
-          git push --force origin "trr/${{ steps.feature.outputs.name }}/approved"
+          FEATURE="${{ steps.feature.outputs.name }}"
+          REF="${{ github.event.pull_request.head.ref }}"
+          if [[ "$REF" =~ /trr-r([0-9]+)$ ]]; then
+            CYCLE="${BASH_REMATCH[1]}"
+            git tag "trr/${FEATURE}/r${CYCLE}/approved"
+            git push origin "trr/${FEATURE}/r${CYCLE}/approved"
+          fi
+          # Always update the floating approved tag (force)
+          git tag -f "trr/${FEATURE}/approved"
+          git push --force origin "trr/${FEATURE}/approved"
 
   release-gate:
     if: github.event.pull_request.merged == true &&
         startsWith(github.event.pull_request.head.ref, 'signoff/') &&
-        endsWith(github.event.pull_request.head.ref, '/release')
+        (endsWith(github.event.pull_request.head.ref, '/release') ||
+         contains(github.event.pull_request.head.ref, '/release-r'))
     runs-on: ubuntu-latest
     concurrency:
       group: release-gate-${{ github.event.pull_request.head.ref }}
@@ -114,22 +136,35 @@ jobs:
         id: gate
         run: |
           REF="${{ github.event.pull_request.head.ref }}"
-          FEATURE=$(echo "$REF" | sed 's|^signoff/||;s|/release$||')
+          FEATURE=$(echo "$REF" | sed -E 's|^signoff/(.*)/release(-r[0-9]+)?$|\1|')
           echo "feature=$FEATURE" >> $GITHUB_OUTPUT
 
       - name: Create release gate tag
         run: |
-          git tag "release/${{ steps.gate.outputs.feature }}/approved"
-          git push origin "release/${{ steps.gate.outputs.feature }}/approved"
+          FEATURE="${{ steps.gate.outputs.feature }}"
+          REF="${{ github.event.pull_request.head.ref }}"
+          if [[ "$REF" =~ /release-r([0-9]+)$ ]]; then
+            CYCLE="${BASH_REMATCH[1]}"
+            git tag "release/${FEATURE}/r${CYCLE}/approved"
+            git push origin "release/${FEATURE}/r${CYCLE}/approved"
+          fi
+          # Always update the floating approved tag (force)
+          git tag -f "release/${FEATURE}/approved"
+          git push --force origin "release/${FEATURE}/approved"
 
       - name: Generate datasheet Markdown
         run: |
           FEATURE="${{ steps.gate.outputs.feature }}"
           if [[ -f "features/$FEATURE/datasheet/specs.yaml" ]]; then
+            RELEASE_TAG="release/$FEATURE/approved"
+            LIBRARY_SHA=$(git rev-parse HEAD:library 2>/dev/null || echo "unknown")
             pip install pyyaml --quiet
             python3 scripts/ci/generate-datasheet.py \
               --feature "$FEATURE" \
-              --repo-root "$PWD"
+              --repo-root "$PWD" \
+              --release-tag "$RELEASE_TAG" \
+              --commit-sha "${{ github.sha }}" \
+              --library-sha "$LIBRARY_SHA"
             echo "Datasheet Markdown regenerated."
           else
             echo "No specs.yaml found — skipping Markdown regeneration."
@@ -141,6 +176,18 @@ jobs:
           args: >-
             features/${{ steps.gate.outputs.feature }}/datasheet/${{ steps.gate.outputs.feature }}-datasheet.md
             -o features/${{ steps.gate.outputs.feature }}/datasheet/${{ steps.gate.outputs.feature }}-datasheet.pdf
+            --pdf-engine=pdflatex
+            -V geometry:margin=2cm
+            -V fontsize=11pt
+            --standalone
+        continue-on-error: true
+
+      - name: Generate FPTCS notes PDF
+        uses: docker://pandoc/latex:3.6
+        with:
+          args: >-
+            features/${{ steps.gate.outputs.feature }}/production/fptcs/fptcs-notes.md
+            -o features/${{ steps.gate.outputs.feature }}/production/fptcs/fptcs-notes.pdf
             --pdf-engine=pdflatex
             -V geometry:margin=2cm
             -V fontsize=11pt
@@ -209,5 +256,6 @@ jobs:
           files: |
             release-pdfs/*.pdf
             features/${{ steps.gate.outputs.feature }}/datasheet/${{ steps.gate.outputs.feature }}-datasheet.pdf
+            features/${{ steps.gate.outputs.feature }}/production/fptcs/fptcs-notes.pdf
           fail_on_unmatched_files: false
           prerelease: false

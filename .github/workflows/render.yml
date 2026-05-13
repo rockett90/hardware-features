@@ -43,6 +43,7 @@ jobs:
             core.setOutput('pr_number', String(prNumber));
             core.setOutput('ref',       data.head.ref);
             core.setOutput('sha',       data.head.sha);
+            core.setOutput('sha_short', data.head.sha.slice(0, 7));
             core.setOutput('base_ref',  data.base.ref);
 
       - uses: actions/checkout@v4
@@ -94,7 +95,7 @@ jobs:
               HAS_ANY_FEATURE=true
               FALLBACK_USED=true
               FALLBACK_FEATURE="$FEATURE_FROM_BRANCH"
-              if find "features/$FEATURE_FROM_BRANCH/pcb" -maxdepth 1 -name "*.kicad_pcb" -print -quit 2>/dev/null | grep -q .; then
+              if find "features/$FEATURE_FROM_BRANCH/kicad" -maxdepth 1 -name "*.kicad_pcb" -print -quit 2>/dev/null | grep -q .; then
                 PCB_FEATURES="$FEATURE_FROM_BRANCH"
               else
                 PCB_FEATURES=""
@@ -153,17 +154,14 @@ jobs:
 
             features_list="${features_list}${FEATURE},"
 
-            PRO_FILE="features/${FEATURE}/${FEATURE}.kicad_pro"
+            PRO_FILE="features/${FEATURE}/kicad/${FEATURE}.kicad_pro"
             if [[ ! -f "$PRO_FILE" ]]; then
               echo "⚠️  Skipping ${FEATURE}: ${PRO_FILE} not found"
               features_no_pro="${features_no_pro}${FEATURE},"
               continue
             fi
 
-            SCH_FILE="features/${FEATURE}/${FEATURE}.kicad_sch"
-            if [[ ! -f "$SCH_FILE" ]]; then
-              SCH_FILE="features/${FEATURE}/schematics/${FEATURE}.kicad_sch"
-            fi
+            SCH_FILE="features/${FEATURE}/kicad/${FEATURE}.kicad_sch"
             if [[ ! -f "$SCH_FILE" ]]; then
               echo "⚠️  Skipping ${FEATURE}: schematic not found"
               features_no_svg="${features_no_svg}${FEATURE},"
@@ -210,10 +208,7 @@ jobs:
           while IFS= read -r FEATURE; do
             [[ -z "$FEATURE" ]] && continue
 
-            SCH_FILE="features/${FEATURE}/${FEATURE}.kicad_sch"
-            if [[ ! -f "$SCH_FILE" ]]; then
-              SCH_FILE="features/${FEATURE}/schematics/${FEATURE}.kicad_sch"
-            fi
+            SCH_FILE="features/${FEATURE}/kicad/${FEATURE}.kicad_sch"
             if [[ ! -f "$SCH_FILE" ]]; then
               features_no_pdf="${features_no_pdf}${FEATURE},"
               continue
@@ -265,6 +260,25 @@ jobs:
             done || true
           done <<< "${{ steps.find.outputs.features }}"
 
+      - name: Write render traceability manifest
+        run: |
+          GENERATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          while IFS= read -r FEATURE; do
+            [[ -z "$FEATURE" ]] && continue
+            mkdir -p "features/${FEATURE}/fab"
+            cat > "features/${FEATURE}/fab/RENDER-INFO.txt" <<EOF
+          # KiCad Render Traceability Manifest
+          feature: ${FEATURE}
+          sha: ${{ steps.pr.outputs.sha }}
+          sha_short: ${{ steps.pr.outputs.sha_short }}
+          pr_number: ${{ steps.pr.outputs.pr_number }}
+          branch: ${{ steps.pr.outputs.ref }}
+          workflow_run_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          generated_at: ${GENERATED_AT}
+          kicad_image: ${{ env.KICAD_IMAGE }}
+          EOF
+          done <<< "${{ steps.find.outputs.features }}"
+
       - name: Run kicad-happy analysis per feature
         id: kicad_happy
         if: steps.find.outputs.has_any_feature == 'true'
@@ -276,11 +290,8 @@ jobs:
           while IFS= read -r FEATURE; do
             [[ -z "$FEATURE" ]] && continue
 
-            # Locate schematic: try feature root first, then schematics/ subdirectory.
-            SCH_FILE="features/${FEATURE}/${FEATURE}.kicad_sch"
-            if [[ ! -f "$SCH_FILE" ]]; then
-              SCH_FILE="features/${FEATURE}/schematics/${FEATURE}.kicad_sch"
-            fi
+            # Locate schematic in features/<feature>/kicad/.
+            SCH_FILE="features/${FEATURE}/kicad/${FEATURE}.kicad_sch"
             if [[ ! -f "$SCH_FILE" ]]; then
               echo "⚠️  kicad-happy: skipping ${FEATURE} — schematic not found"
               continue
@@ -342,6 +353,7 @@ jobs:
           path: |
             features/*/fab/*.svg
             features/*/fab/*.pdf
+            features/*/fab/RENDER-INFO.txt
           retention-days:    90
           if-no-files-found: warn
 
@@ -393,7 +405,7 @@ jobs:
               for (const f of features) {
                 body += `### \`${f}\`\n\n`;
                 if (noPro.has(f)) {
-                  body += `⚠️ \`features/${f}/${f}.kicad_pro\` not found — add the KiCad project file to enable rendering\n\n`;
+                  body += `⚠️ \`features/${f}/kicad/${f}.kicad_pro\` not found — add the KiCad project file to enable rendering\n\n`;
                 } else {
                   body += noSvg.has(f)
                     ? '⚠️ SVG render failed — check [workflow logs](' + runUrl + ')\n'

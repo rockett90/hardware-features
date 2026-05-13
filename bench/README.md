@@ -12,7 +12,7 @@ This directory contains reusable Python drivers for bench instruments. Bring-up 
 
 ## Import path
 
-Bring-up scripts should add `bench/` to the Python path using this convention (from CONTRIBUTING.md section 15):
+Bring-up scripts should add `bench/` to the Python path using this convention ([CONTRIBUTING.md — Bench scripts import path](../CONTRIBUTING.md#15-bench-scripts-import-path)):
 
 ```python
 import sys

@@ -1,6 +1,6 @@
 # PDR Checklist
 
-> Posted automatically when an init PR opens.
+> Reference document — the authoritative PDR checklist is embedded in the init PR body template (`.github/PULL_REQUEST_TEMPLATE/init.md`), which is pre-filled when an `init/<feature>` PR is opened. This file is a standalone reference copy.
 
 ## Scope and requirements
 
@@ -11,7 +11,7 @@
 
 ## Design intent
 
-- [ ] `decisions/DDR-000-feature-overview.md` contains real content — problem statement, design approach, key decisions (not stub text)
+- [ ] `decisions/DDR-000-design-intent.md` and `decisions/DDR-000-decisions.md` contain real content — problem statement, design approach, key decisions (not stub text)
 - [ ] Feature scope is clearly bounded — what this feature does and what it does not do
 
 ## Feature README

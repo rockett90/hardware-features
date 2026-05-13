@@ -37,21 +37,17 @@ The branch name must match `init/<feature>` exactly — CI will reject any other
 
 ### 2. Create the required files
 
-Your PR must contain these four files inside `features/<feature-name>/`:
+Your PR must contain these files inside `features/<feature-name>/`:
 
 | File | Requirement |
 |---|---|
-| `decisions/DDR-000-feature-overview.md` | Real content describing the feature — not a placeholder |
+| `decisions/DDR-000-design-intent.md` | Real content describing the feature — not a placeholder |
+| `decisions/DDR-000-decisions.md` | At least one decision entry — not placeholder |
 | `requirements/feature-requirements.yaml` | Real REQ-IDs |
 | `requirements/interface-requirements.yaml` | Real interface values |
 | `requirements/verification-matrix.md` | REQ-IDs listed |
 
-Your PR must also update these two repository-level files:
-
-| File | Change required |
-|---|---|
-| `.github/commitlint.config.js` | Add the new feature name to `scope-enum` |
-| `.github/release-please-config.json` | Add the new package entry |
+CI automatically updates `.github/commitlint.config.js` and `.github/release-please-config.json` when the `init/<feature>` branch is first pushed. Run `git pull` after your first push to get the scaffolded files.
 
 > ⚠️ Warning: CI will reject an init PR that contains placeholder content in the required documents. The files must contain real information about the feature.
 
@@ -91,12 +87,15 @@ Open the PR as a **draft** immediately — this allows CI checks to start runnin
 
 Once CI passes and you have the required approvals, merge the PR.
 
-On merge, the `init-feature.yml` workflow automatically scaffolds all remaining directories inside `features/<feature-name>/`, including:
+The scaffold (directories, KiCad templates, and stubs) is committed to your branch automatically by CI when the branch is first pushed — before the PR is opened. Run `git pull` after your first push to see the scaffolded files. On merge, CI does not run additional scaffolding.
 
-- `schematics/`, `pcb/`, `simulations/`, `calculations/`
+The scaffold includes:
+
+- `kicad/`, `simulations/models/`, `calculations/`
 - `analysis/mtbf`, `analysis/stress`, `analysis/thermal`, `analysis/doe`
-- `bom/`, `bring-up/`, `circuit-mods/`, `production/`, `reviews/`
-- KiCad project files copied from `templates/`
+- `bom/`, `bring-up/scripts/`, `circuit-mods/`, `production/fptcs/`, `production/test-programs/`, `production/aoi/`
+- `decisions/`, `ci-results/`, `reviews/`, `requirements/`, `datasheet/`
+- KiCad project files (`kicad/<feature>.kicad_pro`, `kicad/<feature>.kicad_sch`, `kicad/<feature>.kicad_pcb`), `.kibot.yml`, `README.md`, datasheet stubs
 
 You do not need to create any of these manually.
 

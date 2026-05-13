@@ -75,3 +75,9 @@ This directory contains engineering guidelines for hardware development. They su
 1. Raise a `chore/` PR with the new or updated content.
 2. Once the guideline is complete, consider adding it to `.github/agents/context/company-standards.md` so it is applied automatically during AI review.
 
+---
+
+## Related
+
+Short summary stubs of these guidelines, used as context by Copilot and other AI agents, live in [`.github/guidelines/`](../.github/guidelines/README.md). When making significant updates to files in this directory, check whether the corresponding stub in `.github/guidelines/` also needs updating to stay in sync.
+

@@ -4,8 +4,8 @@
 
 **KiCad version:** See [docs/versions.md](docs/versions.md) — do not upgrade individually, coordinate with the lead.
 
-**Clone with SourceTree:**
-File → New → Clone from URL → `https://github.com/rockett90/hardware-features.git` → tick **"Recurse submodules"** (essential — clones the component library at the same time) → Clone.
+**Clone with GitHub Desktop:**
+File → Clone repository → GitHub.com tab → select `rockett90/hardware-features` → expand Advanced options → tick **"Recurse submodules"** (essential — clones the component library at the same time) → Clone. See [docs/setup/tool-setup.md](docs/setup/tool-setup.md) for a full step-by-step guide.
 
 **Clone with Terminal:**
 ```bash
@@ -43,9 +43,12 @@ Preferences → Manage Symbol Libraries → add `library/symbols/` using `${KIPR
 | Finding | `finding/<feature>/<N>-<desc>` | IVV finding fix. N is the GitHub Issue number. Triggers automatic label updates on the linked issue. |
 | CDR sign-off | `signoff/<feature>/cdr` | CDR gate sign-off. Document-only PR. Triggers CDR checklist posting and gate tag creation. |
 | Re-CDR | `signoff/<feature>/cdr-N` | Re-CDR after a `finding: major` severity forces the design back to CDR. N starts at 1. Triggers the same CDR gate automation as the original CDR sign-off. |
+| CDR (cycle N) | `signoff/<feature>/cdr-rN` | Start design cycle N (N ≥ 2) after a prior release cycle has completed. Creates cycle-scoped gate tags (for example `cdr/<feature>/r2/approved`) and updates floating gate tags. |
 | TRR sign-off | `signoff/<feature>/trr` | TRR gate sign-off. Document-only PR. Triggers TRR checklist, rc tag, and pre-release creation. |
 | Re-TRR | `signoff/<feature>/trr-N` | Re-TRR after finding resolution. Triggers visual diff versus previous rc tag. |
+| TRR (cycle N) | `signoff/<feature>/trr-rN` | TRR sign-off for design cycle N (N ≥ 2). Creates cycle-scoped gate tags (for example `trr/<feature>/r2/approved`) and updates floating gate tags. |
 | Release sign-off | `signoff/<feature>/release` | Final Release gate. Document-only PR. Triggers release gate checklist enforcement and `release/<feature>/approved` tag creation. Must be raised and merged before manufacturing outputs are considered authorised for production. |
+| Release sign-off (cycle N) | `signoff/<feature>/release-rN` | Final Release gate for design cycle N (N ≥ 2). Creates `release/<feature>/rN/approved` and updates the floating `release/<feature>/approved` tag. |
 | Library | `library/<desc>` | Changes to the hardware-library repository (raised in that repo, not here). |
 | Chore | `chore/<desc>` | Repository housekeeping: CI changes, guideline updates, template changes, submodule pointer updates. Uses `library` scope in PR title by convention. |
 
@@ -112,15 +115,81 @@ Add a Jira key to the branch name and PR description if you have a ticket. Leave
 Open a Draft PR immediately after your first push:
 GitHub → "Compare & pull request" → dropdown arrow on the green button → "Create draft pull request".
 
-Comment `/render` on the PR at any time to export schematic SVGs. Comment `/kicad-diff` to generate a visual diff of all changes vs the base branch.
-
 When ready for review, click **"Ready for review"** at the bottom of the PR page (below the merge box) — this triggers AI review automatically.
 
 Address all ⚠️ CRITICAL findings before requesting human review.
 
 ---
 
-## 6a. Slash commands
+## 6a. What to do when CI fails
+
+CI runs automatically on every push and PR update. Most failures are quick to fix. Here are the most common ones:
+
+---
+
+**Branch name check fails (`Validate branch name`)**
+
+The branch name does not match the required format.
+
+Fix: Rename your branch to match the convention in section 3, then force-push:
+
+```bash
+git branch -m old-branch-name artifact/my-feature/correct-name
+git push origin -u artifact/my-feature/correct-name
+git push origin --delete old-branch-name
+```
+
+Open a new PR from the renamed branch if needed.
+
+---
+
+**PR title check fails (`Validate PR title`)**
+
+The PR title does not follow `type(scope): description` format, or the scope is not registered.
+
+Fix: Edit the PR title directly on GitHub — click the pencil icon next to the title on the PR page. You do not need to push any new commits; the check re-runs automatically when the title changes.
+
+Common mistakes:
+- Missing scope: `feat: add schematic` → should be `feat(buck-converter-5v): add schematic`
+- Wrong type casing: `FEAT` → must be lowercase `feat`
+- Scope not registered: the feature name must be in `.github/commitlint.config.js` — this is added automatically when the `init/` branch is pushed. If you are on an `artifact/` branch and the scope is missing, the init PR may not have merged yet.
+
+---
+
+**Gate check fails (`Gate Check`)**
+
+The gate PR has unchecked items in the PR description checklist.
+
+Fix: Open the PR on GitHub, scroll to the PR description, and tick each checklist item (`- [ ]` → `- [x]`). You can tick items directly in the GitHub web editor by clicking the checkbox. The check re-runs automatically when the PR description is updated.
+
+If an item does not apply, tick it and add a comment or note below the checklist explaining why.
+
+---
+
+**ERC / DRC shows violations (informational only)**
+
+ERC and DRC results are **informational** — they do not block merge. A violation does not automatically prevent you from merging.
+
+What to do:
+- Review the violations in the PR comment posted by CI.
+- Fix genuine errors (unconnected pins, missing power flags, DRC clearance violations).
+- Accept known/intentional violations by adding them to the KiCad ERC/DRC suppression list inside KiCad, then push again.
+- ERC evidence is reviewed formally at CDR; DRC evidence at TRR.
+
+---
+
+**Release-please config check fails (`Validate release-please config`)**
+
+This only fires on `init/` PRs. It means the feature was not registered in `.github/release-please-config.json`.
+
+In normal flow, `init-branch-setup.yml` adds this automatically when the branch is first pushed. If the check fails:
+1. Pull the latest commits from your branch (`git pull`) — the scaffold commit may not have landed yet.
+2. If the scaffold commit is present and the check still fails, check whether `.github/release-please-config.json` contains your feature name under `packages`.
+3. If missing, the scaffold workflow may have failed — check the Actions tab for errors on the `Init branch setup` run.
+
+---
+
+### Slash commands
 
 Post a slash command as a PR comment to trigger CI actions. Commands require **write access** to the repository.
 
@@ -178,34 +247,32 @@ Your init PR must contain the following files inside `features/<name>/`:
 
 | File | Requirement |
 |---|---|
-| `decisions/DDR-000-feature-overview.md` | Real content — not placeholder |
+| `decisions/DDR-000-design-intent.md` | Real content — not placeholder |
+| `decisions/DDR-000-decisions.md` | At least one decision entry — not placeholder |
 | `requirements/feature-requirements.yaml` | Real REQ-IDs |
 | `requirements/interface-requirements.yaml` | Real interface values |
 | `requirements/verification-matrix.md` | REQ-IDs listed |
 
-Your init PR must also update:
-- `.github/commitlint.config.js` — add the new scope to `scope-enum`
-- `.github/release-please-config.json` — add your feature under `packages`.
-  Copy the `_example-feature` block, rename the key from `_example-feature` to your
-  feature name (e.g. `buck-converter-5v`), and update `package-name` and
-  `changelog-path` to match. Example:
+CI automatically patches both `.github/commitlint.config.js` and `.github/release-please-config.json` when the `init/<feature>` branch is first pushed. After your first push, run `git pull` to get the scaffolded files, which include these updates. The entry added to `release-please-config.json` looks like:
 
-  ```json
-  "buck-converter-5v": {
-    "release-type": "simple",
-    "package-name": "buck-converter-5v",
-    "changelog-path": "features/buck-converter-5v/CHANGELOG.md",
-    "bump-minor-pre-major": true
-  }
-  ```
+```json
+"buck-converter-5v": {
+  "release-type": "simple",
+  "package-name": "buck-converter-5v",
+  "changelog-path": "features/buck-converter-5v/CHANGELOG.md",
+  "bump-minor-pre-major": true
+}
+```
 
-  CI will fail the init PR with a clear message if this step is missed.
+> The `validate-release-please-config` CI check will fail if the feature is not registered. This should not happen in normal flow — if it does, pull the branch and check whether the scaffold commit landed.
 
-CI scaffolds all remaining directories automatically on merge.
+CI scaffolds all remaining directories when the `init/<feature>` branch is first pushed.
 
 ---
 
 ## 12. IVV findings
+
+> **Prerequisites:** The following labels must exist in the repository before the first finding PR is opened: `finding: minor`, `finding: moderate`, `finding: major`, `finding: in-progress`, `finding: resolved`. A lead should verify these labels exist before the first IVV cycle begins. If the labels are missing, CI will fail silently when it tries to apply them. Labels can be created at: **github.com → Issues → Labels → New label**.
 
 The full IVV finding loop:
 
@@ -218,8 +285,6 @@ The full IVV finding loop:
    - `finding: minor` — no gate re-entry unless the lead requires it
    - `finding: moderate` — re-TRR required (`signoff/<feature>/trr-N` branch)
    - `finding: major` — re-CDR then re-TRR required
-
-Labels are applied automatically by CI. **Prerequisite:** the labels `finding: in-progress` and `finding: resolved` must exist in the repository before the automation can apply them. Create them once via GitHub → Issues → Labels → New label.
 
 ---
 
@@ -249,4 +314,4 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[4] / 'bench'))
 
 ## 16. Review checklists
 
-See `checklists/review/` for schematic, PCB, BOM, and general review checklists. Use during review. Not auto-posted.
+See `checklists/review/` for the full set of review checklists. Use during review. Not auto-posted.

@@ -10,7 +10,7 @@
    ```bash
    git clone --recurse-submodules https://github.com/rockett90/hardware-features.git
    ```
-2. **Open in KiCad** — open `features/<feature-name>/<feature-name>.kicad_pro`. See [docs/versions.md](docs/versions.md) for the required KiCad version.
+2. **Open in KiCad** — open `features/<feature-name>/kicad/<feature-name>.kicad_pro`. See [docs/versions.md](docs/versions.md) for the required KiCad version.
 3. **Create a branch and open a draft PR** — CI runs on every push. Open the PR as a draft immediately after your first push so checks can start running.
 4. **Use slash commands** during review to trigger CI actions — see [Slash commands](#slash-commands) below.
 
@@ -95,22 +95,33 @@ CI validates every PR branch name. A non-matching name fails the "Validate branc
 4. **CDR sign-off** (`signoff/<feature>/cdr`) — gate-check CI must pass before merge.
 5. **TRR sign-off** (`signoff/<feature>/trr`) — gate-check CI must pass before merge; creates an rc pre-release automatically.
 6. **Final Release sign-off** (`signoff/<feature>/release`) — gate-check CI must pass before merge; creates the `release/<feature>/approved` tag. See [docs/how-to/release-signoff.md](docs/how-to/release-signoff.md).
-7. **Release** — merge the release-please Release PR; never close it manually. Manufacturing outputs are generated automatically from the production tag.
+7. **Release** — merge the release-please Release PR; never close it manually. Manufacturing outputs are generated automatically from the `release/<feature>/approved` gate tag.
 
 ---
 
 ## Further reading
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) — full contributor guide
+**Setup**
 - [docs/versions.md](docs/versions.md) — all pinned tool and dependency versions
 - [docs/tools.md](docs/tools.md) — toolchain reference for new engineers
 - [docs/setup/kicad-setup.md](docs/setup/kicad-setup.md) — KiCad installation and library setup
-- [docs/setup/sourcetree-setup.md](docs/setup/sourcetree-setup.md) — SourceTree setup guide
+- [docs/setup/tool-setup.md](docs/setup/tool-setup.md) — Git tooling setup (GitHub Desktop or GitHub CLI)
+
+**Contributor reference**
+- [CONTRIBUTING.md](CONTRIBUTING.md) — full contributor guide including branch naming, commit format, CI failure fixes, and IVV finding loop
+
+**How-to guides**
+- [docs/how-to/README.md](docs/how-to/README.md) — index of all how-to guides
 - [docs/how-to/worked-example.md](docs/how-to/worked-example.md) — complete worked example from idea to release
 - [docs/how-to/init-feature.md](docs/how-to/init-feature.md) — how to initialise a new feature
 - [docs/how-to/design-workflow.md](docs/how-to/design-workflow.md) — day-to-day design workflow
+
+**Gate sign-offs**
 - [docs/how-to/cdr-signoff.md](docs/how-to/cdr-signoff.md) — how to perform a CDR sign-off
 - [docs/how-to/trr-signoff.md](docs/how-to/trr-signoff.md) — how to perform a TRR sign-off
 - [docs/how-to/release-signoff.md](docs/how-to/release-signoff.md) — how to perform a Final Release sign-off
+- [docs/how-to/second-design-cycle.md](docs/how-to/second-design-cycle.md) — how to start a second design cycle
+
+**CI and tooling**
 - [scripts/ci/README.md](scripts/ci/README.md) — CI script reference
 - [kicad-visual-diff/README.md](kicad-visual-diff/README.md) — visual diff action reference

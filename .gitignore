@@ -7,6 +7,10 @@ __pycache__/
 # KiCad — per-user local state, never commit
 *.kicad_prl
 
+# KiCad — project lock files (created when KiCad has a project open)
+~*.lck
+*.lck
+
 # KiCad — generated backup files
 *.bak
 *-backups/

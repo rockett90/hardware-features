@@ -198,13 +198,28 @@ jobs:
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
               if (res.statusCode === 400) {
-                const msg = "AI review unavailable: HTTP 400 — a personal access token with `models: read` scope is required.\n\n" +
-                  "To fix: create a PAT with `models: read` scope and add it as a repository secret named `MODELS_TOKEN`.\n\n" +
-                  "Until then, use `/ai-review` as the repository owner (your personal token is used for comment-triggered runs).";
+                const msg = [
+                  "## 🤖 AI Schematic Review — unavailable",
+                  "",
+                  "The AI review could not run (HTTP 400 from the Copilot API).",
+                  "",
+                  "**If this repository is in a GitHub organisation with Copilot Enterprise:**",
+                  "No token configuration is needed — but the organisation owner must enable **\"Allow GitHub Actions to use Copilot\"** in the organisation's Copilot settings (`github.com/organizations/<org>/settings/copilot`). Once enabled, `GITHUB_TOKEN` works automatically for all contributors.",
+                  "",
+                  "**If this is a personal repository:**",
+                  "The `GITHUB_TOKEN` in Actions does not have Copilot API access on personal repositories. To enable AI review:",
+                  "1. Create a Personal Access Token (PAT) from a GitHub account with an active Copilot subscription",
+                  "2. Enable the `models: read` scope (fine-grained PAT) — classic PAT needs no specific scope but the account must have Copilot",
+                  "3. Add it as a repository secret named `MODELS_TOKEN` at `Settings → Secrets and variables → Actions`",
+                  "",
+                  "> ⚠️ All AI review requests are sent to `api.githubcopilot.com` — the GitHub Copilot endpoint. On Copilot Enterprise, this is covered by GitHub's enterprise data protection agreement. Schematic data is NOT sent to third-party model providers.",
+                  "",
+                  "See [docs/setup/ai-review-setup.md](../docs/setup/ai-review-setup.md) for full setup instructions.",
+                ].join("\n");
                 fs.writeFileSync('/tmp/ai-review.txt', msg);
                 fs.writeFileSync('/tmp/model-used.txt', 'none');
               } else if (res.statusCode !== 200) {
-                fs.writeFileSync('/tmp/ai-review.txt', `AI review unavailable: HTTP ${res.statusCode}\n${data}`);
+                fs.writeFileSync('/tmp/ai-review.txt', `## 🤖 AI Schematic Review — unavailable\n\nHTTP ${res.statusCode} from the Copilot API. Check the [workflow run logs](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}) for details.\n\n${data}`);
                 fs.writeFileSync('/tmp/model-used.txt', 'none');
               } else {
                 const parsed = JSON.parse(data);

@@ -49,7 +49,7 @@ feat(<feature>): description of change
 
 ### 3. Work on the design in KiCad
 
-Open `features/<feature>/<feature>.kicad_pro` in KiCad 10.0.1.
+Open `features/<feature>/kicad/<feature>.kicad_pro` in KiCad 10.0.1.
 
 Push at the end of every working session.
 
@@ -67,6 +67,8 @@ Post these as PR comments at any time to trigger CI actions. You must have **wri
 | `/erc` | Run Electrical Rules Check — informational, does not block merge |
 | `/drc` | Run Design Rules Check — informational, does not block merge |
 
+> 💡 **One command per comment:** The dispatcher processes only the first slash command in each comment. Post each command as a separate comment if you want to run multiple.
+>
 > 💡 Tip: Run `/render` before marking your PR ready for review. Reviewers can then see schematic images directly in the PR without installing KiCad.
 
 ---

@@ -1,27 +1,27 @@
 # simple-amplifier
 
 > **Status:** 🔵 In progress — PDR
+>
+> **📖 Reference example.** This feature is the canonical reference example for this repository. It demonstrates a correctly-populated feature directory at PDR stage. There is no real hardware — it exists so engineers can see what complete content looks like before starting their own feature. See [docs/how-to/worked-example.md](../../docs/how-to/worked-example.md) for the full lifecycle walkthrough.
 
 ---
 
 ## What is this feature?
 
-<!-- Describe the purpose and function of this feature in 1–3 paragraphs.
-     What problem does it solve? Where does it fit in the wider system?
-     Written for someone picking this up for the first time. -->
+The `simple-amplifier` is a fixed-gain non-inverting voltage amplifier. It conditions a low-level analogue sensor output (0–500 mV) to a full-scale ADC input range (0–3.3 V) on a single 3.3 V supply.
 
-[COMPLETE AT PDR]
+The design uses a rail-to-rail op-amp in a non-inverting configuration with a gain of 6.6×. It is intended for use wherever a sensor output needs to be scaled to match an ADC input range without inverting signal polarity and without loading the sensor source.
 
 ---
 
 ## Gate history
 
-| Gate | Date | Tag | Lead |
-|---|---|---|---|
-| PDR | <!-- date --> | `pdr/simple-amplifier/approved` | <!-- name --> |
-| CDR | <!-- date --> | `cdr/simple-amplifier/approved` | <!-- name --> |
-| TRR | <!-- date --> | `simple-amplifier-vX.Y.Z-rc.N` | <!-- name --> |
-| Release | <!-- date --> | `release/simple-amplifier/approved` | <!-- name --> |
+| Gate | Cycle | Date | Tag | Lead |
+|---|---|---|---|---|
+| PDR | 1 | <!-- date --> | `pdr/simple-amplifier/approved` | <!-- name --> |
+| CDR | 1 | <!-- date --> | `cdr/simple-amplifier/approved` | <!-- name --> |
+| TRR | 1 | <!-- date --> | `trr/simple-amplifier/approved` | <!-- name --> |
+| Release | 1 | <!-- date --> | `release/simple-amplifier/approved` | <!-- name --> |
 
 ---
 
@@ -29,7 +29,8 @@
 
 <!-- Link to DDR files in decisions/ — one line each with a brief summary of the decision. -->
 
-- [DDR-000 — Feature overview](decisions/DDR-000-feature-overview.md)
+- [DDR-000 — Design intent](decisions/DDR-000-design-intent.md) — problem statement, scope, and constraints
+- [DDR-000 — Decisions](decisions/DDR-000-decisions.md) — op-amp selection, topology, gain setting
 
 ---
 
@@ -84,5 +85,5 @@ It is generated from [`datasheet/specs.yaml`](datasheet/specs.yaml) using the `/
 
 | Role | Name |
 |---|---|
-| Feature lead | <!-- name --> |
-| Backup | <!-- name --> |
+| Feature lead | Reference Example |
+| Backup | — |

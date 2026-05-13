@@ -14,7 +14,7 @@ cd "$REPO_ROOT"
 
 FEATURE_DIR="features/$FEATURE"
 
-for dir in schematics pcb simulations/models calculations \
+for dir in kicad simulations/models calculations \
             analysis/mtbf analysis/stress analysis/thermal analysis/doe \
             bom bring-up/scripts circuit-mods \
             production/fptcs production/test-programs production/aoi \
@@ -28,10 +28,14 @@ cp -n "scripts/ci/stubs/DDR-000-decisions.md"         "$FEATURE_DIR/decisions/DD
 cp -n "scripts/ci/stubs/feature-requirements.yaml"   "$FEATURE_DIR/requirements/feature-requirements.yaml"
 cp -n "scripts/ci/stubs/interface-requirements.yaml" "$FEATURE_DIR/requirements/interface-requirements.yaml"
 cp -n "scripts/ci/stubs/verification-matrix.md"      "$FEATURE_DIR/requirements/verification-matrix.md"
+cp -n "scripts/ci/stubs/fptcs.yaml"                  "$FEATURE_DIR/production/fptcs/fptcs.yaml"
+cp -n "scripts/ci/stubs/fptcs-notes.md"              "$FEATURE_DIR/production/fptcs/fptcs-notes.md"
 cp -n "scripts/ci/stubs/README.md"                   "$FEATURE_DIR/README.md"
 cp -n "scripts/ci/stubs/specs.yaml"                  "$FEATURE_DIR/datasheet/specs.yaml"
 cp -n "scripts/ci/stubs/application-notes.md"        "$FEATURE_DIR/datasheet/application-notes.md"
 cp -n "scripts/ci/stubs/errata.md"                   "$FEATURE_DIR/datasheet/errata.md"
+cp -n "scripts/ci/stubs/reviews/README.md"           "$FEATURE_DIR/reviews/README.md"
+cp -n "scripts/ci/stubs/ci-results/README.md"       "$FEATURE_DIR/ci-results/README.md"
 
 cp_template() {
   if [[ -f "$1" ]]; then
@@ -40,9 +44,9 @@ cp_template() {
     echo "⚠️  Template not found, skipping: $1"
   fi
 }
-cp_template "templates/kicad-project-template.kicad_pro" "$FEATURE_DIR/$FEATURE.kicad_pro"
-cp_template "templates/schematic-template.kicad_sch"     "$FEATURE_DIR/$FEATURE.kicad_sch"
-cp_template "templates/pcb-template.kicad_pcb"           "$FEATURE_DIR/pcb/$FEATURE.kicad_pcb"
+cp_template "templates/kicad-project-template.kicad_pro" "$FEATURE_DIR/kicad/$FEATURE.kicad_pro"
+cp_template "templates/schematic-template.kicad_sch"     "$FEATURE_DIR/kicad/$FEATURE.kicad_sch"
+cp_template "templates/pcb-template.kicad_pcb"           "$FEATURE_DIR/kicad/$FEATURE.kicad_pcb"
 cp_template "config/kibot/base-feature.kibot.yml"        "$FEATURE_DIR/.kibot.yml"
 
 for file in \
@@ -51,10 +55,14 @@ for file in \
   "$FEATURE_DIR/requirements/feature-requirements.yaml" \
   "$FEATURE_DIR/requirements/interface-requirements.yaml" \
   "$FEATURE_DIR/requirements/verification-matrix.md" \
+  "$FEATURE_DIR/production/fptcs/fptcs.yaml" \
+  "$FEATURE_DIR/production/fptcs/fptcs-notes.md" \
   "$FEATURE_DIR/README.md" \
   "$FEATURE_DIR/datasheet/specs.yaml" \
   "$FEATURE_DIR/datasheet/application-notes.md" \
-  "$FEATURE_DIR/datasheet/errata.md"; do
+  "$FEATURE_DIR/datasheet/errata.md" \
+  "$FEATURE_DIR/reviews/README.md" \
+  "$FEATURE_DIR/ci-results/README.md"; do
   if [[ -f "$file" ]]; then
     sed -i "s/FEATURE_NAME/$FEATURE/g" "$file"
   fi

@@ -15,9 +15,9 @@ For the required KiCad version and all other tool versions, see [docs/versions.m
 
 The component library is a git submodule. If you clone without submodules, KiCad will open schematics with empty symbol boxes.
 
-**Using SourceTree (recommended):**
+**Using GitHub Desktop (recommended):**
 
-See [docs/setup/sourcetree-setup.md](sourcetree-setup.md) for the full SourceTree guide. When cloning, tick **"Recurse submodules"**.
+See [docs/setup/tool-setup.md](tool-setup.md) for the full GitHub Desktop setup guide. When cloning, expand **Advanced options** and tick **"Recurse submodules"**.
 
 **Using the terminal:**
 

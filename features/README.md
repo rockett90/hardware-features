@@ -30,12 +30,11 @@ After `init-branch-setup.yml` runs, every feature directory contains:
 
 ```
 features/<feature>/
-├── <feature>.kicad_pro       — KiCad project file
-├── <feature>.kicad_sch       — Top-level schematic
+├── kicad/
+│   ├── <feature>.kicad_pro   — KiCad project file
+│   ├── <feature>.kicad_sch   — Top-level schematic
+│   └── <feature>.kicad_pcb   — PCB layout
 ├── .kibot.yml                — KiBot render configuration (references config/kibot/base.kibot.yml)
-├── schematics/               — Hierarchical schematic sheets
-├── pcb/
-│   └── <feature>.kicad_pcb  — PCB layout
 ├── simulations/
 │   └── models/               — SPICE models
 ├── calculations/             — Hand calculations and spreadsheets
@@ -70,12 +69,10 @@ features/<feature>/
 
 ## KiCad project files
 
-The KiCad project files for a feature live at the root of the feature directory:
+The KiCad project files for a feature live in `kicad/`:
 
 ```
-features/<feature>/<feature>.kicad_pro
-features/<feature>/<feature>.kicad_sch   ← top-level schematic
-features/<feature>/pcb/<feature>.kicad_pcb
+features/<feature>/kicad/<feature>.kicad_pro
+features/<feature>/kicad/<feature>.kicad_sch   ← top-level schematic
+features/<feature>/kicad/<feature>.kicad_pcb
 ```
-
-Hierarchical sub-sheets live in `schematics/` and are automatically discovered by the visual diff and render tools.

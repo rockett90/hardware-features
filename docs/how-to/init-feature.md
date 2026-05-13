@@ -91,11 +91,11 @@ The scaffold (directories, KiCad templates, and stubs) is committed to your bran
 
 The scaffold includes:
 
-- `schematics/`, `pcb/`, `simulations/models/`, `calculations/`
+- `kicad/`, `simulations/models/`, `calculations/`
 - `analysis/mtbf`, `analysis/stress`, `analysis/thermal`, `analysis/doe`
 - `bom/`, `bring-up/scripts/`, `circuit-mods/`, `production/fptcs/`, `production/test-programs/`, `production/aoi/`
 - `decisions/`, `ci-results/`, `reviews/`, `requirements/`, `datasheet/`
-- KiCad project files (`.kicad_pro`, `.kicad_sch`, `pcb/*.kicad_pcb`), `.kibot.yml`, `README.md`, datasheet stubs
+- KiCad project files (`kicad/<feature>.kicad_pro`, `kicad/<feature>.kicad_sch`, `kicad/<feature>.kicad_pcb`), `.kibot.yml`, `README.md`, datasheet stubs
 
 You do not need to create any of these manually.
 

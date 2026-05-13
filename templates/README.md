@@ -25,9 +25,9 @@ All four template files are present and will be copied by `init-feature.sh` when
 
 | File | Copied to |
 |---|---|
-| `kicad-project-template.kicad_pro` | `features/<feature>/<feature>.kicad_pro` |
-| `schematic-template.kicad_sch` | `features/<feature>/<feature>.kicad_sch` |
-| `pcb-template.kicad_pcb` | `features/<feature>/pcb/<feature>.kicad_pcb` |
+| `kicad-project-template.kicad_pro` | `features/<feature>/kicad/<feature>.kicad_pro` |
+| `schematic-template.kicad_sch` | `features/<feature>/kicad/<feature>.kicad_sch` |
+| `pcb-template.kicad_pcb` | `features/<feature>/kicad/<feature>.kicad_pcb` |
 | `title-block.kicad_wks` | Referenced by path — not copied per feature |
 
 The templates are minimal starters. The team's standard stackup, design rules, and approval fields will be added to `pcb-template.kicad_pcb` and `title-block.kicad_wks` as they are agreed. See [docs/versions.md](../docs/versions.md) for the KiCad version these templates target.
@@ -38,7 +38,7 @@ When updating a template, all existing features will be unaffected (the template
 
 ## KiCad project structure notes
 
-- The `.kicad_pro` and `.kicad_sch` template files are intended to live at the feature root as `features/<feature>/<feature>.kicad_pro` and `features/<feature>/<feature>.kicad_sch`. This is the correct KiCad project structure, not a mistake.
+- The `.kicad_pro` and `.kicad_sch` template files are intended to live in `features/<feature>/kicad/` as `features/<feature>/kicad/<feature>.kicad_pro` and `features/<feature>/kicad/<feature>.kicad_sch`.
 - KiCad's project panel may show parent directories when you open one of these feature projects. This is normal KiCad UI behaviour.
 - The title block is referenced from `templates/title-block.kicad_wks` relative to the repository root using `../../templates/title-block.kicad_wks` from the feature root. If the repository is moved or copied to a different relative location, that path may need updating.
 - These templates target KiCad 10.

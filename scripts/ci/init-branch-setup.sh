@@ -14,7 +14,7 @@ cd "$REPO_ROOT"
 
 FEATURE_DIR="features/$FEATURE"
 
-for dir in schematics pcb simulations/models calculations \
+for dir in kicad simulations/models calculations \
             analysis/mtbf analysis/stress analysis/thermal analysis/doe \
             bom bring-up/scripts circuit-mods \
             production/fptcs production/test-programs production/aoi \
@@ -42,9 +42,9 @@ cp_template() {
     echo "⚠️  Template not found, skipping: $1"
   fi
 }
-cp_template "templates/kicad-project-template.kicad_pro" "$FEATURE_DIR/$FEATURE.kicad_pro"
-cp_template "templates/schematic-template.kicad_sch"     "$FEATURE_DIR/$FEATURE.kicad_sch"
-cp_template "templates/pcb-template.kicad_pcb"           "$FEATURE_DIR/pcb/$FEATURE.kicad_pcb"
+cp_template "templates/kicad-project-template.kicad_pro" "$FEATURE_DIR/kicad/$FEATURE.kicad_pro"
+cp_template "templates/schematic-template.kicad_sch"     "$FEATURE_DIR/kicad/$FEATURE.kicad_sch"
+cp_template "templates/pcb-template.kicad_pcb"           "$FEATURE_DIR/kicad/$FEATURE.kicad_pcb"
 cp_template "config/kibot/base-feature.kibot.yml"        "$FEATURE_DIR/.kibot.yml"
 
 for file in \

@@ -13,6 +13,7 @@ This directory contains **CI-managed review evidence only**. Do not manually cre
 | `gate-evidence-cdr.md` | Created automatically by CI when a `signoff/FEATURE_NAME/cdr` branch is pushed | Do not edit manually |
 | `gate-evidence-trr.md` | Created automatically by CI when a `signoff/FEATURE_NAME/trr` branch is pushed | Do not edit manually |
 | `gate-evidence-release.md` | Created automatically by CI when a `signoff/FEATURE_NAME/release` branch is pushed | Do not edit manually |
+| `external-references.md` | Created automatically by CI when a `signoff/FEATURE_NAME/trr` branch is pushed | Populate with real SharePoint and IV&V links before release sign-off |
 | `library.lock` | Committed manually at CDR and TRR — version-pins the shared library at gate sign-off | See [docs/how-to/library-lock.md](../../../docs/how-to/library-lock.md) |
 
 ---

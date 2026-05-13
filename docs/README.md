@@ -19,6 +19,7 @@
 
 | Guide | Description |
 |---|---|
+| [setup/tool-setup.md](setup/tool-setup.md) | Installing Git tooling (GitHub Desktop or GitHub CLI) and cloning the repository |
 | [setup/kicad-setup.md](setup/kicad-setup.md) | Installing KiCad and configuring the symbol and footprint libraries |
 | [setup/sourcetree-setup.md](setup/sourcetree-setup.md) | Setting up SourceTree as a Git client for this repository |
 
@@ -34,6 +35,7 @@
 | [how-to/cdr-signoff.md](how-to/cdr-signoff.md) | How to perform a Critical Design Review (CDR) sign-off |
 | [how-to/library-lock.md](how-to/library-lock.md) | What library.lock is and how to use it for design traceability |
 | [how-to/trr-signoff.md](how-to/trr-signoff.md) | How to perform a Test Readiness Review (TRR) sign-off |
+| [how-to/release-signoff.md](how-to/release-signoff.md) | How to perform a Final Release sign-off |
 
 ---
 

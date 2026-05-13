@@ -4,8 +4,8 @@
 
 **KiCad version:** See [docs/versions.md](docs/versions.md) — do not upgrade individually, coordinate with the lead.
 
-**Clone with SourceTree:**
-File → New → Clone from URL → `https://github.com/rockett90/hardware-features.git` → tick **"Recurse submodules"** (essential — clones the component library at the same time) → Clone.
+**Clone with GitHub Desktop:**
+File → Clone repository → GitHub.com tab → select `rockett90/hardware-features` → expand Advanced options → tick **"Recurse submodules"** (essential — clones the component library at the same time) → Clone. See [docs/setup/tool-setup.md](docs/setup/tool-setup.md) for a full step-by-step guide.
 
 **Clone with Terminal:**
 ```bash

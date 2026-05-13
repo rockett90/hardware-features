@@ -12,7 +12,7 @@ A Test Readiness Review is a formal checkpoint that confirms the hardware is bui
 
 ## Prerequisites
 
-- CDR gate passed (`<feature>/cdr-v1` tag exists)
+- CDR gate passed (`cdr/<feature>/approved` tag exists)
 - Hardware built and basic bring-up complete
 - ERC and DRC pass (run `/erc` and `/drc`)
 - All required gate documents present (see gate-check below)
@@ -77,9 +77,9 @@ On merge, `gate-tags.yml` automatically applies the git tag:
 
 | Branch | Tag applied |
 |---|---|
-| `signoff/<feature>/trr` | `<feature>/trr-v1` |
-| `signoff/<feature>/trr-2` | `<feature>/trr-v2` |
-| `signoff/<feature>/trr-N` | `<feature>/trr-vN` |
+| `signoff/<feature>/trr` | `trr/<feature>/approved` |
+| `signoff/<feature>/trr-2` | `trr/<feature>/approved` (force-updated) |
+| `signoff/<feature>/trr-r2` | `trr/<feature>/r2/approved` + floating tag updated |
 
 ---
 

@@ -10,7 +10,7 @@
    ```bash
    git clone --recurse-submodules https://github.com/rockett90/hardware-features.git
    ```
-2. **Open in KiCad** — open `features/<feature-name>/<feature-name>.kicad_pro`. See [docs/versions.md](docs/versions.md) for the required KiCad version.
+2. **Open in KiCad** — open `features/<feature-name>/kicad/<feature-name>.kicad_pro`. See [docs/versions.md](docs/versions.md) for the required KiCad version.
 3. **Create a branch and open a draft PR** — CI runs on every push. Open the PR as a draft immediately after your first push so checks can start running.
 4. **Use slash commands** during review to trigger CI actions — see [Slash commands](#slash-commands) below.
 

@@ -126,10 +126,15 @@ jobs:
         run: |
           FEATURE="${{ steps.gate.outputs.feature }}"
           if [[ -f "features/$FEATURE/datasheet/specs.yaml" ]]; then
+            RELEASE_TAG="release/$FEATURE/approved"
+            LIBRARY_SHA=$(git rev-parse HEAD:library 2>/dev/null || echo "unknown")
             pip install pyyaml --quiet
             python3 scripts/ci/generate-datasheet.py \
               --feature "$FEATURE" \
-              --repo-root "$PWD"
+              --repo-root "$PWD" \
+              --release-tag "$RELEASE_TAG" \
+              --commit-sha "${{ github.sha }}" \
+              --library-sha "$LIBRARY_SHA"
             echo "Datasheet Markdown regenerated."
           else
             echo "No specs.yaml found — skipping Markdown regeneration."

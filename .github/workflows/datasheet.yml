@@ -95,9 +95,13 @@ jobs:
         id: generate
         run: |
           FEATURE="${{ steps.feature.outputs.name }}"
+          LIBRARY_SHA=$(git rev-parse HEAD:library 2>/dev/null || echo "unknown")
           python3 scripts/ci/generate-datasheet.py \
             --feature "$FEATURE" \
-            --repo-root "$PWD"
+            --repo-root "$PWD" \
+            --release-tag "${{ github.ref_name }}" \
+            --commit-sha "${{ github.sha }}" \
+            --library-sha "$LIBRARY_SHA"
           echo "datasheet_path=features/$FEATURE/datasheet/$FEATURE-datasheet.md" >> $GITHUB_OUTPUT
 
       - name: Commit datasheet to branch

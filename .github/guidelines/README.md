@@ -4,6 +4,16 @@
 
 ---
 
+## ⚠️ Note for contributors
+
+This directory contains **short, structured summaries** intended for use as context by Copilot and other AI agents (see `.github/agents/`). It is **not** the primary guidelines reference for contributors.
+
+The canonical, human-facing guidelines live in [`guidelines/`](../../guidelines/README.md) at the repository root — go there for full engineering and design guidance.
+
+When the human-facing guidelines in `guidelines/` are updated, the corresponding stub in this directory should also be updated to keep the two in sync.
+
+---
+
 ## What is this directory?
 
 This directory contains guidelines that supplement `CONTRIBUTING.md`. They are used in two ways:

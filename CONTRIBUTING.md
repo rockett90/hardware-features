@@ -272,6 +272,8 @@ CI scaffolds all remaining directories when the `init/<feature>` branch is first
 
 ## 12. IVV findings
 
+> **Prerequisites:** The following labels must exist in the repository before the first finding PR is opened: `finding: minor`, `finding: moderate`, `finding: major`, `finding: in-progress`, `finding: resolved`. A lead should verify these labels exist before the first IVV cycle begins. If the labels are missing, CI will fail silently when it tries to apply them. Labels can be created at: **github.com → Issues → Labels → New label**.
+
 The full IVV finding loop:
 
 1. A finding is raised as a GitHub Issue using the IVV Finding issue template (by the IVV team or by the engineering team). The template is at `.github/ISSUE_TEMPLATE/ivv-finding.md`.
@@ -283,8 +285,6 @@ The full IVV finding loop:
    - `finding: minor` — no gate re-entry unless the lead requires it
    - `finding: moderate` — re-TRR required (`signoff/<feature>/trr-N` branch)
    - `finding: major` — re-CDR then re-TRR required
-
-Labels are applied automatically by CI. **Prerequisite:** the labels `finding: in-progress` and `finding: resolved` must exist in the repository before the automation can apply them. Create them once via GitHub → Issues → Labels → New label.
 
 ---
 

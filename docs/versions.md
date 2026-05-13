@@ -44,10 +44,9 @@ Pinned in `scripts/ci/requirements.txt`.
 
 ## AI models
 
-| Role | Model | Notes |
-|---|---|---|
-| Primary | claude-sonnet-4-6 | Via GitHub Models API |
-| Fallback | gpt-4.1 | Used on HTTP 429 or 404 from primary |
+Model selection is handled automatically by the GitHub Copilot Models API — no specific model is pinned in the workflow. The model actually used is logged in the AI review comment on each PR under the **Model:** field.
+
+To change the model, a specific `model` field can be added to the API request body in `.github/workflows/ai-review.yml`. Coordinate with the lead before doing this.
 
 ---
 

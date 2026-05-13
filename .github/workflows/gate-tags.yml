@@ -65,6 +65,11 @@ jobs:
             fi
           done
 
+      - name: Create CDR approved tag
+        run: |
+          git tag -f "cdr/${{ steps.feature.outputs.name }}/approved"
+          git push --force origin "cdr/${{ steps.feature.outputs.name }}/approved"
+
   trr-gate:
     if: github.event.pull_request.merged == true &&
         startsWith(github.event.pull_request.head.ref, 'signoff/') &&
@@ -119,8 +124,8 @@ jobs:
 
       - name: Create release gate tag
         run: |
-          git tag "release/${{ steps.gate.outputs.feature }}/approved"
-          git push origin "release/${{ steps.gate.outputs.feature }}/approved"
+          git tag -f "release/${{ steps.gate.outputs.feature }}/approved"
+          git push --force origin "release/${{ steps.gate.outputs.feature }}/approved"
 
       - name: Generate datasheet Markdown
         run: |

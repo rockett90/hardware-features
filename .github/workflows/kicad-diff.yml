@@ -106,7 +106,7 @@ jobs:
             echo "▶  kicad-visual-diff: ${FEATURE}${PCB_FLAG:+ (with PCB)}"
             # Note: external repos can use the reusable action at kicad-visual-diff/action.yml instead.
             docker run --rm \
-              -v "$PWD/scripts:/scripts" \
+              -v "$PWD/kicad-visual-diff:/kicad-visual-diff" \
               -v "$BASEDIR:/vdiff-base" \
               -v "$HEADDIR:/vdiff-head" \
               -v "$OUTDIR:/vdiff-out" \
@@ -114,7 +114,7 @@ jobs:
               -e HEAD_SHA="${HEAD_SHA}" \
               "ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257" \
               bash -c "pip3 install -q --break-system-packages cairosvg pillow sexpdata 2>&1 || true; \
-                       python3 /scripts/ci/kicad-visual-diff.py \
+                       python3 /kicad-visual-diff/kicad-visual-diff.py \
                          --base-dir /vdiff-base \
                          --head-dir /vdiff-head \
                          --feature \"${FEATURE}\" \

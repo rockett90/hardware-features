@@ -1,19 +1,140 @@
 # Gate Criteria
 
+This document describes the exit criteria for each design gate. It is a reference document for engineers and reviewers.
+
+The CI-enforced checklists are embedded in the PR body templates (`.github/PULL_REQUEST_TEMPLATE/`). This document provides the rationale and context behind each gate requirement.
+
+---
+
 ## PDR — Preliminary Design Review
-- Feature scope defined
-- Initial schematic block diagram exists
-- BOM draft exists
-- No P1 findings open
+
+Recorded via the `init/<feature>` PR. There is no separate `signoff/*/pdr` branch.
+
+**Exit criteria:**
+- Feature name follows the naming convention (lowercase, hyphens, no spaces)
+- `requirements/feature-requirements.yaml` contains real REQ-IDs (not stub placeholder text)
+- `requirements/interface-requirements.yaml` contains real interface definitions with voltage, current, and signal levels
+- `requirements/verification-matrix.md` lists all REQ-IDs with a verification method for each
+- `decisions/DDR-000-design-intent.md` and `decisions/DDR-000-decisions.md` contain real content
+- Feature scope is registered in `commitlint.config.js` and `release-please-config.json` (done automatically by CI on branch push)
+
+**Gate tag:** None. The init PR merge IS the PDR baseline.
+
+---
 
 ## CDR — Critical Design Review
-- Schematic complete, ERC zero errors
-- BOM complete with MPN for all parts
-- All PDR findings resolved or formally deferred
-- CDR checklist fully ticked
+
+Recorded via the `signoff/<feature>/cdr` PR.
+
+**Exit criteria:**
+
+*Artefacts:*
+- Schematic complete — ERC zero errors (zero warnings unless formally accepted and documented)
+- Calculations complete and reviewed
+- Simulations complete and reviewed (where applicable)
+- PCB reviewed
+- BOM complete — no TBDs, all MPNs specified
+- FPTCS draft present in `features/<feature>/production/fptcs/` — test points defined for all interfaces and all functional requirements
+- MTBF confirmed
+
+*Design quality:*
+- All components derated per derating guidelines
+- ESD protection in place on all external-facing signals
+- Protection circuits reviewed (OVP, OCP, reverse polarity)
+- PCB design rules met
+- Creepage and clearance checked against IEC 62368 for working voltage
+
+*Requirements:*
+- Verification matrix CDR-gate column complete
+- All REQ-IDs have evidence or a documented plan
+- DDR-000 complete and reviewed
+- All CRITICAL AI review findings resolved or explicitly dismissed with reasoning
+
+*Library:*
+- `features/<feature>/reviews/library.lock` is created automatically by CI on CDR merge — confirms the exact library submodule commit used at CDR
+
+**Gate tag:** `cdr/<feature>/approved` — created automatically on PR merge.
+
+---
 
 ## TRR — Test Readiness Review
-- All CDR findings resolved or formally deferred
-- IVV plan documented
-- Test environment defined
-- TRR checklist fully ticked
+
+Recorded via the `signoff/<feature>/trr` PR.
+
+**Exit criteria:**
+
+*Design artefacts:*
+- ERC clean (zero errors)
+- DRC clean (zero errors)
+- Calculations complete and reviewed
+- Simulations complete and reviewed
+
+*Implementation:*
+- Stress analysis complete
+- Thermal analysis complete
+- BOM MPNs all confirmed (no TBDs)
+- Bring-up checklist complete and notes committed to `features/<feature>/bring-up/`
+- `production/fptcs/fptcs.yaml` complete — all `[COMPLETE BEFORE TRR]` markers replaced, all TEST-IDs and CAL-IDs have pass/fail criteria, all REQ-IDs linked
+- `production/fptcs/fptcs-notes.md` complete — operator instructions, failure handling, fixturing documented
+- Circuit mods documented in `features/<feature>/circuit-mods/`
+
+*Verification:*
+- All TRR-gate verification matrix items marked Verified
+- All REQ-IDs evidenced
+- `features/<feature>/reviews/external-references.md` populated with real SharePoint and IV&V links (or marked N/A with justification)
+
+*Datasheet:*
+- `datasheet/specs.yaml` complete — all `[COMPLETE BEFORE TRR]` placeholders replaced with real characterised values
+- `datasheet/application-notes.md` complete
+- Datasheet Markdown and PDF committed and reviewed by owner
+
+*AI review:*
+- All CRITICAL findings resolved or explicitly dismissed with reasoning
+
+**Gate tag:** `trr/<feature>/approved` — created (or force-updated for re-TRR) automatically on PR merge.
+
+---
+
+## Final Release
+
+Recorded via the `signoff/<feature>/release` PR.
+
+**Exit criteria:**
+
+*Gate traceability:*
+- `cdr/<feature>/approved` tag present
+- `trr/<feature>/approved` tag present
+- `features/<feature>/reviews/library.lock` committed to `main`
+
+*Design evidence:*
+- ERC report clean (zero errors)
+- All CDR-gate checklist items remain satisfied
+- All TRR-gate checklist items remain satisfied
+
+*IVV completion:*
+- `requirements/verification-matrix.md` updated with IVV result references for all REQ-IDs
+- `features/<feature>/reviews/external-references.md` has real links — no placeholder text remains
+- All `finding: major` and `finding: moderate` findings resolved or formally deferred with lead sign-off
+
+*Manufacturing pack:*
+- Manufacturing outputs generated by CI without errors
+- Gerbers visually verified against PCB layout
+- DRC confirmed clean
+- BOM has no TBDs — all MPNs confirmed and available
+- CPL file verified against placement drawing
+
+*Release:*
+- CHANGELOG reviewed and accurate
+- Version number correct
+
+**Gate tag:** `release/<feature>/approved` — created automatically on PR merge. This tag is the authorisation record for production manufacture. Manufacturing outputs (gerbers, drill, BOM, CPL, schematic PDF) are generated automatically by CI when this tag is created.
+
+**After this gate:** The release-please Release PR creates the final `<feature>-vX.Y.Z` version tag and updates the CHANGELOG. No manufacturing outputs are re-generated at that point.
+
+---
+
+## Second design cycle
+
+When a feature requires design changes after a completed release cycle, a second cycle begins with `signoff/<feature>/cdr-r2`. See [docs/how-to/second-design-cycle.md](../../docs/how-to/second-design-cycle.md) for the full process.
+
+Gate tags for cycle 2: `cdr/<feature>/r2/approved`, `trr/<feature>/r2/approved`, `release/<feature>/r2/approved`.

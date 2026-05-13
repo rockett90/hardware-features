@@ -49,7 +49,7 @@ feat(<feature>): description of change
 
 ### 3. Work on the design in KiCad
 
-Open `features/<feature>/<feature>.kicad_pro` in KiCad 10.0.1.
+Open `features/<feature>/kicad/<feature>.kicad_pro` in KiCad 10.0.1.
 
 Push at the end of every working session.
 

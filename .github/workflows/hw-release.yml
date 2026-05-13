@@ -37,7 +37,7 @@ jobs:
             echo "::error::Unrecognised tag format: $TAG"
             exit 1
           fi
-          VERSION=$(git tag -l "${FEATURE}-v*" | grep -v '\-rc\.' | sort -V | tail -1 || echo "unknown")
+          VERSION=$(git tag -l "${FEATURE}-v*" | grep -v -- '-rc\.' | sort -V | tail -1 || echo "unknown")
           echo "feature=$FEATURE" >> "$GITHUB_OUTPUT"
           echo "cycle=$CYCLE" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"

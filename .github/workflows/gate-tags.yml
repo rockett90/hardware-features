@@ -118,7 +118,8 @@ jobs:
   release-gate:
     if: github.event.pull_request.merged == true &&
         startsWith(github.event.pull_request.head.ref, 'signoff/') &&
-        contains(github.event.pull_request.head.ref, '/release')
+        (endsWith(github.event.pull_request.head.ref, '/release') ||
+         contains(github.event.pull_request.head.ref, '/release-r'))
     runs-on: ubuntu-latest
     concurrency:
       group: release-gate-${{ github.event.pull_request.head.ref }}
@@ -135,7 +136,7 @@ jobs:
         id: gate
         run: |
           REF="${{ github.event.pull_request.head.ref }}"
-          FEATURE=$(echo "$REF" | sed 's|^signoff/||;s|/release.*$||')
+          FEATURE=$(echo "$REF" | sed 's|^signoff/||' | rev | cut -d'/' -f2- | rev)
           echo "feature=$FEATURE" >> $GITHUB_OUTPUT
 
       - name: Create release gate tag

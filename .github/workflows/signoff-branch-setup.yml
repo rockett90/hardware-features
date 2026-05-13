@@ -59,9 +59,11 @@ jobs:
             cdr)
               if [[ "$CYCLE" == "1" ]]; then
                 PREV_TAG=""; PREV_GATE="PDR (no tag)"
+              elif [[ "$CYCLE" == "2" ]]; then
+                PREV_TAG="release/${FEATURE}/approved"
+                PREV_GATE="Release cycle 1"
               else
                 PREV_TAG="release/${FEATURE}/r$((CYCLE-1))/approved"
-                [[ "$CYCLE" == "2" ]] && PREV_TAG="release/${FEATURE}/approved"
                 PREV_GATE="Release cycle $((CYCLE-1))"
               fi
               NEXT_GATE="CDR (cycle ${CYCLE})"

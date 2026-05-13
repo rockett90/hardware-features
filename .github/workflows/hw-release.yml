@@ -67,12 +67,12 @@ jobs:
           mkdir -p "$FAB_DIR"
           docker run --rm \
             -v "$PWD:/repo" \
-            -w "/repo/features/$FEATURE" \
+            -w "/repo/features/$FEATURE/kicad" \
             "${{ env.KICAD_IMAGE }}" \
             kibot \
               -c /repo/config/kibot/base.kibot.yml \
               -e "$FEATURE.kicad_sch" \
-              -b "pcb/$FEATURE.kicad_pcb" \
+              -b "$FEATURE.kicad_pcb" \
               -d /repo/$FAB_DIR \
               2>&1
 

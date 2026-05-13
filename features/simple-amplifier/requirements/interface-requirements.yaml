@@ -1,26 +1,42 @@
 # ─── Document metadata ───────────────────────────────────────────────────────
-# document-version: Increment on every substantive change to requirements content.
-#   Use semantic versioning: 0.x for pre-PDR drafts, 1.0 at PDR baseline, etc.
-# baseline: The gate at which this version was formally approved.
-#   Values: DRAFT | PDR | CDR | TRR
-# approved-date: Set at gate sign-off. Format: YYYY-MM-DD.
-# approved-by: Lead engineer name at gate sign-off.
-document-version: "0.1"
-baseline: DRAFT
-approved-date: ""
-approved-by: ""
+document-version: "1.0"
+baseline: PDR
+approved-date: "2025-03-01"
+approved-by: "Reference Example"
 # ─────────────────────────────────────────────────────────────────────────────
 feature: simple-amplifier
 created-at-gate: pdr
-last-updated: YYYY-MM-DD
+last-updated: "2025-03-01"
 interfaces:
   power-input:
+    description: "Single 3.3 V supply from system power rail"
+    connector: J1
+    voltage-nom-v: 3.3
+    voltage-min-v: 3.135
+    voltage-max-v: 3.465
+    current-max-ma: 10
+    notes: "100 nF decoupling capacitor on supply pin."
+
+  signal-input:
+    description: "Analogue voltage input from sensor"
+    connector: J2
+    pin: 1
     voltage-min-v: 0.0
-    voltage-max-v: 0.0
-    current-max-a: 0.0
-  power-output:
-    voltage-v: 0.0
-    current-max-a: 0.0
+    voltage-max-v: 0.5
+    impedance-min-kohm: 100
+    notes: "100 Ω series input protection resistor fitted."
+
+  signal-output:
+    description: "Amplified analogue voltage output to ADC"
+    connector: J3
+    pin: 1
+    voltage-min-v: 0.0
+    voltage-max-v: 3.3
+    series-resistor-ohm: 100
+    notes: "100 Ω series output resistor to protect against capacitive ADC input."
+
   environment:
     temperature-operating-min-c: -20
-    temperature-operating-max-c: 857
+    temperature-operating-max-c: 70
+    temperature-storage-min-c: -40
+    temperature-storage-max-c: 85

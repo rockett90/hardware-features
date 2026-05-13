@@ -43,6 +43,7 @@ jobs:
             core.setOutput('pr_number', String(prNumber));
             core.setOutput('ref',       data.head.ref);
             core.setOutput('sha',       data.head.sha);
+            core.setOutput('sha_short', data.head.sha.slice(0, 7));
             core.setOutput('base_ref',  data.base.ref);
 
       - uses: actions/checkout@v4
@@ -265,6 +266,25 @@ jobs:
             done || true
           done <<< "${{ steps.find.outputs.features }}"
 
+      - name: Write render traceability manifest
+        run: |
+          GENERATED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          while IFS= read -r FEATURE; do
+            [[ -z "$FEATURE" ]] && continue
+            mkdir -p "features/${FEATURE}/fab"
+            cat > "features/${FEATURE}/fab/RENDER-INFO.txt" <<EOF
+          # KiCad Render Traceability Manifest
+          feature: ${FEATURE}
+          sha: ${{ steps.pr.outputs.sha }}
+          sha_short: ${{ steps.pr.outputs.sha_short }}
+          pr_number: ${{ steps.pr.outputs.pr_number }}
+          branch: ${{ steps.pr.outputs.ref }}
+          workflow_run_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          generated_at: ${GENERATED_AT}
+          kicad_image: ${{ env.KICAD_IMAGE }}
+          EOF
+          done <<< "${{ steps.find.outputs.features }}"
+
       - name: Run kicad-happy analysis per feature
         id: kicad_happy
         if: steps.find.outputs.has_any_feature == 'true'
@@ -342,6 +362,7 @@ jobs:
           path: |
             features/*/fab/*.svg
             features/*/fab/*.pdf
+            features/*/fab/RENDER-INFO.txt
           retention-days:    90
           if-no-files-found: warn
 

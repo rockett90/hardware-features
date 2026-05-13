@@ -101,16 +101,27 @@ CI validates every PR branch name. A non-matching name fails the "Validate branc
 
 ## Further reading
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) — full contributor guide
+**Setup**
 - [docs/versions.md](docs/versions.md) — all pinned tool and dependency versions
 - [docs/tools.md](docs/tools.md) — toolchain reference for new engineers
 - [docs/setup/kicad-setup.md](docs/setup/kicad-setup.md) — KiCad installation and library setup
 - [docs/setup/tool-setup.md](docs/setup/tool-setup.md) — Git tooling setup (GitHub Desktop or GitHub CLI)
+
+**Contributor reference**
+- [CONTRIBUTING.md](CONTRIBUTING.md) — full contributor guide including branch naming, commit format, CI failure fixes, and IVV finding loop
+
+**How-to guides**
+- [docs/how-to/README.md](docs/how-to/README.md) — index of all how-to guides
 - [docs/how-to/worked-example.md](docs/how-to/worked-example.md) — complete worked example from idea to release
 - [docs/how-to/init-feature.md](docs/how-to/init-feature.md) — how to initialise a new feature
 - [docs/how-to/design-workflow.md](docs/how-to/design-workflow.md) — day-to-day design workflow
+
+**Gate sign-offs**
 - [docs/how-to/cdr-signoff.md](docs/how-to/cdr-signoff.md) — how to perform a CDR sign-off
 - [docs/how-to/trr-signoff.md](docs/how-to/trr-signoff.md) — how to perform a TRR sign-off
 - [docs/how-to/release-signoff.md](docs/how-to/release-signoff.md) — how to perform a Final Release sign-off
+- [docs/how-to/second-design-cycle.md](docs/how-to/second-design-cycle.md) — how to start a second design cycle
+
+**CI and tooling**
 - [scripts/ci/README.md](scripts/ci/README.md) — CI script reference
 - [kicad-visual-diff/README.md](kicad-visual-diff/README.md) — visual diff action reference

@@ -64,6 +64,29 @@ jobs:
             const commandLine = body.split('\n').map(l => l.trim()).find(l => l.startsWith('/'));
             const command = commandLine ? commandLine.split(/\s+/)[0] : null;
 
+            // Detect multiple slash commands in one comment
+            const allCommandLines = body.split('\n')
+              .map(l => l.trim())
+              .filter(l => l.startsWith('/'))
+              .map(l => l.split(/\s+/)[0]);
+
+            if (allCommandLines.length > 1) {
+              const ignored = allCommandLines.slice(1);
+              await github.rest.issues.createComment({
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
+                issue_number: context.issue.number,
+                body: [
+                  `⚠️ Only one slash command is processed per comment.`,
+                  ``,
+                  `Running: \`${allCommandLines[0]}\``,
+                  `Ignored: ${ignored.map(c => `\`${c}\``).join(', ')}`,
+                  ``,
+                  `Post each command as a separate comment to run them all.`,
+                ].join('\n'),
+              });
+            }
+
             // Fetch PR details to get head_sha
             const { data: pr } = await github.rest.pulls.get({
               owner:       context.repo.owner,

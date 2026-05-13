@@ -11,6 +11,19 @@
 
 ## Design Artefacts
 
+<!-- 
+  Before ticking the artefact items below, work through the relevant review checklists:
+  - Schematic: checklists/review/schematic-review.md
+  - PCB: checklists/review/pcb-review.md
+  - BOM: checklists/review/bom-review.md
+  - Bring-up: checklists/review/bring-up-review.md
+  - Thermal: checklists/review/thermal-review.md
+  - Stress: checklists/review/stress-analysis-review.md
+  - FPTCS: checklists/review/fptcs-review.md
+  - EMC: checklists/review/emc-review.md
+  These checklists are engineer reference documents — they are not auto-posted to this PR.
+-->
+
 - [ ] ERC clean (zero errors)
 - [ ] DRC clean (zero errors)
 - [ ] Calculations complete and reviewed

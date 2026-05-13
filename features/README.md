@@ -15,10 +15,10 @@ Each subdirectory in `features/` represents a single hardware feature. Features 
 Do not create a feature directory by hand. Instead, follow the init PR process:
 
 1. Create a branch `init/<feature>`.
-2. Add the required seed files.
-3. Open and merge the PR.
+2. Push the branch so `init-branch-setup.yml` scaffolds the full directory structure automatically.
+3. Pull the scaffold commit, add the required seed files, then open and merge the PR.
 
-On merge, `init-feature.yml` scaffolds the full directory structure automatically.
+`init-feature.yml` is currently disabled. The scaffold is committed to the `init/<feature>` branch when it is first pushed, before the PR is opened.
 
 See [docs/how-to/init-feature.md](../docs/how-to/init-feature.md) for step-by-step instructions.
 
@@ -26,7 +26,7 @@ See [docs/how-to/init-feature.md](../docs/how-to/init-feature.md) for step-by-st
 
 ## Standard feature directory structure
 
-After `init-feature.yml` runs, every feature directory contains:
+After `init-branch-setup.yml` runs, every feature directory contains:
 
 ```
 features/<feature>/

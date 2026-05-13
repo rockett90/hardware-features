@@ -8,7 +8,7 @@
 
 This directory contains Markdown checklists used at different stages of the design process. They serve as structured prompts for reviewers — they are **not** automated gates.
 
-> 💡 Tip: The `post-checklist.yml` workflow automatically posts the appropriate checklist as a PR comment when a PR is opened or converted from draft, so reviewers see the relevant checklist without having to find it manually.
+> 💡 Tip: The `post-checklist.yml` workflow posts a short orientation comment on relevant PRs, pointing reviewers to the checklist in the PR description or template — it does not post the full checklist content as a comment.
 
 ---
 
@@ -16,8 +16,8 @@ This directory contains Markdown checklists used at different stages of the desi
 
 | Directory | Contents | When used |
 |---|---|---|
-| `gates/` | Checklists for formal design gate sign-offs (CDR, TRR, release) | When raising a `signoff/<feature>/cdr` or `signoff/<feature>/trr` PR |
-| `review/` | Checklists for general design reviews (schematic, PCB, BOM, general) | During artifact PR review |
+| `gates/` | Checklists for formal design gate sign-offs (PDR, CDR, TRR, release) | When raising an `init/<feature>` PR or a `signoff/<feature>/...` PR |
+| `review/` | Checklists for general design reviews (schematic, PCB, BOM, bring-up, EMC, FPTCS, stress, thermal, general) | During artifact PR review |
 | `library/` | Checklist for adding a new component to the shared library | When raising a `library/<desc>` PR |
 
 ---
@@ -27,6 +27,7 @@ This directory contains Markdown checklists used at different stages of the desi
 | File | Purpose |
 |---|---|
 | `cdr-checklist.md` | Critical Design Review gate checklist |
+| `pdr-checklist.md` | Preliminary Design Review gate checklist |
 | `trr-checklist.md` | Test Readiness Review gate checklist |
 | `release-checklist.md` | Release readiness checklist |
 
@@ -37,7 +38,12 @@ This directory contains Markdown checklists used at different stages of the desi
 | `schematic-review.md` | Schematic design review checklist |
 | `pcb-review.md` | PCB layout review checklist |
 | `bom-review.md` | Bill of Materials review checklist |
+| `bring-up-review.md` | Bring-up review checklist |
+| `emc-review.md` | EMC review checklist |
+| `fptcs-review.md` | Functional performance test case specification review checklist |
 | `general-review.md` | General design review checklist |
+| `stress-analysis-review.md` | Stress analysis review checklist |
+| `thermal-review.md` | Thermal review checklist |
 
 ## Library (`library/`)
 

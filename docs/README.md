@@ -34,6 +34,7 @@
 | [how-to/cdr-signoff.md](how-to/cdr-signoff.md) | How to perform a Critical Design Review (CDR) sign-off |
 | [how-to/library-lock.md](how-to/library-lock.md) | What library.lock is and how to use it for design traceability |
 | [how-to/trr-signoff.md](how-to/trr-signoff.md) | How to perform a Test Readiness Review (TRR) sign-off |
+| [how-to/release-signoff.md](how-to/release-signoff.md) | How to perform a Final Release sign-off |
 
 ---
 

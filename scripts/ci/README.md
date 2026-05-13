@@ -133,8 +133,12 @@ Exit code 0 = valid. Non-zero = invalid, with an error message.
 | `artifact/<feature>/<desc-HW-N>` | `artifact/buck-converter-5v/add-filter-HW-42` |
 | `finding/<feature>/<N>-<desc>` | `finding/buck-converter-5v/7-wrong-footprint` |
 | `signoff/<feature>/cdr` | `signoff/buck-converter-5v/cdr` |
+| `signoff/<feature>/cdr-rN` | `signoff/buck-converter-5v/cdr-r2` |
 | `signoff/<feature>/trr` | `signoff/buck-converter-5v/trr` |
 | `signoff/<feature>/trr-N` | `signoff/buck-converter-5v/trr-2` |
+| `signoff/<feature>/trr-rN` | `signoff/buck-converter-5v/trr-r2` |
+| `signoff/<feature>/release` | `signoff/buck-converter-5v/release` |
+| `signoff/<feature>/release-rN` | `signoff/buck-converter-5v/release-r2` |
 | `library/<desc>` | `library/add-ldo-symbol` |
 | `chore/<desc>` | `chore/update-kibot-config` |
 | `release-please--*` | (managed automatically) |
@@ -161,4 +165,3 @@ Exit code 0 = valid. Non-zero = invalid, with an error message describing the vi
 2. No more than one `features/<feature>` directory is touched in a single PR.
 
 > ⚠️ Warning: This check applies to all file types, not just KiCad files. A PR that modifies `features/feature-a/requirements/` and `features/feature-b/requirements/` will also fail.
-

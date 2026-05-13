@@ -3,38 +3,46 @@ name: Manufacturing Release
 on:
   push:
     tags:
-      - '*-v[0-9]*.[0-9]*.[0-9]*'
+      - 'release/*/approved'
+      - 'release/*/*/approved'
 
 jobs:
   manufacturing-release:
     name: Generate and attach manufacturing artefacts
     runs-on: ubuntu-latest
-    # Only fire on production tags — skip release candidates
-    if: "!contains(github.ref_name, '-rc.')"
     env:
       KICAD_IMAGE: ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257
       # NOTE: This SHA must match the value in render.yml, erc-drc.yml, and hw-release.yml.
       # When updating, update all three files.
 
     steps:
-      - name: Detect feature name from tag
-        id: tag
-        run: |
-          TAG="${GITHUB_REF_NAME}"
-          # Tag format: <feature>-vX.Y.Z
-          # Strip the version suffix to get the feature name
-          FEATURE="${TAG%-v*}"
-          VERSION="${TAG#*-v}"
-          echo "feature=$FEATURE" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Feature: $FEATURE  Version: $VERSION  Tag: $TAG"
-
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Detect feature name and cycle from tag
+        id: tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # release/<feature>/approved  OR  release/<feature>/rN/approved
+          if [[ "$TAG" =~ ^release/(.+)/r([0-9]+)/approved$ ]]; then
+            FEATURE="${BASH_REMATCH[1]}"
+            CYCLE="${BASH_REMATCH[2]}"
+          elif [[ "$TAG" =~ ^release/(.+)/approved$ ]]; then
+            FEATURE="${BASH_REMATCH[1]}"
+            CYCLE="1"
+          else
+            echo "::error::Unrecognised tag format: $TAG"
+            exit 1
+          fi
+          VERSION=$(git tag -l "${FEATURE}-v*" | grep -v '\-rc\.' | sort -V | tail -1 || echo "unknown")
+          echo "feature=$FEATURE" >> "$GITHUB_OUTPUT"
+          echo "cycle=$CYCLE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Feature: $FEATURE  Cycle: $CYCLE  Version: $VERSION  Tag: $TAG"
 
       - name: Verify feature directory exists
         run: |
@@ -44,19 +52,6 @@ jobs:
             exit 1
           fi
           echo "Feature directory confirmed: features/$FEATURE"
-
-      - name: Verify Final Release gate cleared
-        run: |
-          FEATURE="${{ steps.tag.outputs.feature }}"
-          if ! git ls-remote --tags origin "release/$FEATURE/approved" | grep -q "release/$FEATURE/approved"; then
-            echo "::error::Final Release gate not cleared — tag release/$FEATURE/approved not found."
-            echo "Raise and merge a signoff/$FEATURE/release PR before pushing a production tag."
-            echo "## ⛔ Final Release gate not cleared" >> $GITHUB_STEP_SUMMARY
-            echo "Tag \`release/$FEATURE/approved\` was not found." >> $GITHUB_STEP_SUMMARY
-            echo "Raise and merge a \`signoff/$FEATURE/release\` PR first." >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-          echo "✅ Final Release gate cleared — release/$FEATURE/approved tag confirmed."
 
       - name: Run KiBot manufacturing outputs
         id: kibot_outputs
@@ -87,9 +82,9 @@ jobs:
       - name: Create manufacturing ZIP
         run: |
           FEATURE="${{ steps.tag.outputs.feature }}"
-          TAG="${{ steps.tag.outputs.tag }}"
+          CYCLE="${{ steps.tag.outputs.cycle }}"
           FAB_DIR="features/$FEATURE/fab/release"
-          ZIP_NAME="${TAG}-manufacturing.zip"
+          ZIP_NAME="${FEATURE}-cycle${CYCLE}-manufacturing.zip"
 
           if [ -d "$FAB_DIR" ] && [ "$(ls -A "$FAB_DIR")" ]; then
             zip -r "$ZIP_NAME" "$FAB_DIR/"
@@ -136,6 +131,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
+          name: "${{ steps.tag.outputs.feature }} — Release (cycle ${{ steps.tag.outputs.cycle }})"
           files: ${{ steps.create_zip.outputs.zip_name }}
           fail_on_unmatched_files: true
 

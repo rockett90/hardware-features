@@ -67,8 +67,17 @@ jobs:
 
       - name: Create CDR approved tag
         run: |
-          git tag -f "cdr/${{ steps.feature.outputs.name }}/approved"
-          git push --force origin "cdr/${{ steps.feature.outputs.name }}/approved"
+          FEATURE="${{ steps.feature.outputs.name }}"
+          REF="${{ github.event.pull_request.head.ref }}"
+          # Check if this is a cycle-repeat (contains -rN)
+          if [[ "$REF" =~ /cdr-r([0-9]+)$ ]]; then
+            CYCLE="${BASH_REMATCH[1]}"
+            git tag "cdr/${FEATURE}/r${CYCLE}/approved"
+            git push origin "cdr/${FEATURE}/r${CYCLE}/approved"
+          fi
+          # Always update the floating approved tag (force)
+          git tag -f "cdr/${FEATURE}/approved"
+          git push --force origin "cdr/${FEATURE}/approved"
 
   trr-gate:
     if: github.event.pull_request.merged == true &&
@@ -95,14 +104,21 @@ jobs:
 
       - name: Create and push TRR approved tag
         run: |
-          # Force-push to handle re-TRR: the approved tag is updated to the latest commit.
-          git tag -f "trr/${{ steps.feature.outputs.name }}/approved"
-          git push --force origin "trr/${{ steps.feature.outputs.name }}/approved"
+          FEATURE="${{ steps.feature.outputs.name }}"
+          REF="${{ github.event.pull_request.head.ref }}"
+          if [[ "$REF" =~ /trr-r([0-9]+)$ ]]; then
+            CYCLE="${BASH_REMATCH[1]}"
+            git tag "trr/${FEATURE}/r${CYCLE}/approved"
+            git push origin "trr/${FEATURE}/r${CYCLE}/approved"
+          fi
+          # Always update the floating approved tag (force)
+          git tag -f "trr/${FEATURE}/approved"
+          git push --force origin "trr/${FEATURE}/approved"
 
   release-gate:
     if: github.event.pull_request.merged == true &&
         startsWith(github.event.pull_request.head.ref, 'signoff/') &&
-        endsWith(github.event.pull_request.head.ref, '/release')
+        contains(github.event.pull_request.head.ref, '/release')
     runs-on: ubuntu-latest
     concurrency:
       group: release-gate-${{ github.event.pull_request.head.ref }}
@@ -119,13 +135,21 @@ jobs:
         id: gate
         run: |
           REF="${{ github.event.pull_request.head.ref }}"
-          FEATURE=$(echo "$REF" | sed 's|^signoff/||;s|/release$||')
+          FEATURE=$(echo "$REF" | sed 's|^signoff/||;s|/release.*$||')
           echo "feature=$FEATURE" >> $GITHUB_OUTPUT
 
       - name: Create release gate tag
         run: |
-          git tag -f "release/${{ steps.gate.outputs.feature }}/approved"
-          git push --force origin "release/${{ steps.gate.outputs.feature }}/approved"
+          FEATURE="${{ steps.gate.outputs.feature }}"
+          REF="${{ github.event.pull_request.head.ref }}"
+          if [[ "$REF" =~ /release-r([0-9]+)$ ]]; then
+            CYCLE="${BASH_REMATCH[1]}"
+            git tag "release/${FEATURE}/r${CYCLE}/approved"
+            git push origin "release/${FEATURE}/r${CYCLE}/approved"
+          fi
+          # Always update the floating approved tag (force)
+          git tag -f "release/${FEATURE}/approved"
+          git push --force origin "release/${FEATURE}/approved"
 
       - name: Generate datasheet Markdown
         run: |

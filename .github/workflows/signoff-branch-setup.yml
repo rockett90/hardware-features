@@ -29,7 +29,8 @@ jobs:
           # Strip cycle suffix (-r2, -r3) then re-attempt suffix (-2, -3) to get base gate type
           GATE_TYPE=$(echo "$GATE_FULL" | sed 's|-r[0-9]*$||;s|-[0-9]*$||')
           # Extract cycle number if present
-          CYCLE=$(echo "$GATE_FULL" | grep -oP '(?<=-r)\d+$' || echo "1")
+          CYCLE=$(echo "$GATE_FULL" | sed -n 's|.*-r\([0-9][0-9]*\)$|\1|p')
+          [[ -z "$CYCLE" ]] && CYCLE="1"
           echo "feature=$FEATURE" >> $GITHUB_OUTPUT
           echo "gate_full=$GATE_FULL" >> $GITHUB_OUTPUT
           echo "gate_type=$GATE_TYPE" >> $GITHUB_OUTPUT

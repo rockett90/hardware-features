@@ -136,7 +136,7 @@ jobs:
         id: gate
         run: |
           REF="${{ github.event.pull_request.head.ref }}"
-          FEATURE=$(echo "$REF" | sed -E 's|^signoff/(.*)/(release(-r[0-9]+)?)$|\1|')
+          FEATURE=$(echo "$REF" | sed -E 's|^signoff/(.*)/release(-r[0-9]+)?$|\1|')
           echo "feature=$FEATURE" >> $GITHUB_OUTPUT
 
       - name: Create release gate tag

@@ -95,7 +95,7 @@ CI validates every PR branch name. A non-matching name fails the "Validate branc
 4. **CDR sign-off** (`signoff/<feature>/cdr`) — gate-check CI must pass before merge.
 5. **TRR sign-off** (`signoff/<feature>/trr`) — gate-check CI must pass before merge; creates an rc pre-release automatically.
 6. **Final Release sign-off** (`signoff/<feature>/release`) — gate-check CI must pass before merge; creates the `release/<feature>/approved` tag. See [docs/how-to/release-signoff.md](docs/how-to/release-signoff.md).
-7. **Release** — merge the release-please Release PR; never close it manually. Manufacturing outputs are generated automatically from the production tag.
+7. **Release** — merge the release-please Release PR; never close it manually. Manufacturing outputs are generated automatically from the `release/<feature>/approved` gate tag.
 
 ---
 

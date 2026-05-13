@@ -43,9 +43,12 @@ Preferences → Manage Symbol Libraries → add `library/symbols/` using `${KIPR
 | Finding | `finding/<feature>/<N>-<desc>` | IVV finding fix. N is the GitHub Issue number. Triggers automatic label updates on the linked issue. |
 | CDR sign-off | `signoff/<feature>/cdr` | CDR gate sign-off. Document-only PR. Triggers CDR checklist posting and gate tag creation. |
 | Re-CDR | `signoff/<feature>/cdr-N` | Re-CDR after a `finding: major` severity forces the design back to CDR. N starts at 1. Triggers the same CDR gate automation as the original CDR sign-off. |
+| CDR (cycle N) | `signoff/<feature>/cdr-rN` | Start design cycle N (N ≥ 2) after a prior release cycle has completed. Creates cycle-scoped gate tags (for example `cdr/<feature>/r2/approved`) and updates floating gate tags. |
 | TRR sign-off | `signoff/<feature>/trr` | TRR gate sign-off. Document-only PR. Triggers TRR checklist, rc tag, and pre-release creation. |
 | Re-TRR | `signoff/<feature>/trr-N` | Re-TRR after finding resolution. Triggers visual diff versus previous rc tag. |
+| TRR (cycle N) | `signoff/<feature>/trr-rN` | TRR sign-off for design cycle N (N ≥ 2). Creates cycle-scoped gate tags (for example `trr/<feature>/r2/approved`) and updates floating gate tags. |
 | Release sign-off | `signoff/<feature>/release` | Final Release gate. Document-only PR. Triggers release gate checklist enforcement and `release/<feature>/approved` tag creation. Must be raised and merged before manufacturing outputs are considered authorised for production. |
+| Release sign-off (cycle N) | `signoff/<feature>/release-rN` | Final Release gate for design cycle N (N ≥ 2). Creates `release/<feature>/rN/approved` and updates the floating `release/<feature>/approved` tag. |
 | Library | `library/<desc>` | Changes to the hardware-library repository (raised in that repo, not here). |
 | Chore | `chore/<desc>` | Repository housekeeping: CI changes, guideline updates, template changes, submodule pointer updates. Uses `library` scope in PR title by convention. |
 

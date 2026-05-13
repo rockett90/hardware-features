@@ -111,26 +111,15 @@ def _check_kicad_cli(warnings_list: List[str]) -> bool:
 def _collect_sheets(root: Path, feature: str) -> Dict[str, Path]:
     """Return {sheet_filename: absolute_path} for a given root dir.
 
-    Looks in two locations (checked in order, no duplicates):
-    1. features/<feature>/schematics/*.kicad_sch  — if that subdirectory exists
-    2. features/<feature>/*.kicad_sch             — root dir glob (catches the
-       root schematic and any sibling hierarchical sheets)
+    Looks in features/<feature>/kicad/*.kicad_sch.
     """
     sheets: Dict[str, Path] = {}
 
-    # Primary location: features/<feature>/schematics/*.kicad_sch
-    sch_dir = root / "features" / feature / "schematics"
+    # Primary location: features/<feature>/kicad/*.kicad_sch
+    sch_dir = root / "features" / feature / "kicad"
     if sch_dir.is_dir():
         for f in sorted(sch_dir.glob("*.kicad_sch")):
             sheets[f.name] = f
-
-    # Fallback: glob all *.kicad_sch files in the feature root directory.
-    # This picks up the root schematic and any sibling hierarchical sheets.
-    feature_dir = root / "features" / feature
-    if feature_dir.is_dir():
-        for f in sorted(feature_dir.glob("*.kicad_sch")):
-            if f.name not in sheets:
-                sheets[f.name] = f
 
     return sheets
 
@@ -155,9 +144,9 @@ def find_sheets(
 def find_pcb(
     base_dir: Path, head_dir: Path, feature: str
 ) -> Tuple[Optional[Path], Optional[Path]]:
-    """Return (base_pcb_or_None, head_pcb_or_None) for features/<feature>/<feature>.kicad_pcb."""
+    """Return (base_pcb_or_None, head_pcb_or_None) for features/<feature>/kicad/<feature>.kicad_pcb."""
     def _pcb(root: Path) -> Optional[Path]:
-        p = root / "features" / feature / f"{feature}.kicad_pcb"
+        p = root / "features" / feature / "kicad" / f"{feature}.kicad_pcb"
         return p if p.is_file() else None
 
     return _pcb(base_dir), _pcb(head_dir)

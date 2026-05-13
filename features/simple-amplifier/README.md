@@ -6,22 +6,18 @@
 
 ## What is this feature?
 
-<!-- Describe the purpose and function of this feature in 1–3 paragraphs.
-     What problem does it solve? Where does it fit in the wider system?
-     Written for someone picking this up for the first time. -->
-
-[COMPLETE AT PDR]
+This is the canonical reference example feature. It demonstrates a correctly-populated feature directory structure. See `docs/how-to/worked-example.md` for the full lifecycle walkthrough.
 
 ---
 
 ## Gate history
 
-| Gate | Date | Tag | Lead |
-|---|---|---|---|
-| PDR | <!-- date --> | `pdr/simple-amplifier/approved` | <!-- name --> |
-| CDR | <!-- date --> | `cdr/simple-amplifier/approved` | <!-- name --> |
-| TRR | <!-- date --> | `simple-amplifier-vX.Y.Z-rc.N` | <!-- name --> |
-| Release | <!-- date --> | `release/simple-amplifier/approved` | <!-- name --> |
+| Gate | Cycle | Date | Tag | Lead |
+|---|---|---|---|---|
+| PDR | 1 | <!-- date --> | `pdr/simple-amplifier/approved` | <!-- name --> |
+| CDR | 1 | <!-- date --> | `cdr/simple-amplifier/approved` | <!-- name --> |
+| TRR | 1 | <!-- date --> | `trr/simple-amplifier/approved` | <!-- name --> |
+| Release | 1 | <!-- date --> | `release/simple-amplifier/approved` | <!-- name --> |
 
 ---
 
@@ -29,7 +25,8 @@
 
 <!-- Link to DDR files in decisions/ — one line each with a brief summary of the decision. -->
 
-- [DDR-000 — Feature overview](decisions/DDR-000-feature-overview.md)
+- [DDR-000 — Design intent](decisions/DDR-000-design-intent.md)
+- [DDR-000 — Decisions](decisions/DDR-000-decisions.md)
 
 ---
 

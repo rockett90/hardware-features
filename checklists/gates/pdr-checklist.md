@@ -1,6 +1,6 @@
 # PDR Checklist
 
-> Reference document — the authoritative PDR checklist is embedded in the init PR body template (`.github/PULL_REQUEST_TEMPLATE/init.md`), which is pre-filled when a `signoff/<feature>/pdr` or `init/<feature>` PR is opened. This file is a standalone reference copy.
+> Reference document — the authoritative PDR checklist is embedded in the init PR body template (`.github/PULL_REQUEST_TEMPLATE/init.md`), which is pre-filled when an `init/<feature>` PR is opened. This file is a standalone reference copy.
 
 ## Scope and requirements
 

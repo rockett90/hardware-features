@@ -21,6 +21,22 @@ Use the kicad-happy report as your primary source of deterministic findings. You
 
 ---
 
+## Before you begin — check for stub content
+
+Before working through the review checklist, check whether the context files contain real content or scaffolded placeholders.
+
+**Requirements files:**
+- If `feature-requirements.yaml` contains only placeholder text (e.g. `[TO BE COMPLETED]`, `REQ-XXX`, `TBD`, or fewer than 3 real REQ-IDs), skip section 7 (Requirements traceability) entirely and note: *"Requirements not yet populated — traceability review skipped."*
+- Do not fabricate requirements traceability findings against placeholder content.
+
+**Interface requirements:**
+- If `interface-requirements.yaml` contains only placeholder text (e.g. `[TO BE COMPLETED]`, `TBD`, or no real interface entries), skip the interface-level checks in sections 4 and 7 and note: *"Interface requirements not yet populated — interface checks skipped."*
+
+**Guideline files:**
+- The `guidelines/` files referenced in `company-standards.md` may be placeholder documents. Apply the engineering standards stated **directly in `company-standards.md`** — do not attempt to load or cite the guideline files. The specific values stated in `company-standards.md` (derating thresholds, ESD levels, impedance targets) are authoritative and should be applied directly.
+
+---
+
 ## Review checklist
 
 Work through each section below. Skip sections where the kicad-happy report shows no relevant findings and the schematic shows no changes in that area.
@@ -54,6 +70,9 @@ Work through each section below. Skip sections where the kicad-happy report show
 - Are power flags present on power nets sourced from a power symbol?
 
 ### 7. Requirements traceability
+
+> Skip this section if requirements files are stubs — see "Before you begin" above.
+
 - For every REQ-ID in `feature-requirements.yaml` that is relevant to the schematic, is there evidence the requirement is being met? Flag any REQ-ID with no visible implementation path.
 - For every interface in `interface-requirements.yaml`, is the interface implemented in the schematic with appropriate signal conditioning, protection, and termination?
 

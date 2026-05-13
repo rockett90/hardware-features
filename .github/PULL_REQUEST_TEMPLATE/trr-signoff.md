@@ -43,6 +43,7 @@
 
 - [ ] All TRR-gate verification matrix items marked Verified
 - [ ] All REQ-IDs evidenced
+- [ ] `features/<feature>/reviews/external-references.md` populated with real SharePoint and IV&V links (or marked N/A with justification)
 
 ## Open Findings (re-TRR only — tick N/A if first TRR)
 

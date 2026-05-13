@@ -54,6 +54,8 @@ For pinned versions of all tools listed here, see [docs/versions.md](versions.md
 
 **Documentation:** [models.github.com](https://models.github.com)
 
+**Setup:** [docs/setup/ai-review-setup.md](setup/ai-review-setup.md)
+
 ---
 
 ## release-please

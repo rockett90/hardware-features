@@ -21,6 +21,7 @@
 |---|---|
 | [setup/tool-setup.md](setup/tool-setup.md) | Installing Git tooling (GitHub Desktop or GitHub CLI) and cloning the repository |
 | [setup/kicad-setup.md](setup/kicad-setup.md) | Installing KiCad and configuring the symbol and footprint libraries |
+| [setup/ai-review-setup.md](setup/ai-review-setup.md) | Enabling AI schematic review — token setup, data protection, troubleshooting |
 
 ---
 

@@ -87,6 +87,34 @@ jobs:
           echo ""                                                       >> "$OUT"
           echo "> Created automatically by CI. Do not edit manually." >> "$OUT"
 
+          SCH_SVG_GENERATED=false
+          if [[ "$GATE_TYPE" == "release" ]]; then
+            # Export schematic SVG for datasheet inclusion (release gate only)
+            KICAD_IMAGE="ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257"
+            # NOTE: This SHA must match the value in render.yml, erc-drc.yml, and hw-release.yml.
+            if [[ -f "features/${FEATURE}/kicad/${FEATURE}.kicad_sch" ]]; then
+              echo "Exporting schematic SVG for datasheet..."
+              mkdir -p "features/${FEATURE}/datasheet"
+              docker run --rm \
+                -v "$PWD:/repo" \
+                -w "/repo" \
+                "$KICAD_IMAGE" \
+                kicad-cli sch export svg \
+                  --output "/repo/features/${FEATURE}/datasheet/" \
+                  "/repo/features/${FEATURE}/kicad/${FEATURE}.kicad_sch" 2>&1 || true
+              EXPORTED_SVG="features/${FEATURE}/datasheet/${FEATURE}.svg"
+              if [[ -f "$EXPORTED_SVG" ]]; then
+                mv "$EXPORTED_SVG" "features/${FEATURE}/datasheet/${FEATURE}-schematic.svg"
+                SCH_SVG_GENERATED=true
+                echo "Circuit SVG exported: features/${FEATURE}/datasheet/${FEATURE}-schematic.svg"
+              else
+                echo "Warning: kicad-cli ran but no SVG found — datasheet will be generated without circuit image"
+              fi
+            else
+              echo "No schematic found at features/${FEATURE}/kicad/${FEATURE}.kicad_sch — skipping SVG export"
+            fi
+          fi
+
           EXT_REF="features/${FEATURE}/reviews/external-references.md"
           if [[ ! -f "$EXT_REF" ]]; then
             cp "scripts/ci/stubs/reviews/external-references.md" "$EXT_REF"
@@ -97,6 +125,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "$OUT"
           git add "$EXT_REF"
+          [[ "$SCH_SVG_GENERATED" == "true" ]] && git add "features/${FEATURE}/datasheet/${FEATURE}-schematic.svg" || true
           git diff --cached --quiet && exit 0
           git commit -m "chore(${FEATURE}): scaffold ${GATE_TYPE} gate evidence"
           git push origin "HEAD:${GITHUB_REF_NAME}"

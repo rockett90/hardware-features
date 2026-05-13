@@ -106,6 +106,31 @@ jobs:
           fi
         id: create_zip
 
+      - name: Write release manifest to ci-results/
+        if: steps.create_zip.outputs.zip_created == 'true'
+        run: |
+          FEATURE="${{ steps.tag.outputs.feature }}"
+          TAG="${{ steps.tag.outputs.tag }}"
+          VERSION="${{ steps.tag.outputs.version }}"
+          MANIFEST="features/$FEATURE/ci-results/release-manifest.txt"
+          mkdir -p "features/$FEATURE/ci-results"
+          {
+            echo "Release manifest"
+            echo "================"
+            echo "Feature:  $FEATURE"
+            echo "Version:  $VERSION"
+            echo "Tag:      $TAG"
+            echo "Date:     $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "Run URL:  $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo ""
+            echo "Manufacturing outputs (features/$FEATURE/fab/release/):"
+            find "features/$FEATURE/fab/release" -type f | sort | sed 's|^|  |'
+            echo ""
+            echo "ZIP: ${{ steps.create_zip.outputs.zip_name }}"
+          } > "$MANIFEST"
+          echo "Release manifest written to $MANIFEST"
+          cat "$MANIFEST"
+
       - name: Upload manufacturing ZIP to GitHub Release
         if: steps.create_zip.outputs.zip_created == 'true'
         uses: softprops/action-gh-release@v2
@@ -113,6 +138,15 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag }}
           files: ${{ steps.create_zip.outputs.zip_name }}
           fail_on_unmatched_files: true
+
+      - name: Upload release manifest as workflow artifact
+        if: steps.create_zip.outputs.zip_created == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-manifest-${{ steps.tag.outputs.tag }}
+          path: features/${{ steps.tag.outputs.feature }}/ci-results/
+          retention-days: 365
+          if-no-files-found: warn
 
       - name: Upload ERC report to GitHub Release
         # Attach ERC report if present — non-fatal if absent
@@ -122,6 +156,8 @@ jobs:
           ERC_REPORT="features/$FEATURE/fab/release/erc-report.txt"
           if [ -f "$ERC_REPORT" ]; then
             echo "ERC report found — uploading"
+            cp "$ERC_REPORT" "features/$FEATURE/ci-results/erc-report-release.txt" 2>/dev/null || true
+            echo "ERC report copied to ci-results/"
             gh release upload "$TAG" "$ERC_REPORT" --clobber
           else
             echo "No ERC report found — skipping"

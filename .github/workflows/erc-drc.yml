@@ -73,25 +73,34 @@ jobs:
             [[ -z "$SCH" ]] && continue
             FEATURE=$(echo "$SCH" | cut -d'/' -f2)
             echo "Running ERC on $SCH"
+            mkdir -p "features/${FEATURE}/ci-results"
             docker run --rm \
               -v "$PWD:/repo" \
               -w "/repo" \
               "${{ env.KICAD_IMAGE }}" \
               kicad-cli sch erc \
-                --output "/repo/$(dirname $SCH)/erc-report.txt" \
+                --output "/repo/features/${FEATURE}/ci-results/erc-report.txt" \
                 "/repo/$SCH" 2>&1 | tee "/tmp/erc-results/${FEATURE}-erc.txt" || true
             EXIT_CODE=${PIPESTATUS[0]}
-            REPORT_FILE="/tmp/erc-results/${FEATURE}-erc.txt"
+            REPORT_FILE="features/${FEATURE}/ci-results/erc-report.txt"
             # Parse violation count from the report line "ERC report (N violations)"
             VIOLATIONS=$(grep -oP '(?<=\()[0-9]+(?= violation)' "$REPORT_FILE" 2>/dev/null | head -1 || echo "")
+            ERRORS=$(grep -oP '(?<=Errors: )[0-9]+' "/tmp/erc-results/${FEATURE}-erc.txt" 2>/dev/null | head -1 || echo "")
+            WARNINGS=$(grep -oP '(?<=Warnings: )[0-9]+' "/tmp/erc-results/${FEATURE}-erc.txt" 2>/dev/null | head -1 || echo "")
             # If pattern not found, default to 0 — do NOT use bracket fallback (over-counts section headers)
             if [[ -z "$VIOLATIONS" ]]; then
               VIOLATIONS=0
             fi
+            if [[ -z "$ERRORS" ]]; then
+              ERRORS=0
+            fi
+            if [[ -z "$WARNINGS" ]]; then
+              WARNINGS=0
+            fi
             if [[ "$VIOLATIONS" -eq 0 ]]; then
               erc_summary="${erc_summary}✅ ERC clean — \`$SCH\` (0 violations)\n"
             else
-              erc_summary="${erc_summary}⚠️ ERC found violations — \`$SCH\` (${VIOLATIONS} violation(s)) — see report\n"
+              erc_summary="${erc_summary}⚠️ ERC violations — \`$SCH\` (${VIOLATIONS} violation(s): ${ERRORS} error(s), ${WARNINGS} warning(s)) — see report\n"
             fi
           done <<< "${{ steps.changed.outputs.sch_files }}"
           { echo "erc_summary<<EOF"; printf "$erc_summary"; echo "EOF"; } >> $GITHUB_OUTPUT
@@ -107,23 +116,32 @@ jobs:
             [[ -z "$PCB" ]] && continue
             FEATURE=$(echo "$PCB" | cut -d'/' -f2)
             echo "Running DRC on $PCB"
+            mkdir -p "features/${FEATURE}/ci-results"
             docker run --rm \
               -v "$PWD:/repo" \
               -w "/repo" \
               "${{ env.KICAD_IMAGE }}" \
               kicad-cli pcb drc \
-                --output "/repo/$(dirname $PCB)/drc-report.txt" \
+                --output "/repo/features/${FEATURE}/ci-results/drc-report.txt" \
                 "/repo/$PCB" 2>&1 | tee "/tmp/drc-results/${FEATURE}-drc.txt" || true
             EXIT_CODE=${PIPESTATUS[0]}
-            REPORT_FILE="/tmp/drc-results/${FEATURE}-drc.txt"
+            REPORT_FILE="features/${FEATURE}/ci-results/drc-report.txt"
             VIOLATIONS=$(grep -oP '(?<=\()[0-9]+(?= violation)' "$REPORT_FILE" 2>/dev/null | head -1 || echo "")
+            ERRORS=$(grep -oP '(?<=Errors: )[0-9]+' "/tmp/drc-results/${FEATURE}-drc.txt" 2>/dev/null | head -1 || echo "")
+            WARNINGS=$(grep -oP '(?<=Warnings: )[0-9]+' "/tmp/drc-results/${FEATURE}-drc.txt" 2>/dev/null | head -1 || echo "")
             if [[ -z "$VIOLATIONS" ]]; then
               VIOLATIONS=0
+            fi
+            if [[ -z "$ERRORS" ]]; then
+              ERRORS=0
+            fi
+            if [[ -z "$WARNINGS" ]]; then
+              WARNINGS=0
             fi
             if [[ "$VIOLATIONS" -eq 0 ]]; then
               drc_summary="${drc_summary}✅ DRC clean — \`$PCB\` (0 violations)\n"
             else
-              drc_summary="${drc_summary}⚠️ DRC found violations — \`$PCB\` (${VIOLATIONS} violation(s)) — see report\n"
+              drc_summary="${drc_summary}⚠️ DRC violations — \`$PCB\` (${VIOLATIONS} violation(s): ${ERRORS} error(s), ${WARNINGS} warning(s)) — see report\n"
             fi
           done <<< "${{ steps.changed.outputs.pcb_files }}"
           { echo "drc_summary<<EOF"; printf "$drc_summary"; echo "EOF"; } >> $GITHUB_OUTPUT
@@ -134,8 +152,8 @@ jobs:
         with:
           name: erc-drc-reports-pr${{ github.event.pull_request.number || github.event.inputs.pr_number }}
           path: |
-            features/*/erc-report.txt
-            features/*/drc-report.txt
+            features/*/ci-results/erc-report.txt
+            features/*/ci-results/drc-report.txt
           retention-days: 90
           if-no-files-found: warn
 

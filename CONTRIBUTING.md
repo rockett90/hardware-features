@@ -112,15 +112,11 @@ Add a Jira key to the branch name and PR description if you have a ticket. Leave
 Open a Draft PR immediately after your first push:
 GitHub → "Compare & pull request" → dropdown arrow on the green button → "Create draft pull request".
 
-Comment `/render` on the PR at any time to export schematic SVGs. Comment `/kicad-diff` to generate a visual diff of all changes vs the base branch.
-
 When ready for review, click **"Ready for review"** at the bottom of the PR page (below the merge box) — this triggers AI review automatically.
 
 Address all ⚠️ CRITICAL findings before requesting human review.
 
----
-
-## 6a. Slash commands
+### Slash commands
 
 Post a slash command as a PR comment to trigger CI actions. Commands require **write access** to the repository.
 
@@ -178,30 +174,26 @@ Your init PR must contain the following files inside `features/<name>/`:
 
 | File | Requirement |
 |---|---|
-| `decisions/DDR-000-feature-overview.md` | Real content — not placeholder |
+| `decisions/DDR-000-design-intent.md` | Real content — not placeholder |
+| `decisions/DDR-000-decisions.md` | At least one decision entry — not placeholder |
 | `requirements/feature-requirements.yaml` | Real REQ-IDs |
 | `requirements/interface-requirements.yaml` | Real interface values |
 | `requirements/verification-matrix.md` | REQ-IDs listed |
 
-Your init PR must also update:
-- `.github/commitlint.config.js` — add the new scope to `scope-enum`
-- `.github/release-please-config.json` — add your feature under `packages`.
-  Copy the `_example-feature` block, rename the key from `_example-feature` to your
-  feature name (e.g. `buck-converter-5v`), and update `package-name` and
-  `changelog-path` to match. Example:
+CI automatically patches both `.github/commitlint.config.js` and `.github/release-please-config.json` when the `init/<feature>` branch is first pushed. After your first push, run `git pull` to get the scaffolded files, which include these updates. The entry added to `release-please-config.json` looks like:
 
-  ```json
-  "buck-converter-5v": {
-    "release-type": "simple",
-    "package-name": "buck-converter-5v",
-    "changelog-path": "features/buck-converter-5v/CHANGELOG.md",
-    "bump-minor-pre-major": true
-  }
-  ```
+```json
+"buck-converter-5v": {
+  "release-type": "simple",
+  "package-name": "buck-converter-5v",
+  "changelog-path": "features/buck-converter-5v/CHANGELOG.md",
+  "bump-minor-pre-major": true
+}
+```
 
-  CI will fail the init PR with a clear message if this step is missed.
+> The `validate-release-please-config` CI check will fail if the feature is not registered. This should not happen in normal flow — if it does, pull the branch and check whether the scaffold commit landed.
 
-CI scaffolds all remaining directories automatically on merge.
+CI scaffolds all remaining directories when the `init/<feature>` branch is first pushed.
 
 ---
 
@@ -249,4 +241,4 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[4] / 'bench'))
 
 ## 16. Review checklists
 
-See `checklists/review/` for schematic, PCB, BOM, and general review checklists. Use during review. Not auto-posted.
+See `checklists/review/` for the full set of review checklists. Use during review. Not auto-posted.

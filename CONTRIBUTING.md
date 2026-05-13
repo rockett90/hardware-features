@@ -116,6 +116,76 @@ When ready for review, click **"Ready for review"** at the bottom of the PR page
 
 Address all ⚠️ CRITICAL findings before requesting human review.
 
+---
+
+## 6a. What to do when CI fails
+
+CI runs automatically on every push and PR update. Most failures are quick to fix. Here are the most common ones:
+
+---
+
+**Branch name check fails (`Validate branch name`)**
+
+The branch name does not match the required format.
+
+Fix: Rename your branch to match the convention in section 3, then force-push:
+
+```bash
+git branch -m old-branch-name artifact/my-feature/correct-name
+git push origin -u artifact/my-feature/correct-name
+git push origin --delete old-branch-name
+```
+
+Open a new PR from the renamed branch if needed.
+
+---
+
+**PR title check fails (`Validate PR title`)**
+
+The PR title does not follow `type(scope): description` format, or the scope is not registered.
+
+Fix: Edit the PR title directly on GitHub — click the pencil icon next to the title on the PR page. You do not need to push any new commits; the check re-runs automatically when the title changes.
+
+Common mistakes:
+- Missing scope: `feat: add schematic` → should be `feat(buck-converter-5v): add schematic`
+- Wrong type casing: `FEAT` → must be lowercase `feat`
+- Scope not registered: the feature name must be in `.github/commitlint.config.js` — this is added automatically when the `init/` branch is pushed. If you are on an `artifact/` branch and the scope is missing, the init PR may not have merged yet.
+
+---
+
+**Gate check fails (`Gate Check`)**
+
+The gate PR has unchecked items in the PR description checklist.
+
+Fix: Open the PR on GitHub, scroll to the PR description, and tick each checklist item (`- [ ]` → `- [x]`). You can tick items directly in the GitHub web editor by clicking the checkbox. The check re-runs automatically when the PR description is updated.
+
+If an item does not apply, tick it and add a comment or note below the checklist explaining why.
+
+---
+
+**ERC / DRC shows violations (informational only)**
+
+ERC and DRC results are **informational** — they do not block merge. A violation does not automatically prevent you from merging.
+
+What to do:
+- Review the violations in the PR comment posted by CI.
+- Fix genuine errors (unconnected pins, missing power flags, DRC clearance violations).
+- Accept known/intentional violations by adding them to the KiCad ERC/DRC suppression list inside KiCad, then push again.
+- ERC evidence is reviewed formally at CDR; DRC evidence at TRR.
+
+---
+
+**Release-please config check fails (`Validate release-please config`)**
+
+This only fires on `init/` PRs. It means the feature was not registered in `.github/release-please-config.json`.
+
+In normal flow, `init-branch-setup.yml` adds this automatically when the branch is first pushed. If the check fails:
+1. Pull the latest commits from your branch (`git pull`) — the scaffold commit may not have landed yet.
+2. If the scaffold commit is present and the check still fails, check whether `.github/release-please-config.json` contains your feature name under `packages`.
+3. If missing, the scaffold workflow may have failed — check the Actions tab for errors on the `Init branch setup` run.
+
+---
+
 ### Slash commands
 
 Post a slash command as a PR comment to trigger CI actions. Commands require **write access** to the repository.

@@ -2,7 +2,8 @@
 """Generate a Markdown datasheet for a hardware feature.
 
 Usage:
-    python3 generate-datasheet.py --feature <name> --repo-root <path>
+    python3 generate-datasheet.py --feature <name> --repo-root <path> \
+        [--release-tag <tag>] [--commit-sha <sha>] [--library-sha <sha>]
 
 Always exits 0 — never crashes CI.
 """
@@ -28,6 +29,9 @@ def main() -> None:
     )
     parser.add_argument("--feature", required=True, help="Feature name")
     parser.add_argument("--repo-root", required=True, help="Repository root path")
+    parser.add_argument("--release-tag", default="DRAFT", help="Release tag")
+    parser.add_argument("--commit-sha", default="unknown", help="Feature commit SHA")
+    parser.add_argument("--library-sha", default="unknown", help="Library SHA")
     args = parser.parse_args()
 
     feature = args.feature
@@ -49,12 +53,18 @@ def main() -> None:
     errata = _read_errata(os.path.join(datasheet_dir, "errata.md"))
     changelog = _read_changelog(os.path.join(feature_dir, "CHANGELOG.md"))
     gate_history = _get_gate_history(repo_root, feature)
+    has_circuit_svg = os.path.exists(
+        os.path.join(feature_dir, "schematics", "circuit.svg")
+    )
 
     md = _generate_markdown(
         feature=feature,
         version=version,
         status=status,
         today=today,
+        release_tag=args.release_tag,
+        commit_sha=args.commit_sha,
+        library_sha=args.library_sha,
         description=description,
         specs=specs,
         specs_warning=specs_warning,
@@ -62,6 +72,7 @@ def main() -> None:
         errata=errata,
         changelog=changelog,
         gate_history=gate_history,
+        has_circuit_svg=has_circuit_svg,
     )
 
     output_path = os.path.join(datasheet_dir, f"{feature}-datasheet.md")
@@ -289,6 +300,9 @@ def _generate_markdown(
     version: str,
     status: str,
     today: str,
+    release_tag: str,
+    commit_sha: str,
+    library_sha: str,
     description,
     specs,
     specs_warning,
@@ -296,12 +310,21 @@ def _generate_markdown(
     errata,
     changelog,
     gate_history: dict,
+    has_circuit_svg: bool,
 ) -> str:
     parts: list = []
 
     title = feature.upper().replace("-", " ").replace("_", " ").strip()
     parts.append(f"# {title} — Feature Datasheet\n")
-    parts.append(f"**Version:** {version}  **Status:** {status}  **Date:** {today}\n")
+    parts.append("\n| Field | Value |\n")
+    parts.append("|---|---|\n")
+    parts.append(f"| Feature | {feature} |\n")
+    parts.append(f"| Version | {version} |\n")
+    parts.append(f"| Status | {status} |\n")
+    parts.append(f"| Date | {today} |\n")
+    parts.append(f"| Release Tag | `{release_tag}` |\n")
+    parts.append(f"| Commit SHA | `{commit_sha}` |\n")
+    parts.append(f"| Library SHA | `{library_sha}` |\n")
     parts.append("\n---\n")
 
     if specs_warning:
@@ -313,6 +336,9 @@ def _generate_markdown(
         parts.append(f"\n{description}\n")
     else:
         parts.append("\n[Description not yet written — see README.md]\n")
+    if has_circuit_svg:
+        parts.append("\n## Circuit Schematic\n\n")
+        parts.append("![Circuit schematic](../schematics/circuit.svg)\n")
     parts.append("\n---\n")
 
     # Absolute Maximum Ratings

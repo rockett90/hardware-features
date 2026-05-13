@@ -321,7 +321,8 @@ def diff_pcb_layers(
                 )
             else:
                 diff_path = diff_dir / f"{layer_safe}-diff.png"
-                if compute_diff(base_png, head_png, diff_path, warnings_list):
+                diff_ok, _changed_pixels = compute_diff(base_png, head_png, diff_path, warnings_list)
+                if diff_ok:
                     r["diff_png"] = diff_path
                 else:
                     r["status"] = "unrenderable"
@@ -447,8 +448,8 @@ def _compute_diff_numpy(
     img_head: "Image.Image",
     diff_path: Path,
     warnings_list: List[str],
-) -> bool:
-    """Pixel diff using numpy arrays (fast)."""
+) -> Tuple[bool, int]:
+    """Pixel diff using numpy arrays (fast). Returns (success, changed_pixel_count)."""
     try:
         arr_b = np.array(img_base, dtype=np.int16)
         arr_h = np.array(img_head, dtype=np.int16)
@@ -461,18 +462,18 @@ def _compute_diff_numpy(
 
         removed = changed & ~base_white & head_white   # magenta
         added   = changed & base_white & ~head_white   # cyan
-        altered = changed & ~base_white & ~head_white  # amber
+        altered = changed & ~base_white & ~head_white  # deep orange
 
-        out = np.full((arr_b.shape[0], arr_b.shape[1], 3), 220, dtype=np.uint8)
+        out = np.full((arr_b.shape[0], arr_b.shape[1], 3), 245, dtype=np.uint8)
         out[removed] = [255,   0, 255]
         out[added]   = [  0, 220, 220]
-        out[altered] = [255, 180,   0]
+        out[altered] = [255, 140,   0]
 
         Image.fromarray(out, "RGB").save(diff_path)
-        return True
+        return True, int(changed.sum())
     except Exception as exc:
         _warn(warnings_list, f"numpy diff failed: {exc}")
-        return False
+        return False, 0
 
 
 def _compute_diff_pillow(
@@ -480,16 +481,17 @@ def _compute_diff_pillow(
     img_head: "Image.Image",
     diff_path: Path,
     warnings_list: List[str],
-) -> bool:
-    """Pixel diff using pure Pillow (slower, no numpy required)."""
+) -> Tuple[bool, int]:
+    """Pixel diff using pure Pillow (slower, no numpy required). Returns (success, changed_pixel_count)."""
     try:
         w, h = img_base.width, img_base.height
-        out = Image.new("RGB", (w, h), (220, 220, 220))
+        out = Image.new("RGB", (w, h), (245, 245, 245))
 
         base_pixels = img_base.load()
         head_pixels = img_head.load()
         out_pixels  = out.load()
 
+        changed_count = 0
         for y in range(h):
             for x in range(w):
                 rb, gb, bb = base_pixels[x, y][:3]  # type: ignore[index]
@@ -501,9 +503,10 @@ def _compute_diff_pillow(
 
                 if max(diff_r, diff_g, diff_b) <= _TOLERANCE:
                     # identical
-                    out_pixels[x, y] = (220, 220, 220)
+                    out_pixels[x, y] = (245, 245, 245)
                     continue
 
+                changed_count += 1
                 base_is_white = rb >= _WHITE_THRESHOLD and gb >= _WHITE_THRESHOLD and bb >= _WHITE_THRESHOLD
                 head_is_white = rh >= _WHITE_THRESHOLD and gh >= _WHITE_THRESHOLD and bh >= _WHITE_THRESHOLD
 
@@ -512,22 +515,22 @@ def _compute_diff_pillow(
                 elif base_is_white and not head_is_white:
                     out_pixels[x, y] = (0, 220, 220)    # added — cyan
                 else:
-                    out_pixels[x, y] = (255, 180, 0)    # changed — amber
+                    out_pixels[x, y] = (255, 140, 0)    # changed — deep orange
 
         out.save(diff_path)
-        return True
+        return True, changed_count
     except Exception as exc:
         _warn(warnings_list, f"Pillow diff failed: {exc}")
-        return False
+        return False, 0
 
 
 def compute_diff(
     base_png: Path, head_png: Path, diff_path: Path, warnings_list: List[str]
-) -> bool:
-    """Generate diff image between two PNG files. Returns True on success."""
+) -> Tuple[bool, int]:
+    """Generate diff image between two PNG files. Returns (success, changed_pixel_count)."""
     if not PILLOW_AVAILABLE:
         _warn(warnings_list, "Pillow not available — cannot compute pixel diff")
-        return False
+        return False, 0
 
     try:
         img_base = Image.open(base_png).convert("RGB")
@@ -535,7 +538,7 @@ def compute_diff(
         img_base, img_head = _pad_to_same_size(img_base, img_head)
     except Exception as exc:
         _warn(warnings_list, f"Failed to open images for diff: {exc}")
-        return False
+        return False, 0
 
     if NUMPY_AVAILABLE:
         return _compute_diff_numpy(img_base, img_head, diff_path, warnings_list)
@@ -1021,8 +1024,8 @@ def generate_html(
 <div class="legend">
   <span><span class="swatch" style="background:#00DCDC"></span> Added (cyan)</span>
   <span><span class="swatch" style="background:#FF00FF"></span> Removed (magenta)</span>
-  <span><span class="swatch" style="background:#FFB400"></span> Changed (amber)</span>
-  <span><span class="swatch" style="background:#DCDCDC"></span> Unchanged (grey)</span>
+  <span><span class="swatch" style="background:#FF8C00"></span> Changed</span>
+  <span><span class="swatch" style="background:#F5F5F5"></span> Unchanged</span>
 </div>
 
 {changes_section}
@@ -1120,7 +1123,11 @@ def generate_comment_md(
         elif status == "unrenderable":
             result_str = "\u26a0\ufe0f Could not render"
         else:
-            result_str = "\u2705 Diff generated"
+            changed_pixels = r.get("changed_pixels", 0)
+            if changed_pixels:
+                result_str = f"\u2705 Diff generated (~{changed_pixels} px changed)"
+            else:
+                result_str = "\u2705 Diff generated"
         lines.append(f"| `{name}` | {result_str} |")
 
     lines.append("")
@@ -1288,8 +1295,10 @@ def main() -> None:
                 )
             else:
                 diff_path = diff_dir / (Path(name).stem + "-diff.png")
-                if compute_diff(base_png, head_png, diff_path, warnings_list):
+                diff_ok, changed_pixels = compute_diff(base_png, head_png, diff_path, warnings_list)
+                if diff_ok:
                     r["diff_png"] = diff_path
+                    r["changed_pixels"] = changed_pixels
                 else:
                     r["status"] = "unrenderable"
 

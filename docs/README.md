@@ -21,7 +21,6 @@
 |---|---|
 | [setup/tool-setup.md](setup/tool-setup.md) | Installing Git tooling (GitHub Desktop or GitHub CLI) and cloning the repository |
 | [setup/kicad-setup.md](setup/kicad-setup.md) | Installing KiCad and configuring the symbol and footprint libraries |
-| [setup/sourcetree-setup.md](setup/sourcetree-setup.md) | Setting up SourceTree as a Git client for this repository |
 
 ---
 

@@ -76,13 +76,13 @@ For pinned versions of all tools listed here, see [docs/versions.md](versions.md
 
 ---
 
-## SourceTree
+## GitHub Desktop
 
-**What it does:** Recommended Git GUI client. Handles submodule cloning natively, making it the easiest way for engineers to clone the repository with the component library intact.
+**What it does:** Recommended Git GUI client. Handles submodule cloning natively via the **"Recurse submodules"** option in the clone dialog, making it the easiest way for engineers to set up the repository with the component library intact.
 
-**Why it was chosen:** The repository uses a git submodule for the component library. SourceTree has a "Recurse submodules" tick-box on the clone dialog, which prevents the most common setup mistake.
+**Why it was chosen:** Free, no Atlassian account required, and runs on Windows and macOS. Supports submodule cloning, branch creation, commit, and push — covers all day-to-day operations without a terminal.
 
-**Documentation:** [sourcetreeapp.com](https://www.sourcetreeapp.com) · [Setup guide](setup/sourcetree-setup.md)
+**Documentation:** [desktop.github.com](https://desktop.github.com) · [Setup guide](setup/tool-setup.md)
 
 ---
 
@@ -101,3 +101,38 @@ For pinned versions of all tools listed here, see [docs/versions.md](versions.md
 **What it does:** Automatic code and documentation review on every PR. Provides a second pass on top of the AI schematic review to catch documentation issues, workflow errors, and general code quality problems.
 
 **Why it was chosen:** Available as part of the Copilot licence at no additional cost. Complements the domain-specific AI schematic review with general-purpose review coverage.
+
+---
+
+## KiCad SPICE Simulator
+
+**What it does:** Built-in SPICE simulation environment inside KiCad. Used for circuit-level simulation (AC analysis, transient, DC operating point). Simulation files live in `features/<feature>/simulations/`.
+
+**Why it was chosen:** Bundled with KiCad — no separate tool to install. Simulation files integrate directly with the schematic and component library. ngspice (the underlying engine) is also installed in CI for automated simulation runs.
+
+**Documentation:** [KiCad Simulator docs](https://docs.kicad.org/8.0/en/eeschema/eeschema.html#simulation)
+
+---
+
+## Tool categories
+
+| Category | Tools |
+|---|---|
+| **Local — required** | KiCad |
+| **Local — recommended** | GitHub Desktop |
+| **Local — optional** | GitHub CLI |
+| **CI-only** | KiBot (Docker), kicad-happy, kicad-visual-diff, release-please, commitlint, ngspice |
+| **CI + local** | Python 3.11+ (scripts are also runnable locally) |
+
+---
+
+## Supported operating systems
+
+| OS | KiCad | GitHub Desktop | GitHub CLI | CI scripts (local) |
+|---|---|---|---|---|
+| Windows 10/11 | ✅ | ✅ | ✅ | ⚠️ See note below |
+| macOS (Intel/Apple Silicon) | ✅ | ✅ | ✅ | ✅ |
+| Linux | ✅ | ❌ | ✅ | ✅ |
+
+> ⚠️ **Windows note:** CI automation scripts (`.sh` files in `scripts/ci/`) run in GitHub Actions on Ubuntu. They are not designed or tested for local execution on Windows. Engineers on Windows should use CI to run all automation — use slash commands (`/render`, `/kicad-diff`, `/ai-review`, `/erc`, `/drc`) in PR comments instead of running scripts locally.
+> Python scripts in `scripts/ci/` can be run locally on Windows with Python 3.11+ if needed, but this is not required for normal workflow.

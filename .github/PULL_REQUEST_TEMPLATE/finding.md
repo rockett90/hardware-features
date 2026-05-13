@@ -47,3 +47,8 @@
 <!-- Notes -->
 
 Resolves #
+
+---
+
+> 📖 See [CONTRIBUTING.md](../CONTRIBUTING.md#12-ivv-findings) for the full IVV findings process.
+> PR title format: `fix(<feature>): description` — validated by CI.

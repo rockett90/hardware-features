@@ -26,3 +26,8 @@ Use this template when raising a PR that delivers a design artifact (schematic, 
 ### Notes
 
 <!-- Any additional context, assumptions, or known issues -->
+
+---
+
+> 📖 **New to this workflow?** See [docs/how-to/design-workflow.md](../docs/how-to/design-workflow.md) for the full day-to-day process guide, including branch naming, PR title format, and slash commands.
+> PR title format: `feat(<feature>): description` — validated by CI.

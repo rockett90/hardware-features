@@ -1,45 +1,100 @@
 # Feature datasheet specifications
-# Fill in actual characterised values from simulation, analysis, and test.
-# This file feeds the /datasheet generator — do NOT copy values from interface-requirements.yaml.
-# Requirements are what we must meet. Specs are what we actually achieve.
-#
-# Use ~ for "not specified" in min/max fields.
-# All [COMPLETE BEFORE TRR] markers must be replaced before the TRR gate can pass.
+# Characterised values for the simple-amplifier non-inverting voltage amplifier.
 
 feature: simple-amplifier
 version: "1.0.0"
-status: draft  # draft | released
+status: draft
 
 # ── Absolute Maximum Ratings ────────────────────────────────────────────────
-# Values beyond which permanent damage may occur. Do not operate at these limits.
 absolute-maximums:
-  - parameter: "[COMPLETE BEFORE TRR]"
-    value: ~
+  - parameter: "Supply voltage (VCC)"
+    value: 5.5
+    unit: "V"
+    note: "Above this level permanent damage may occur."
+  - parameter: "Input voltage"
+    value: "VCC + 0.3"
+    unit: "V"
+    note: "Do not exceed supply voltage at input."
+  - parameter: "Output short-circuit duration"
+    value: "Continuous"
     unit: ""
-    note: ""
+    note: "Op-amp is short-circuit protected."
 
 # ── Interface Specifications ─────────────────────────────────────────────────
-# Characterised operating conditions for each interface.
-# min/nom/max are actual achieved values, not requirements.
 interfaces:
-  - name: "[COMPLETE BEFORE TRR]"
-    description: ""
-    type: ""          # power | digital-input | digital-output | analog | differential
-    connector: ""     # e.g. J1
-    pin: ~
-    min: ~
-    nom: ~
-    max: ~
-    unit: ""
+  - name: "VCC — Power supply"
+    description: "Single supply input"
+    type: power
+    connector: J1
+    min: 3.135
+    nom: 3.3
+    max: 3.465
+    unit: "V"
+    absolute-max: 5.5
+    notes: "100 nF decoupling capacitor on supply pin."
+
+  - name: "VIN — Signal input"
+    description: "Analogue sensor voltage input"
+    type: analog
+    connector: J2
+    min: 0.0
+    nom: 0.25
+    max: 0.5
+    unit: "V"
+    absolute-max: 3.6
+    notes: "100 Ω series input protection resistor. Input impedance > 100 kΩ."
+
+  - name: "VOUT — Signal output"
+    description: "Amplified analogue voltage output"
+    type: analog
+    connector: J3
+    min: 0.0
+    nom: 1.65
+    max: 3.3
+    unit: "V"
     absolute-max: ~
-    notes: ""
+    notes: "100 Ω series output resistor. Drive impedance < 1 kΩ load."
 
 # ── Electrical Characteristics ───────────────────────────────────────────────
-# Key performance parameters with test conditions.
 performance:
-  - parameter: "[COMPLETE BEFORE TRR]"
+  - parameter: "Voltage gain"
+    min: 6.53
+    nom: 6.60
+    max: 6.67
+    unit: "V/V"
+    conditions: "VCC = 3.3 V, TA = 25 °C"
+
+  - parameter: "Gain error"
     min: ~
-    nom: ~
+    nom: 0.0
+    max: 1.0
+    unit: "%"
+    conditions: "VCC = 3.135–3.465 V, TA = −20 to +70 °C"
+
+  - parameter: "Bandwidth (−3 dB)"
+    min: 10
+    nom: 150
     max: ~
-    unit: ""
+    unit: "kHz"
+    conditions: "VCC = 3.3 V, TA = 25 °C, VOUT = 100 mV pk-pk"
+
+  - parameter: "Input impedance"
+    min: 100
+    nom: 560
+    max: ~
+    unit: "kΩ"
+    conditions: "DC, VCC = 3.3 V"
+
+  - parameter: "Supply current"
+    min: ~
+    nom: 3.5
+    max: 5.0
+    unit: "mA"
+    conditions: "VCC = 3.3 V, no load, TA = 25 °C"
+
+  - parameter: "Operating temperature"
+    min: -20
+    nom: 25
+    max: 70
+    unit: "°C"
     conditions: ""

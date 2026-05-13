@@ -1,20 +1,49 @@
 # ─── Document metadata ───────────────────────────────────────────────────────
-# document-version: Increment on every substantive change to requirements content.
-#   Use semantic versioning: 0.x for pre-PDR drafts, 1.0 at PDR baseline, etc.
-# baseline: The gate at which this version was formally approved.
-#   Values: DRAFT | PDR | CDR | TRR
-# approved-date: Set at gate sign-off. Format: YYYY-MM-DD.
-# approved-by: Lead engineer name at gate sign-off.
-document-version: "0.1"
-baseline: DRAFT
-approved-date: ""
-approved-by: ""
+document-version: "1.0"
+baseline: PDR
+approved-date: "2025-03-01"
+approved-by: "Reference Example"
 # ─────────────────────────────────────────────────────────────────────────────
 feature: simple-amplifier
 created-at-gate: pdr
-last-updated: YYYY-MM-DD
+last-updated: "2025-03-01"
 requirements:
   - id: REQ-001
-    description: "[Replace with first requirement]"
+    version: "1.0"
+    baseline: PDR
+    description: "The amplifier shall produce an output voltage of 0–3.3 V when the input voltage is 0–500 mV, with a gain error of less than ±1% over the operating temperature range."
     category: performance
     verification-method: test
+    rationale: "Maps sensor output range to ADC full-scale input range with sufficient accuracy for 12-bit ADC resolution."
+
+  - id: REQ-002
+    version: "1.0"
+    baseline: PDR
+    description: "The amplifier input impedance shall be greater than 100 kΩ at DC."
+    category: interface
+    verification-method: analysis
+    rationale: "Prevents loading of the sensor output, which has an output impedance of up to 10 kΩ."
+
+  - id: REQ-003
+    version: "1.0"
+    baseline: PDR
+    description: "The amplifier shall operate from a single 3.3 V ± 5% supply."
+    category: power
+    verification-method: test
+    rationale: "Must operate from the system 3.3 V rail — no additional supply is available."
+
+  - id: REQ-004
+    version: "1.0"
+    baseline: PDR
+    description: "The amplifier small-signal bandwidth (−3 dB) shall be greater than 10 kHz."
+    category: performance
+    verification-method: test
+    rationale: "Signal bandwidth requirement from system specification."
+
+  - id: REQ-005
+    version: "1.0"
+    baseline: PDR
+    description: "The amplifier shall operate over a temperature range of −20 °C to +70 °C."
+    category: environmental
+    verification-method: test
+    rationale: "Product operating temperature range from system specification."

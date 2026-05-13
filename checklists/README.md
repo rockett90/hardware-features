@@ -18,7 +18,6 @@ This directory contains Markdown checklists used at different stages of the desi
 |---|---|---|
 | `gates/` | Checklists for formal design gate sign-offs (CDR, TRR, release) | When raising a `signoff/<feature>/cdr` or `signoff/<feature>/trr` PR |
 | `review/` | Checklists for general design reviews (schematic, PCB, BOM, general) | During artifact PR review |
-| `library/` | Checklist for adding a new component to the shared library | When raising a `library/<desc>` PR |
 
 ---
 
@@ -39,12 +38,6 @@ This directory contains Markdown checklists used at different stages of the desi
 | `bom-review.md` | Bill of Materials review checklist |
 | `general-review.md` | General design review checklist |
 
-## Library (`library/`)
-
-| File | Purpose |
-|---|---|
-| `component-addition.md` | Checklist for adding a new component to the shared library |
-
 ---
 
 ## Important notes
@@ -52,3 +45,4 @@ This directory contains Markdown checklists used at different stages of the desi
 - Checklists are informational prompts — they do not block merge automatically.
 - The formal gate **does** block merge: `gate-check.yml` validates that required documents are present on `signoff/` PRs. See [`.github/guidelines/gate-criteria.md`](../.github/guidelines/gate-criteria.md) for what the gate checks.
 - Do not delete checklist items without raising a `chore/` PR for discussion.
+- The component addition checklist has moved to the [`rockett90/hardware-library`](https://github.com/rockett90/hardware-library) repository.

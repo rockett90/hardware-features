@@ -24,6 +24,7 @@
 - [ ] Simulations complete and reviewed
 - [ ] PCB reviewed
 - [ ] BOM has no TBDs
+- [ ] FPTCS draft present in `features/<feature>/production/fptcs/` — test points defined for all interfaces and all functional requirements
 - [ ] MTBF confirmed
 
 ## Design Quality

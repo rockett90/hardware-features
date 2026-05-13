@@ -36,7 +36,8 @@
 - [ ] BOM MPNs all confirmed (no TBDs)
 - [ ] Bring-up checklist complete
 - [ ] Bring-up notes committed to `features/<feature>/bring-up/`
-- [ ] FPTCS complete
+- [ ] `production/fptcs/fptcs.yaml` complete — all `[COMPLETE BEFORE TRR]` markers replaced, all TEST-IDs and CAL-IDs have pass/fail criteria, all REQ-IDs linked
+- [ ] `production/fptcs/fptcs-notes.md` complete — operator instructions, failure handling, and fixturing documented
 - [ ] Circuit mods documented in `features/<feature>/circuit-mods/`
 
 ## Verification

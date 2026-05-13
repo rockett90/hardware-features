@@ -41,6 +41,7 @@
 | [Feature requirements](requirements/feature-requirements.yaml) | Functional requirements — what this feature must do |
 | [Interface requirements](requirements/interface-requirements.yaml) | Interface definitions — connectors, voltages, signals |
 | [Verification matrix](requirements/verification-matrix.md) | REQ-ID to evidence mapping |
+| [FPTCS](production/fptcs/fptcs.yaml) | Feature Production Test and Calibration Specification — test items, calibration steps, pass/fail criteria |
 
 ---
 

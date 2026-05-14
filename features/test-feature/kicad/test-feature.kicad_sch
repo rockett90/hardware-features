@@ -13,7 +13,6 @@
     (comment 3 "")
     (comment 4 "")
   )
-  (page_layout_descr_file "title-block.kicad_wks")
   (lib_symbols
   )
   (sheet_instances

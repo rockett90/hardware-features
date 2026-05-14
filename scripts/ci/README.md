@@ -57,7 +57,6 @@ Exit code 0 = valid. Non-zero = invalid, with an error message.
 | Pattern | Example |
 |---|---|
 | `main` | `main` |
-| `concept/<feature>` | `concept/power-module` |
 | `init/<feature>` | `init/buck-converter-5v` |
 | `artifact/<feature>/<desc>` | `artifact/buck-converter-5v/add-filter` |
 | `artifact/<feature>/<desc-HW-N>` | `artifact/buck-converter-5v/add-filter-HW-42` |

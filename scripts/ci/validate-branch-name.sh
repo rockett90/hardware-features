@@ -3,7 +3,6 @@ set -euo pipefail
 BRANCH="${1:?Usage: validate-branch-name.sh <branch>}"
 PATTERNS=(
   "^main$"
-  "^concept/[a-z0-9][a-z0-9-]*$"
   "^init/[a-z0-9][a-z0-9-]*$"
   "^artifact/[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9A-Z_-]*$"
   "^finding/[a-z0-9][a-z0-9-]*/[0-9]+-[a-z0-9][a-z0-9-]*$"

@@ -36,7 +36,6 @@ Preferences → Manage Symbol Libraries → add `library/symbols/` using `${KIPR
 
 | Type | Pattern | When to use |
 |---|---|---|
-| Concept | `concept/<feature>` | Optional pre-PDR exploration. Not a controlled baseline. Outputs must be re-committed through controlled PRs before use as review evidence. |
 | Init | `init/<feature>` | PDR baseline. Contains requirements, DDR-000, and feature scope registration. Triggers scaffold on merge. |
 | Artifact | `artifact/<feature>/<desc>` | Any discrete design artefact during PDR→CDR or CDR→TRR: schematics, PCB, calculations, simulations, analysis, BOM, bring-up evidence. |
 | Artifact with Jira | `artifact/<feature>/<desc-HW-123>` | Same as above with an optional Jira ticket key appended. |
@@ -198,6 +197,7 @@ Post a slash command as a PR comment to trigger CI actions. Commands require **w
 | `/render` | Export schematic as SVG — readable without KiCad |
 | `/ai-review` | Run AI schematic review |
 | `/kicad-diff` | Generate visual diff of schematic (and PCB) changes vs base branch |
+| `/datasheet` | Regenerate the feature datasheet from `datasheet/specs.yaml` and `datasheet/application-notes.md` |
 | `/erc` | Run ERC (Electrical Rules Check) — informational, does not block merge |
 | `/drc` | Run DRC (Design Rules Check) — informational, does not block merge |
 | `/emc-check` | *(coming soon)* |

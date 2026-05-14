@@ -62,6 +62,7 @@ Post a slash command as a PR comment to trigger CI actions. Commands require **w
 | `/ai-review` | Run AI schematic review — posts findings as a PR comment |
 | `/erc` | Run Electrical Rules Check — informational, does not block merge |
 | `/drc` | Run Design Rules Check — informational, does not block merge |
+| `/datasheet` | Regenerate the feature datasheet from `datasheet/specs.yaml` and `datasheet/application-notes.md` |
 
 The dispatcher reacts with 👀 immediately on receipt, ✅ on success, ❌ on failure.
 
@@ -71,15 +72,18 @@ The dispatcher reacts with 👀 immediately on receipt, ✅ on success, ❌ on f
 
 | Type | Pattern |
 |---|---|
-| Concept exploration | `concept/<feature>` |
 | Initialise new feature | `init/<feature>` |
 | Design work | `artifact/<feature>/<desc>` |
 | Design work with ticket | `artifact/<feature>/<desc-HW-123>` |
 | IVV finding | `finding/<feature>/<N>-<desc>` |
 | CDR sign-off | `signoff/<feature>/cdr` |
+| Re-CDR | `signoff/<feature>/cdr-N` |
+| CDR (cycle N) | `signoff/<feature>/cdr-rN` |
 | TRR sign-off | `signoff/<feature>/trr` |
 | Re-TRR | `signoff/<feature>/trr-N` |
+| TRR (cycle N) | `signoff/<feature>/trr-rN` |
 | Release sign-off | `signoff/<feature>/release` |
+| Release sign-off (cycle N) | `signoff/<feature>/release-rN` |
 | Library change | `library/<desc>` |
 | Tooling / docs | `chore/<desc>` |
 
@@ -91,7 +95,7 @@ CI validates every PR branch name. A non-matching name fails the "Validate branc
 
 1. **Init PR** (`init/<feature>`) — scaffolds the full feature directory structure automatically on merge.
 2. **Design work** (`artifact/<feature>/...` PRs) — schematic and PCB changes, one feature per PR.
-3. **Use slash commands** during review: `/render`, `/kicad-diff`, `/ai-review`, `/erc`, `/drc`.
+3. **Use slash commands** during review: `/render`, `/kicad-diff`, `/ai-review`, `/erc`, `/drc`, `/datasheet`.
 4. **CDR sign-off** (`signoff/<feature>/cdr`) — gate-check CI must pass before merge.
 5. **TRR sign-off** (`signoff/<feature>/trr`) — gate-check CI must pass before merge; creates an rc pre-release automatically.
 6. **Final Release sign-off** (`signoff/<feature>/release`) — gate-check CI must pass before merge; creates the `release/<feature>/approved` tag. See [docs/how-to/release-signoff.md](docs/how-to/release-signoff.md).

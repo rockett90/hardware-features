@@ -84,11 +84,11 @@ jobs:
             EXIT_CODE=${PIPESTATUS[0]}
             REPORT_FILE="features/${FEATURE}/ci-results/erc-report.txt"
             if [[ ! -s "$REPORT_FILE" ]]; then
+              EXIT_SUFFIX=""
               if [[ "$EXIT_CODE" -ne 0 ]]; then
-                erc_summary="${erc_summary}❌ ERC failed — \`$SCH\` report not generated (Docker or kicad-cli error, exit code ${EXIT_CODE}) — see run logs\n"
-              else
-                erc_summary="${erc_summary}❌ ERC failed — \`$SCH\` report not generated (Docker or kicad-cli error) — see run logs\n"
+                EXIT_SUFFIX=", exit code ${EXIT_CODE}"
               fi
+              erc_summary="${erc_summary}❌ ERC failed — \`$SCH\` report not generated (Docker or kicad-cli error${EXIT_SUFFIX}) — see run logs\n"
               continue
             fi
             # Parse violation count from the report line "ERC report (N violations)"
@@ -135,11 +135,11 @@ jobs:
             EXIT_CODE=${PIPESTATUS[0]}
             REPORT_FILE="features/${FEATURE}/ci-results/drc-report.txt"
             if [[ ! -s "$REPORT_FILE" ]]; then
+              EXIT_SUFFIX=""
               if [[ "$EXIT_CODE" -ne 0 ]]; then
-                drc_summary="${drc_summary}❌ DRC failed — \`$PCB\` report not generated (Docker or kicad-cli error, exit code ${EXIT_CODE}) — see run logs\n"
-              else
-                drc_summary="${drc_summary}❌ DRC failed — \`$PCB\` report not generated (Docker or kicad-cli error) — see run logs\n"
+                EXIT_SUFFIX=", exit code ${EXIT_CODE}"
               fi
+              drc_summary="${drc_summary}❌ DRC failed — \`$PCB\` report not generated (Docker or kicad-cli error${EXIT_SUFFIX}) — see run logs\n"
               continue
             fi
             VIOLATIONS=$(grep -oP '(?<=\()[0-9]+(?= violation)' "$REPORT_FILE" 2>/dev/null | head -1 || echo "")

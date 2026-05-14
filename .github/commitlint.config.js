@@ -4,7 +4,8 @@ module.exports = {
     'scope-enum': [2, 'always', [
       'library',
       'audio-buffer',
-      'simple-amplifier'
+      'simple-amplifier',
+      'test-feature'
     ]],
     'scope-empty': [2, 'never'],
   },

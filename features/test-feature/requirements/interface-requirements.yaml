@@ -1,0 +1,45 @@
+# ─── Document metadata ───────────────────────────────────────────────────────
+# document-version: Increment on every substantive change to requirements content.
+#   Use semantic versioning: 0.x for pre-PDR drafts, 1.0 at PDR baseline, etc.
+# baseline: The gate at which this version was formally approved.
+#   Values: DRAFT | PDR | CDR | TRR
+# approved-date: Set at gate sign-off. Format: YYYY-MM-DD.
+# approved-by: Owner name at gate sign-off.
+document-version: "0.1"
+baseline: DRAFT
+approved-date: ""
+approved-by: ""
+# ─────────────────────────────────────────────────────────────────────────────
+feature: test-feature
+created-at-gate: pdr
+last-updated: YYYY-MM-DD
+interfaces:
+  power-input:
+    voltage-min-v: 0.0
+    voltage-max-v: 0.0
+    current-max-a: 0.0
+    connector: "[e.g. 2-pin JST-PH, PCB header]"
+    notes: ""
+  power-output:
+    voltage-v: 0.0
+    current-max-a: 0.0
+    ripple-mv-pp: 0.0
+    connector: ""
+    notes: ""
+  signal-input:
+    type: "[e.g. GPIO, UART RX, SPI MOSI, I2C SDA]"
+    voltage-logic-high-min-v: 0.0
+    voltage-logic-low-max-v: 0.0
+    frequency-max-hz: 0
+    notes: ""
+  signal-output:
+    type: "[e.g. GPIO, UART TX, PWM, analogue]"
+    voltage-logic-high-min-v: 0.0
+    voltage-logic-low-max-v: 0.0
+    current-source-max-ma: 0.0
+    notes: ""
+  environment:
+    temperature-operating-min-c: -20
+    temperature-operating-max-c: 85
+    humidity-max-percent-rh: 85
+    notes: ""

@@ -1,0 +1,62 @@
+# Feature Production Test and Calibration Specification
+# Complete this file before CDR (draft) and before TRR (final).
+# Values should be derived from interface-requirements.yaml and datasheet/specs.yaml.
+#
+# document-version: increment on every substantive change.
+# baseline: DRAFT | CDR | TRR | RELEASED — set to the gate this version was approved at.
+# approved-date: set at gate sign-off (YYYY-MM-DD).
+# approved-by: lead engineer name.
+
+feature: test-feature
+document-version: "0.1"
+baseline: DRAFT
+approved-date: ""
+approved-by: ""
+
+# ── Equipment assumptions ────────────────────────────────────────────────────
+# List all test equipment required. Calibrated equipment must be identified.
+equipment:
+  - description: "[e.g. Bench PSU — 0–30V, 0–3A, ±0.5% accuracy]"
+    calibrated: true
+  - description: "[e.g. DMM — 4.5 digit, ±0.1% accuracy]"
+    calibrated: true
+
+# ── Test conditions ──────────────────────────────────────────────────────────
+conditions:
+  temperature: "[e.g. 25 ± 5°C ambient]"
+  humidity:    "[e.g. 45–75% RH, non-condensing]"
+  notes:       ""
+
+# ── Functional and safety tests ──────────────────────────────────────────────
+# Each item covers one test point.
+# type: functional | safety | inspection
+# link-req: REQ-ID from requirements/feature-requirements.yaml
+# link-spec: parameter name from datasheet/specs.yaml (leave blank if not applicable)
+tests:
+  - id: TEST-001
+    description: "[What is being tested — one sentence]"
+    type: functional
+    measurement-point: "[e.g. TP1 — output voltage]"
+    test-condition: "[e.g. VIN = 12V, IOUT = 0.5A]"
+    min: ~
+    nom: ~
+    max: ~
+    unit: ""
+    pass-fail: "[e.g. Reading within min–max range]"
+    link-req: REQ-001
+    link-spec: ""
+    notes: ""
+
+# ── Calibration items ────────────────────────────────────────────────────────
+# Document each calibration step separately from functional tests.
+# storage: where calibration constants are stored after calibration.
+calibration:
+  - id: CAL-001
+    description: "[What is being calibrated — one sentence]"
+    trim-location: "[e.g. R7 — adjust until VOUT = 3.300V ± 5mV]"
+    target: ~
+    tolerance: ~
+    unit: ""
+    storage: "[e.g. Not required / EEPROM address 0x10 / test record]"
+    link-req: ""
+    notes: ""

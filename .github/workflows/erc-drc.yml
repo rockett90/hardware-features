@@ -83,6 +83,14 @@ jobs:
                 "/repo/$SCH" 2>&1 | tee "/tmp/erc-results/${FEATURE}-erc.txt" || true
             EXIT_CODE=${PIPESTATUS[0]}
             REPORT_FILE="features/${FEATURE}/ci-results/erc-report.txt"
+            if [[ ! -s "$REPORT_FILE" ]]; then
+              if [[ "$EXIT_CODE" -ne 0 ]]; then
+                erc_summary="${erc_summary}❌ ERC failed — \`$SCH\` report not generated (Docker or kicad-cli error, exit code ${EXIT_CODE}) — see run logs\n"
+              else
+                erc_summary="${erc_summary}❌ ERC failed — \`$SCH\` report not generated (Docker or kicad-cli error) — see run logs\n"
+              fi
+              continue
+            fi
             # Parse violation count from the report line "ERC report (N violations)"
             VIOLATIONS=$(grep -oP '(?<=\()[0-9]+(?= violation)' "$REPORT_FILE" 2>/dev/null | head -1 || echo "")
             ERRORS=$(grep -oP '(?<=Errors: )[0-9]+' "/tmp/erc-results/${FEATURE}-erc.txt" 2>/dev/null | head -1 || echo "")
@@ -126,6 +134,14 @@ jobs:
                 "/repo/$PCB" 2>&1 | tee "/tmp/drc-results/${FEATURE}-drc.txt" || true
             EXIT_CODE=${PIPESTATUS[0]}
             REPORT_FILE="features/${FEATURE}/ci-results/drc-report.txt"
+            if [[ ! -s "$REPORT_FILE" ]]; then
+              if [[ "$EXIT_CODE" -ne 0 ]]; then
+                drc_summary="${drc_summary}❌ DRC failed — \`$PCB\` report not generated (Docker or kicad-cli error, exit code ${EXIT_CODE}) — see run logs\n"
+              else
+                drc_summary="${drc_summary}❌ DRC failed — \`$PCB\` report not generated (Docker or kicad-cli error) — see run logs\n"
+              fi
+              continue
+            fi
             VIOLATIONS=$(grep -oP '(?<=\()[0-9]+(?= violation)' "$REPORT_FILE" 2>/dev/null | head -1 || echo "")
             ERRORS=$(grep -oP '(?<=Errors: )[0-9]+' "/tmp/drc-results/${FEATURE}-drc.txt" 2>/dev/null | head -1 || echo "")
             WARNINGS=$(grep -oP '(?<=Warnings: )[0-9]+' "/tmp/drc-results/${FEATURE}-drc.txt" 2>/dev/null | head -1 || echo "")

@@ -83,6 +83,14 @@ jobs:
                 "/repo/$SCH" 2>&1 | tee "/tmp/erc-results/${FEATURE}-erc.txt" || true
             EXIT_CODE=${PIPESTATUS[0]}
             REPORT_FILE="features/${FEATURE}/ci-results/erc-report.txt"
+            if [[ ! -s "$REPORT_FILE" ]]; then
+              EXIT_SUFFIX=""
+              if [[ "$EXIT_CODE" -ne 0 ]]; then
+                EXIT_SUFFIX=", exit code ${EXIT_CODE}"
+              fi
+              erc_summary="${erc_summary}❌ ERC failed — \`$SCH\` report not generated (Docker or kicad-cli error${EXIT_SUFFIX}) — see run logs\n"
+              continue
+            fi
             # Parse violation count from the report line "ERC report (N violations)"
             VIOLATIONS=$(grep -oP '(?<=\()[0-9]+(?= violation)' "$REPORT_FILE" 2>/dev/null | head -1 || echo "")
             ERRORS=$(grep -oP '(?<=Errors: )[0-9]+' "/tmp/erc-results/${FEATURE}-erc.txt" 2>/dev/null | head -1 || echo "")
@@ -126,6 +134,14 @@ jobs:
                 "/repo/$PCB" 2>&1 | tee "/tmp/drc-results/${FEATURE}-drc.txt" || true
             EXIT_CODE=${PIPESTATUS[0]}
             REPORT_FILE="features/${FEATURE}/ci-results/drc-report.txt"
+            if [[ ! -s "$REPORT_FILE" ]]; then
+              EXIT_SUFFIX=""
+              if [[ "$EXIT_CODE" -ne 0 ]]; then
+                EXIT_SUFFIX=", exit code ${EXIT_CODE}"
+              fi
+              drc_summary="${drc_summary}❌ DRC failed — \`$PCB\` report not generated (Docker or kicad-cli error${EXIT_SUFFIX}) — see run logs\n"
+              continue
+            fi
             VIOLATIONS=$(grep -oP '(?<=\()[0-9]+(?= violation)' "$REPORT_FILE" 2>/dev/null | head -1 || echo "")
             ERRORS=$(grep -oP '(?<=Errors: )[0-9]+' "/tmp/drc-results/${FEATURE}-drc.txt" 2>/dev/null | head -1 || echo "")
             WARNINGS=$(grep -oP '(?<=Warnings: )[0-9]+' "/tmp/drc-results/${FEATURE}-drc.txt" 2>/dev/null | head -1 || echo "")

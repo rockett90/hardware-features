@@ -1,21 +1,109 @@
 (kicad_sch
-  (version 20240101)
-  (generator "eeschema")
-  (generator_version "10.0")
-  (paper "A4")
-  (title_block
-    (title "")
-    (date "")
-    (rev "A")
-    (company "")
-    (comment 1 "")
-    (comment 2 "")
-    (comment 3 "")
-    (comment 4 "")
-  )
-  (lib_symbols
-  )
-  (sheet_instances
-    (path "/" (page "1"))
-  )
+	(version 20260306)
+	(generator "eeschema")
+	(generator_version "10.0")
+	(uuid "00e37815-82cb-47d3-aca6-05c4c7b039e7")
+	(paper "A4")
+	(title_block
+		(rev "A")
+	)
+	(lib_symbols)
+	(sheet
+		(at 167.64 80.01)
+		(size 45.72 43.18)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "104410d7-a9b3-469d-b57a-bd049fb3dd1a")
+		(property "Sheetname" "2"
+			(at 167.64 79.2984 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "2d.kicad_sch"
+			(at 167.64 123.7746 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "test-feature"
+				(path "/00e37815-82cb-47d3-aca6-05c4c7b039e7"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 72.39 73.66)
+		(size 60.96 43.18)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "af007885-df90-44e0-b5d2-33b0035e8084")
+		(property "Sheetname" "Untitled Sheet"
+			(at 72.39 72.9484 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "untitled.kicad_sch"
+			(at 72.39 117.4246 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "test-feature"
+				(path "/00e37815-82cb-47d3-aca6-05c4c7b039e7"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
 )

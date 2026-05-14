@@ -1,0 +1,32 @@
+(kicad_wks (version 20231118) (generator kicad_worksheet_editor)
+  (setup (textsize 1.5 1.5)(linewidth 0.15)(textlinewidth 0.15)
+    (left_margin 10)(right_margin 10)(top_margin 10)(bottom_margin 10)
+  )
+  (rect (name "border") (start 10 10) (end 287 200) (repeat 1) (incrx 0) (incry 0) (linewidth 0.15))
+
+  (rect (name "title_block") (start 177 160) (end 287 200) (repeat 1) (incrx 0) (incry 0) (linewidth 0.15))
+  (line (name "title_row_1") (start 177 170) (end 287 170) (repeat 1) (incrx 0) (incry 0) (linewidth 0.15))
+  (line (name "title_row_2") (start 177 180) (end 287 180) (repeat 1) (incrx 0) (incry 0) (linewidth 0.15))
+  (line (name "title_row_3") (start 177 190) (end 287 190) (repeat 1) (incrx 0) (incry 0) (linewidth 0.15))
+  (line (name "title_col_1") (start 213 170) (end 213 200) (repeat 1) (incrx 0) (incry 0) (linewidth 0.15))
+  (line (name "title_col_2") (start 237 170) (end 237 200) (repeat 1) (incrx 0) (incry 0) (linewidth 0.15))
+  (line (name "title_col_3") (start 257 170) (end 257 200) (repeat 1) (incrx 0) (incry 0) (linewidth 0.15))
+
+  (tbtext "TITLE" (name "lbl_title") (pos 179 165) (font (size 1.2 1.2)) (justify left center))
+  (tbtext "%T" (name "title") (pos 285 165) (font (size 2.0 2.0) bold) (justify right center))
+
+  (tbtext "COMPANY" (name "lbl_company") (pos 179 175) (font (size 1.2 1.2)) (justify left center))
+  (tbtext "%C0" (name "company") (pos 285 175) (font (size 1.4 1.4)) (justify right center))
+
+  (tbtext "FILE" (name "lbl_file") (pos 179 185) (font (size 1.2 1.2)) (justify left center))
+  (tbtext "%F" (name "filename") (pos 235 185) (font (size 1.2 1.2)) (justify left center))
+  (tbtext "SHEET" (name "lbl_sheet") (pos 239 185) (font (size 1.2 1.2)) (justify left center))
+  (tbtext "%S" (name "sheet_name") (pos 285 185) (font (size 1.2 1.2)) (justify right center))
+
+  (tbtext "DATE" (name "lbl_date") (pos 179 195) (font (size 1.2 1.2)) (justify left center))
+  (tbtext "%D" (name "date") (pos 211 195) (font (size 1.2 1.2)) (justify right center))
+  (tbtext "REV" (name "lbl_rev") (pos 215 195) (font (size 1.2 1.2)) (justify left center))
+  (tbtext "%R" (name "rev") (pos 235 195) (font (size 1.2 1.2)) (justify right center))
+  (tbtext "PAGE" (name "lbl_page") (pos 239 195) (font (size 1.2 1.2)) (justify left center))
+  (tbtext "%N/%Z" (name "page_num") (pos 285 195) (font (size 1.2 1.2)) (justify right center))
+)

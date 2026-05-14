@@ -18,6 +18,12 @@
       "package-name": "simple-amplifier",
       "changelog-path": "features/simple-amplifier/CHANGELOG.md",
       "bump-minor-pre-major": true
+    },
+    "test-feature": {
+      "release-type": "simple",
+      "package-name": "test-feature",
+      "changelog-path": "features/test-feature/CHANGELOG.md",
+      "bump-minor-pre-major": true
     }
   },
   "changelog-sections": [

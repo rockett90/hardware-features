@@ -1,0 +1,30 @@
+# ─── Document metadata ───────────────────────────────────────────────────────
+# document-version: Increment on every substantive change to requirements content.
+#   Use semantic versioning: 0.x for pre-PDR drafts, 1.0 at PDR baseline, etc.
+# baseline: The gate at which this version was formally approved.
+#   Values: DRAFT | PDR | CDR | TRR
+# approved-date: Set at gate sign-off. Format: YYYY-MM-DD.
+# approved-by: Owner name at gate sign-off.
+document-version: "0.1"
+baseline: DRAFT
+approved-date: ""
+approved-by: ""
+# ─────────────────────────────────────────────────────────────────────────────
+feature: test-feature
+created-at-gate: pdr
+last-updated: YYYY-MM-DD
+requirements:
+  - id: REQ-001
+    version: "0.1"
+    baseline: DRAFT
+    description: "[Replace with first requirement — be specific and measurable]"
+    category: performance
+    verification-method: test
+    rationale: "[Why is this requirement needed?]"
+  - id: REQ-002
+    version: "0.1"
+    baseline: DRAFT
+    description: "[Replace with second requirement]"
+    category: interface
+    verification-method: inspection
+    rationale: "[Why is this requirement needed?]"

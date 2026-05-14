@@ -47,6 +47,7 @@ cp_template() {
 cp_template "templates/kicad-project-template.kicad_pro" "$FEATURE_DIR/kicad/$FEATURE.kicad_pro"
 cp_template "templates/schematic-template.kicad_sch"     "$FEATURE_DIR/kicad/$FEATURE.kicad_sch"
 cp_template "templates/pcb-template.kicad_pcb"           "$FEATURE_DIR/kicad/$FEATURE.kicad_pcb"
+cp_template "templates/title-block.kicad_wks"            "$FEATURE_DIR/kicad/title-block.kicad_wks"
 cp_template "config/kibot/base-feature.kibot.yml"        "$FEATURE_DIR/.kibot.yml"
 
 for file in \

@@ -140,9 +140,38 @@ jobs:
         with:
           script: |
             const feature = '${{ steps.feature.outputs.name }}';
-            await github.rest.issues.createComment({
+            const prNumber = parseInt('${{ inputs.pr_number }}');
+            const marker = '<!-- datasheet-bot -->';
+
+            // Resolve the PR head branch so the link works before the PR is merged.
+            const { data: pr } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: parseInt('${{ inputs.pr_number }}'),
-              body: `✅ Datasheet Markdown generated for \`${feature}\`.\n\nSee [\`features/${feature}/datasheet/${feature}-datasheet.md\`](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/features/${feature}/datasheet/${feature}-datasheet.md).\n\nA PDF will be generated and attached to the GitHub Release at Final Release sign-off.`,
+              pull_number: prNumber,
             });
+            const headBranch = pr.head.ref;
+
+            const body = `${marker}\n✅ Datasheet Markdown generated for \`${feature}\`.\n\nSee [\`features/${feature}/datasheet/${feature}-datasheet.md\`](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${headBranch}/features/${feature}/datasheet/${feature}-datasheet.md).\n\nA PDF will be generated and attached to the GitHub Release at Final Release sign-off.`;
+
+            // Find an existing comment with the marker and update it; otherwise create a new one.
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }

@@ -1,7 +1,7 @@
 # hardware-features
 
 > A KiCad hardware design repository with automated CI for schematic rendering, visual diffing, ERC/DRC, AI review, and release management.
-
+> See [docs/overview.md](https://github.com/rockett90/hardware-features/blob/main/docs/overview.md)
 ---
 
 ## Quick start

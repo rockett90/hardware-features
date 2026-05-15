@@ -40,14 +40,9 @@ Preferences → Manage Symbol Libraries → add `library/symbols/` using `${KIPR
 | Artifact | `artifact/<feature>/<desc>` | Any discrete design artefact during PDR→CDR or CDR→TRR: schematics, PCB, calculations, simulations, analysis, BOM, bring-up evidence. |
 | Artifact with Jira | `artifact/<feature>/<desc-HW-123>` | Same as above with an optional Jira ticket key appended. |
 | Finding | `finding/<feature>/<N>-<desc>` | IVV finding fix. N is the GitHub Issue number. Triggers automatic label updates on the linked issue. |
-| CDR sign-off | `signoff/<feature>/cdr` | CDR gate sign-off. Document-only PR. Triggers CDR checklist posting and gate tag creation. |
-| Re-CDR | `signoff/<feature>/cdr-N` | Re-CDR after a `finding: major` severity forces the design back to CDR. N starts at 1. Triggers the same CDR gate automation as the original CDR sign-off. |
-| CDR (cycle N) | `signoff/<feature>/cdr-rN` | Start design cycle N (N ≥ 2) after a prior release cycle has completed. Creates cycle-scoped gate tags (for example `cdr/<feature>/r2/approved`) and updates floating gate tags. |
-| TRR sign-off | `signoff/<feature>/trr` | TRR gate sign-off. Document-only PR. Triggers TRR checklist, rc tag, and pre-release creation. |
-| Re-TRR | `signoff/<feature>/trr-N` | Re-TRR after finding resolution. Triggers visual diff versus previous rc tag. |
-| TRR (cycle N) | `signoff/<feature>/trr-rN` | TRR sign-off for design cycle N (N ≥ 2). Creates cycle-scoped gate tags (for example `trr/<feature>/r2/approved`) and updates floating gate tags. |
-| Release sign-off | `signoff/<feature>/release` | Final Release gate. Document-only PR. Triggers release gate checklist enforcement and `release/<feature>/approved` tag creation. Must be raised and merged before manufacturing outputs are considered authorised for production. |
-| Release sign-off (cycle N) | `signoff/<feature>/release-rN` | Final Release gate for design cycle N (N ≥ 2). Creates `release/<feature>/rN/approved` and updates the floating `release/<feature>/approved` tag. |
+| CDR sign-off | `signoff/<feature>/cdr` | CDR gate sign-off. Created by the **Actions → Gate Sign-Off** workflow, which opens the PR with the CDR checklist already filled in. |
+| TRR sign-off | `signoff/<feature>/trr` | TRR gate sign-off. Created by the **Actions → Gate Sign-Off** workflow, which checks the CDR tag before opening the PR. |
+| Release sign-off | `signoff/<feature>/release` | Final Release gate. Created by the **Actions → Gate Sign-Off** workflow, which opens the PR with the release checklist already filled in. Must be raised and merged before manufacturing outputs are considered authorised for production. |
 | Library | `library/<desc>` | Changes to the hardware-library repository (raised in that repo, not here). |
 | Chore | `chore/<desc>` | Repository housekeeping: CI changes, guideline updates, template changes, submodule pointer updates. Uses `library` scope in PR title by convention. |
 
@@ -56,6 +51,8 @@ Preferences → Manage Symbol Libraries → add `library/symbols/` using `${KIPR
 > **Final Release** is recorded via the `signoff/<feature>/release` PR. This must be merged before treating manufacturing outputs as authorised for production.
 
 CI validates every PR branch. A non-matching branch fails "Validate branch name" and cannot merge until corrected.
+
+> **Sign-off branches are workflow-managed.** Do not create or rename `signoff/*` branches manually — use **Actions → Gate Sign-Off** and let CI create the branch and PR for you.
 
 > **Where does the changelog live?** release-please automatically creates and maintains `features/<feature-name>/CHANGELOG.md` when the first release PR for that feature is raised and merged. Engineers do not write the changelog manually — it is generated from PR titles.
 
@@ -130,7 +127,9 @@ CI runs automatically on every push and PR update. Most failures are quick to fi
 
 The branch name does not match the required format.
 
-Fix: Rename your branch to match the convention in section 3, then force-push:
+Fix:
+- For `signoff/*` PRs, do **not** rename the branch manually. Close the malformed PR if one was opened, delete the malformed branch if needed, then go to **Actions → Gate Sign-Off → Run workflow** and create a fresh `cdr`, `trr`, or `release` PR from the workflow form.
+- For all other branch types, rename your branch to match the convention in section 3, then push the corrected branch:
 
 ```bash
 git branch -m old-branch-name artifact/my-feature/correct-name
@@ -138,7 +137,7 @@ git push origin -u artifact/my-feature/correct-name
 git push origin --delete old-branch-name
 ```
 
-Open a new PR from the renamed branch if needed.
+Open a new PR from the corrected branch if needed.
 
 ---
 

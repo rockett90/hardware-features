@@ -31,11 +31,11 @@ Each hardware design lives in its own directory inside `features/`. The lifecycl
 |---|---|---|
 | **1. Init (PDR)** | `init/<feature>` | Feature is registered. CI scaffolds the full directory structure and generates the initial datasheet stub. Requirements and design intent are defined. |
 | **2. Design work** | `artifact/<feature>/...` | Schematic and PCB changes are made, one PR per artefact. Slash commands trigger renders, visual diffs, ERC/DRC, AI review, and datasheet regeneration. |
-| **3. CDR sign-off** | `signoff/<feature>/cdr` | CI posts the CDR checklist into the PR. All items must be ticked before merge. A `cdr/.../approved` tag and a `library.lock` file are created automatically on merge. |
+| **3. CDR sign-off** | Gate Sign-Off workflow (Actions tab) | Run the **Gate Sign-Off** workflow — CI creates the sign-off branch and opens the PR with the CDR checklist pre-filled. All items must be ticked before merge. A `cdr/.../approved` tag and a `library.lock` file are created automatically on merge. |
 | **4. Build and bring-up** | `artifact/<feature>/...` | Hardware is built. Bring-up notes, measurements, and verified design values are committed. The datasheet is completed with measured data. |
-| **5. TRR sign-off** | `signoff/<feature>/trr` | CI posts the TRR checklist. A `trr/.../approved` tag is created automatically on merge. Hardware is now ready for independent IVV. |
+| **5. TRR sign-off** | Gate Sign-Off workflow (Actions tab) | Run the **Gate Sign-Off** workflow — CI creates the sign-off branch and opens the PR with the TRR checklist pre-filled. A `trr/.../approved` tag is created automatically on merge. Hardware is now ready for independent IVV. |
 | **6. IVV** | `artifact/<feature>/...` | Independent test is performed externally. Findings are tracked as GitHub Issues and resolved via `finding/` branches. The verification matrix is updated with result references. |
-| **7. Release sign-off** | `signoff/<feature>/release` | CI validates gate traceability, generates a PDF document pack, and creates a GitHub Release at the `release/.../approved` tag on merge. Manufacturing is now authorised. |
+| **7. Release sign-off** | Gate Sign-Off workflow (Actions tab) | Run the **Gate Sign-Off** workflow — CI creates the sign-off branch and opens the PR with the release checklist pre-filled. CI validates gate traceability, generates a PDF document pack, and creates a GitHub Release at the `release/.../approved` tag on merge. Manufacturing is now authorised. |
 | **8. Production release** | (CI-managed Release PR) | An automatically raised Release PR finalises the version number, runs KiBot to generate manufacturing outputs (Gerbers, BOM, CPL, schematic PDF), and attaches them to the GitHub Release. Merge it — do not close it manually. |
 
 If an IVV finding is raised, its severity determines whether a gate re-entry is required: minor findings may proceed without one; moderate findings require a re-TRR; major findings require a re-CDR then re-TRR.
@@ -59,7 +59,7 @@ Gate reviews are not bureaucracy for their own sake. They are the point where ev
 
 The following discipline is expected from everyone working in the repository:
 
-- **Branch naming** — use the correct pattern (e.g. `artifact/buck-converter-5v/add-schematic`). CI rejects a PR with a non-matching branch name and it cannot merge until corrected.
+- **Branch naming** — use the correct pattern for branches you create manually (e.g. `artifact/buck-converter-5v/add-schematic`). CI rejects a PR with a non-matching branch name and it cannot merge until corrected. Sign-off branches are created by **Actions → Gate Sign-Off** and must not be created manually.
 - **PR titles** — follow the format `type(scope): description` (e.g. `feat(buck-converter-5v): add initial schematic`). CI validates this automatically.
 - **File location** — KiCad files live in `features/<feature>/kicad/`. Do not put them elsewhere.
 - **One feature per PR** — a single PR must only change KiCad files in one feature directory. CI enforces this.
@@ -95,7 +95,7 @@ CI runs automatically on every push and pull request. It handles the mechanical 
 | What CI does automatically | When |
 |---|---|
 | Scaffolds the full feature directory structure | When an `init/` branch is first pushed |
-| Commits a gate evidence file to the branch | When a `signoff/` branch is first pushed |
+| Commits a gate evidence file to the branch | When the **Gate Sign-Off** workflow is run |
 | Generates the initial datasheet stub | When an `init/` PR is opened |
 | Fills the PR body with the correct checklist or template | When any PR is opened or converted from draft |
 | Validates branch name format and single-feature rule | On every PR update |
@@ -148,7 +148,7 @@ If you are unsure whether a file belongs in the repository, ask the lead before 
 
 A released design must not be modified informally. Once the `release/.../approved` tag exists, that is the authorised design baseline.
 
-If a change is needed — whether a correction, an improvement, or a finding resolution — a new design cycle begins. This follows the same process: branch sequence, checklists, gate sign-offs, and a new release record. Each cycle is separately tagged (e.g. `cdr/.../r2/approved`), so the full history of every design cycle remains available and traceable.
+If a change is needed — whether a correction, an improvement, or a finding resolution — a new design cycle begins. This follows the same process: `artifact/` PRs for the design changes, then the same CDR, TRR, and Release sign-offs via **Actions → Gate Sign-Off**. The floating gate tags move forward to the latest approved baseline while PR history preserves the review record for each cycle.
 
 Do not overwrite or silently update a released design. If someone later needs to understand what was built and when, the records need to be there.
 

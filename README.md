@@ -76,18 +76,14 @@ The dispatcher reacts with 👀 immediately on receipt, ✅ on success, ❌ on f
 | Design work | `artifact/<feature>/<desc>` |
 | Design work with ticket | `artifact/<feature>/<desc-HW-123>` |
 | IVV finding | `finding/<feature>/<N>-<desc>` |
-| CDR sign-off | `signoff/<feature>/cdr` |
-| Re-CDR | `signoff/<feature>/cdr-N` |
-| CDR (cycle N) | `signoff/<feature>/cdr-rN` |
-| TRR sign-off | `signoff/<feature>/trr` |
-| Re-TRR | `signoff/<feature>/trr-N` |
-| TRR (cycle N) | `signoff/<feature>/trr-rN` |
-| Release sign-off | `signoff/<feature>/release` |
-| Release sign-off (cycle N) | `signoff/<feature>/release-rN` |
+| CDR sign-off branch (created by CI) | `signoff/<feature>/cdr` |
+| TRR sign-off branch (created by CI) | `signoff/<feature>/trr` |
+| Release sign-off branch (created by CI) | `signoff/<feature>/release` |
 | Library change | `library/<desc>` |
 | Tooling / docs | `chore/<desc>` |
 
 CI validates every PR branch name. A non-matching name fails the "Validate branch name" check and cannot merge until corrected.
+Sign-off branches are created automatically by running **Actions → Gate Sign-Off → Run workflow**.
 
 ---
 

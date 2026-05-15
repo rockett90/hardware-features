@@ -1,0 +1,262 @@
+name: Gate Sign-Off
+
+on:
+  workflow_dispatch:
+    inputs:
+      feature:
+        description: "Feature name (for example: simple-amplifier)"
+        required: true
+        type: string
+      gate:
+        description: Gate type
+        required: true
+        type: choice
+        options:
+          - cdr
+          - trr
+          - release
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  create-signoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Validate feature input and repository state
+        env:
+          FEATURE: ${{ inputs.feature }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$FEATURE" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+            echo "Invalid feature name '$FEATURE'. Expected format: ^[a-z0-9][a-z0-9-]*$"
+            exit 1
+          fi
+
+          if [[ ! -d "features/${FEATURE}" ]]; then
+            echo "Feature directory not found: features/${FEATURE}/"
+            exit 1
+          fi
+
+      - name: Check gate prerequisites
+        env:
+          FEATURE: ${{ inputs.feature }}
+          GATE: ${{ inputs.gate }}
+        run: |
+          set -euo pipefail
+          PREV_TAG=""
+          case "$GATE" in
+            trr) PREV_TAG="cdr/${FEATURE}/approved" ;;
+            release) PREV_TAG="trr/${FEATURE}/approved" ;;
+            cdr) PREV_TAG="" ;;
+            *)
+              echo "Unsupported gate: $GATE"
+              exit 1
+              ;;
+          esac
+
+          if [[ -n "$PREV_TAG" ]] && ! git rev-parse --verify --quiet "refs/tags/${PREV_TAG}" >/dev/null; then
+            echo "Cannot create sign-off for '${GATE}' gate."
+            echo "Required prerequisite tag is missing: ${PREV_TAG}"
+            exit 1
+          fi
+
+      - name: Check for existing open PR
+        id: open_pr
+        uses: actions/github-script@v7
+        env:
+          BRANCH: signoff/${{ inputs.feature }}/${{ inputs.gate }}
+        with:
+          result-encoding: string
+          script: |
+            const branch = process.env.BRANCH;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const { data: prs } = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              base: 'main',
+              head: `${owner}:${branch}`,
+              per_page: 1,
+            });
+            if (prs.length > 0) {
+              return prs[0].html_url;
+            }
+            return '';
+
+      - name: Fail when duplicate open PR exists
+        if: steps.open_pr.outputs.result != ''
+        env:
+          PR_URL: ${{ steps.open_pr.outputs.result }}
+        run: |
+          echo "An open sign-off PR already exists for this gate: ${PR_URL}"
+          exit 1
+
+      - name: Delete stale remote signoff branch if present
+        env:
+          BRANCH: signoff/${{ inputs.feature }}/${{ inputs.gate }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            git push origin --delete "$BRANCH"
+          fi
+
+      - name: Create signoff branch and commit gate evidence
+        env:
+          FEATURE: ${{ inputs.feature }}
+          GATE: ${{ inputs.gate }}
+        run: |
+          set -euo pipefail
+          BRANCH="signoff/${FEATURE}/${GATE}"
+          EVIDENCE_FILE="features/${FEATURE}/reviews/gate-evidence-${GATE}.md"
+          EXT_REF="features/${FEATURE}/reviews/external-references.md"
+          STUB="scripts/ci/stubs/reviews/external-references.md"
+          MAIN_SHA=$(git rev-parse HEAD)
+          CREATED_DATE=$(date -u +%Y-%m-%d)
+
+          case "$GATE" in
+            cdr)
+              GATE_LABEL="CDR"
+              PREV_GATE="PDR"
+              PREV_TAG="pdr/${FEATURE}/approved"
+              ;;
+            trr)
+              GATE_LABEL="TRR"
+              PREV_GATE="CDR"
+              PREV_TAG="cdr/${FEATURE}/approved"
+              ;;
+            release)
+              GATE_LABEL="Release"
+              PREV_GATE="TRR"
+              PREV_TAG="trr/${FEATURE}/approved"
+              ;;
+            *)
+              echo "Unsupported gate: $GATE"
+              exit 1
+              ;;
+          esac
+
+          PREV_SHA="tag not found"
+          PREV_DATE="unknown"
+          if git rev-parse --verify --quiet "refs/tags/${PREV_TAG}" >/dev/null; then
+            PREV_SHA=$(git rev-list -n 1 "refs/tags/${PREV_TAG}")
+            PREV_DATE=$(git log -1 --format="%cs" "$PREV_SHA")
+          fi
+
+          git checkout -B "$BRANCH" main
+          mkdir -p "features/${FEATURE}/reviews"
+
+          cat > "$EVIDENCE_FILE" <<EOF
+          # Gate evidence -- ${GATE_LABEL} sign-off
+
+          | Field | Value |
+          |---|---|
+          | Feature | \`${FEATURE}\` |
+          | Gate | ${GATE_LABEL} |
+          | Branch | \`${BRANCH}\` |
+          | Date created | ${CREATED_DATE} |
+          | main SHA at branch creation | \`${MAIN_SHA}\` |
+          | Previous gate | ${PREV_GATE} |
+          | Previous gate tag | \`${PREV_TAG}\` |
+          | Previous gate SHA | \`${PREV_SHA}\` |
+          | Previous gate date | ${PREV_DATE} |
+
+          > Created automatically by CI. Do not edit manually.
+          EOF
+
+          if [[ "$GATE" == "trr" || "$GATE" == "release" ]]; then
+            if [[ ! -f "$EXT_REF" ]]; then
+              cp "$STUB" "$EXT_REF"
+              sed -i "s/FEATURE_NAME/${FEATURE}/g" "$EXT_REF"
+            fi
+          fi
+
+          SCH_SVG="features/${FEATURE}/datasheet/${FEATURE}-schematic.svg"
+          if [[ "$GATE" == "release" && -f "features/${FEATURE}/kicad/${FEATURE}.kicad_sch" ]]; then
+            KICAD_IMAGE="ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257"
+            mkdir -p "features/${FEATURE}/datasheet"
+            docker run --rm \
+              -v "$PWD:/repo" \
+              -w "/repo" \
+              "$KICAD_IMAGE" \
+              kicad-cli sch export svg \
+                --output "/repo/features/${FEATURE}/datasheet/" \
+                "/repo/features/${FEATURE}/kicad/${FEATURE}.kicad_sch" 2>&1 || true
+            if [[ -f "features/${FEATURE}/datasheet/${FEATURE}.svg" ]]; then
+              mv "features/${FEATURE}/datasheet/${FEATURE}.svg" "$SCH_SVG"
+            fi
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$EVIDENCE_FILE"
+          [[ -f "$EXT_REF" ]] && git add "$EXT_REF" || true
+          [[ -f "$SCH_SVG" ]] && git add "$SCH_SVG" || true
+          git commit -m "chore(${FEATURE}): scaffold ${GATE} gate evidence"
+          git push -u origin "$BRANCH"
+
+      - name: Open signoff PR from template
+        id: create_pr
+        uses: actions/github-script@v7
+        env:
+          FEATURE: ${{ inputs.feature }}
+          GATE: ${{ inputs.gate }}
+          BRANCH: signoff/${{ inputs.feature }}/${{ inputs.gate }}
+        with:
+          result-encoding: string
+          script: |
+            const fs = require('fs');
+            const feature = process.env.FEATURE;
+            const gate = process.env.GATE;
+            const branch = process.env.BRANCH;
+
+            const templates = {
+              cdr: '.github/PULL_REQUEST_TEMPLATE/cdr-signoff.md',
+              trr: '.github/PULL_REQUEST_TEMPLATE/trr-signoff.md',
+              release: '.github/PULL_REQUEST_TEMPLATE/release-signoff.md',
+            };
+            const gateNames = { cdr: 'CDR', trr: 'TRR', release: 'Release' };
+            const templatePath = templates[gate];
+            if (!templatePath || !fs.existsSync(templatePath)) {
+              throw new Error(`Template not found for gate "${gate}": ${templatePath}`);
+            }
+
+            const body = fs.readFileSync(templatePath, 'utf8');
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `chore(${feature}): ${gateNames[gate]} sign-off`,
+              head: branch,
+              base: 'main',
+              body,
+            });
+            return String(pr.number);
+
+      - name: Post orientation comment
+        uses: actions/github-script@v7
+        env:
+          FEATURE: ${{ inputs.feature }}
+          GATE: ${{ inputs.gate }}
+          PR_NUMBER: ${{ steps.create_pr.outputs.result }}
+        with:
+          script: |
+            const prNumber = Number(process.env.PR_NUMBER);
+            const feature = process.env.FEATURE;
+            const gate = process.env.GATE;
+            const branch = `signoff/${feature}/${gate}`;
+            const evidence = `features/${feature}/reviews/gate-evidence-${gate}.md`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `## ✅\n\nThis sign-off PR was created automatically by CI.\n\n- Branch: \`${branch}\`\n- Gate evidence file: \`${evidence}\`\n\nReview the checklist in the PR description and complete sign-off normally.`,
+            });

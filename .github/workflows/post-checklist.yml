@@ -59,6 +59,24 @@ jobs:
               return;
             }
 
+            if (/^signoff\/.*\/release/.test(branch)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo:  context.repo.repo,
+                issue_number: prNumber,
+                body: [
+                  '## ✅ Release Gate',
+                  '',
+                  'The Release checklist is in the PR description above. Tick every item before requesting merge.',
+                  '',
+                  '**CI enforcement:** `gate-check` will block merge while any `- [ ]` item remains unchecked in the PR description.',
+                  '',
+                  'If an item does not apply, tick it and add a note in the PR description or in a comment.',
+                ].join('\n'),
+              });
+              return;
+            }
+
             // init/ PRs: post PDR orientation comment
             if (/^init\//.test(branch)) {
               await github.rest.issues.createComment({

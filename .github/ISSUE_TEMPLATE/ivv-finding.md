@@ -12,7 +12,7 @@ assignees: ''
 **Severity:** <!-- Minor / Moderate / Major — lead confirms label after submission -->
 **Found by:**
 **Date found:**
-**RC tag:** <!-- e.g. buck-converter-5v-v1.0.0-rc.1 -->
+**TRR gate tag:** <!-- e.g. trr/<feature>/approved -->
 
 ---
 

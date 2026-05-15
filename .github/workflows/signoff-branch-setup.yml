@@ -1,4 +1,8 @@
 name: Signoff branch setup
+# NOTE: This workflow fires on the 'create' event for any signoff/* branch.
+# The 'github.actor != github-actions[bot]' guard means it is intentionally
+# skipped when gate-signoff-dispatch.yml creates the branch (the normal path).
+# It only runs when a signoff branch is created manually — an unusual case.
 on:
   create:
 concurrency:
@@ -26,8 +30,7 @@ jobs:
           REF="${GITHUB_REF_NAME}"
           FEATURE=$(echo "$REF" | sed 's|^signoff/||' | cut -d'/' -f1)
           GATE_FULL=$(echo "$REF" | sed 's|^signoff/||' | cut -d'/' -f2-)
-          # Strip cycle suffix (-r2, -r3) then re-attempt suffix (-2, -3) to get base gate type
-          GATE_TYPE=$(echo "$GATE_FULL" | sed 's|-r[0-9]*$||;s|-[0-9]*$||')
+          GATE_TYPE="$GATE_FULL"
           echo "feature=$FEATURE" >> $GITHUB_OUTPUT
           echo "gate_full=$GATE_FULL" >> $GITHUB_OUTPUT
           echo "gate_type=$GATE_TYPE" >> $GITHUB_OUTPUT

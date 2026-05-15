@@ -283,8 +283,8 @@ The full IVV finding loop:
 5. CI automatically adds `finding: in-progress` to the issue and posts a link comment when the PR is opened, and `finding: resolved` plus the merge commit SHA when the PR merges.
 6. Severity determines gate re-entry:
    - `finding: minor` — no gate re-entry unless the lead requires it
-   - `finding: moderate` — re-TRR required (`signoff/<feature>/trr-N` branch)
-   - `finding: major` — re-CDR then re-TRR required
+   - `finding: moderate` — re-TRR required; run **Actions → Gate Sign-Off → trr**
+   - `finding: major` — re-CDR then re-TRR required; run **Actions → Gate Sign-Off → cdr** then **→ trr**
 
 ---
 

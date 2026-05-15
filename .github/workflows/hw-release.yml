@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'release/*/approved'
-      - 'release/*/*/approved'
 
 jobs:
   manufacturing-release:
@@ -22,27 +21,21 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Detect feature name and cycle from tag
+      - name: Detect feature name from tag
         id: tag
         run: |
           TAG="${GITHUB_REF_NAME}"
-          # release/<feature>/approved  OR  release/<feature>/rN/approved
-          if [[ "$TAG" =~ ^release/(.+)/r([0-9]+)/approved$ ]]; then
+          if [[ "$TAG" =~ ^release/(.+)/approved$ ]]; then
             FEATURE="${BASH_REMATCH[1]}"
-            CYCLE="${BASH_REMATCH[2]}"
-          elif [[ "$TAG" =~ ^release/(.+)/approved$ ]]; then
-            FEATURE="${BASH_REMATCH[1]}"
-            CYCLE="1"
           else
             echo "::error::Unrecognised tag format: $TAG"
             exit 1
           fi
           VERSION=$(git tag -l "${FEATURE}-v*" | grep -v -- '-rc\.' | sort -V | tail -1 || echo "unknown")
           echo "feature=$FEATURE" >> "$GITHUB_OUTPUT"
-          echo "cycle=$CYCLE" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Feature: $FEATURE  Cycle: $CYCLE  Version: $VERSION  Tag: $TAG"
+          echo "Feature: $FEATURE  Version: $VERSION  Tag: $TAG"
 
       - name: Verify feature directory exists
         run: |
@@ -82,9 +75,8 @@ jobs:
       - name: Create manufacturing ZIP
         run: |
           FEATURE="${{ steps.tag.outputs.feature }}"
-          CYCLE="${{ steps.tag.outputs.cycle }}"
           FAB_DIR="features/$FEATURE/fab/release"
-          ZIP_NAME="${FEATURE}-cycle${CYCLE}-manufacturing.zip"
+          ZIP_NAME="${FEATURE}-manufacturing.zip"
 
           if [ -d "$FAB_DIR" ] && [ "$(ls -A "$FAB_DIR")" ]; then
             zip -r "$ZIP_NAME" "$FAB_DIR/"
@@ -131,7 +123,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          name: "${{ steps.tag.outputs.feature }} — Release (cycle ${{ steps.tag.outputs.cycle }})"
+          name: "${{ steps.tag.outputs.feature }} — Manufacturing Release"
           files: ${{ steps.create_zip.outputs.zip_name }}
           fail_on_unmatched_files: true
 

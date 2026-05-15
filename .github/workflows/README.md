@@ -12,10 +12,9 @@
 | `commitlint.yml` | PR opened/updated | Validates that the PR title follows Conventional Commits format (`type(scope): description`) |
 | `erc-drc.yml` | `/erc` or `/drc` slash command | Runs KiCad Electrical Rules Check / Design Rules Check via `kicad-cli` inside Docker — informational, does not block merge |
 | `finding-labels.yml` | PR opened/updated | Automatically applies labels to `finding/<feature>/...` branches |
-| `gate-check.yml` | PR opened/updated on `signoff/` branches | Validates that required gate documents and checklists are present for CDR/TRR sign-off PRs |
-| `gate-tags.yml` | PR merged on a `signoff/` branch | Applies a git tag when a gate PR merges (e.g. `<feature>/cdr-v1`) |
+| `gate-check.yml` | PR opened/updated on `signoff/` and `init/` branches | Validates that required gate documents and checklists are present for CDR/TRR/Release sign-off PRs |
+| `gate-tags.yml` | PR merged on a `signoff/` branch | Applies a floating git tag when a gate PR merges (e.g. `cdr/<feature>/approved`) |
 | `hw-comment-dispatch.yml` | Issue comment created | Central slash command dispatcher — checks commenter permissions, routes commands to the correct workflow |
-| `init-feature.yml` | PR merged on `init/<feature>` | Scaffolds the full feature directory structure automatically on merge |
 | `kicad-diff.yml` | `/kicad-diff` slash command | Generates a four-column HTML visual diff of schematic and PCB changes vs the base branch |
 | `post-checklist.yml` | PR opened/converted from draft | Posts the appropriate review checklist as a PR comment |
 | `pr-checks.yml` | PR opened/updated | Validates branch name format and that the PR only touches one feature directory |

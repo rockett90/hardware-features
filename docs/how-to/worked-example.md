@@ -546,8 +546,8 @@ If a defect is found:
 | Severity | Gate re-entry required |
 |---|---|
 | `finding: minor` | None, unless the owner decides otherwise |
-| `finding: moderate` | Re-TRR (`signoff/buck-converter-5v/trr-1`) |
-| `finding: major` | Re-CDR then re-TRR (`signoff/buck-converter-5v/cdr-1`, then `signoff/buck-converter-5v/trr-1`) |
+| `finding: moderate` | Re-TRR — run **Actions → Gate Sign-Off → trr** |
+| `finding: major` | Re-CDR then re-TRR — run **Actions → Gate Sign-Off → cdr** then **→ trr** |
 
 ---
 
@@ -641,8 +641,8 @@ If IVV finds defects, they raise GitHub Issues using the IVV Finding issue templ
 | Severity | Gate re-entry |
 |---|---|
 | `finding: minor` | None, unless the owner decides otherwise |
-| `finding: moderate` | Re-TRR (`signoff/buck-converter-5v/trr-1`) |
-| `finding: major` | Re-CDR then re-TRR |
+| `finding: moderate` | Re-TRR — run **Actions → Gate Sign-Off → trr** |
+| `finding: major` | Re-CDR then re-TRR — run **Actions → Gate Sign-Off → cdr** then **→ trr** |
 
 ---
 
@@ -834,7 +834,7 @@ signoff/buck-converter-5v/release
 finding/buck-converter-5v/<issue-number>-<desc>
 ```
 
-> **Signoff branches** (`signoff/**`) are scaffolded automatically on first push — same as `init/**` branches. Publish the branch immediately and wait for `Signoff branch setup` to commit the gate evidence file before opening the PR.
+> **Signoff branches** (`signoff/**`) are created entirely by the **Gate Sign-Off** workflow (**Actions → Gate Sign-Off**) — do not create or push them manually.
 
 **PR title format:**
 ```
@@ -857,7 +857,7 @@ Types: `feat`, `fix`, `docs`, `test`, `chore`
 | Event | What CI does |
 |---|---|
 | Push to `init/**` branch | Scaffolds feature directory, stubs, and config files; commits back to branch |
-| Push to `signoff/**` branch | Commits gate evidence file to branch |
+| Push to `signoff/**` branch | Gate Sign-Off workflow creates the branch and commits gate evidence automatically |
 | Any PR opened | Fills PR body with the correct template for the branch type |
 | Init PR opened | Generates datasheet stub and commits it to the init branch |
 | Artifact PR with `.kicad_sch` or `.kicad_pcb` changes | ERC/DRC runs and posts a comment (informational) |

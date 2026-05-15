@@ -19,7 +19,7 @@ After TRR has passed and the IVV team has completed testing. All findings must b
    - Collects all release documents and creates a GitHub Release at the tag
    - Runs KiBot to generate manufacturing outputs (gerbers, drill, BOM, CPL, schematic PDF)
 
-   Check the `gate-tags.yml` Actions run (release-gate job) for any ⛔ in the step summary — this means one or more outputs are incomplete.
+   Check the **Manufacturing Release** (`hw-release.yml`) workflow run triggered by the production tag for any ⛔ in the step summary — this means one or more manufacturing outputs are incomplete.
 
 ## After this gate
 

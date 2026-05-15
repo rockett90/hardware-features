@@ -9,7 +9,7 @@
 
 ## Gate traceability
 
-- [ ] `pdr/<feature>/approved` tag present in repository
+- [ ] PDR baseline established — `init/<feature>` PR merged
 - [ ] `cdr/<feature>/approved` tag present in repository
 - [ ] `trr/<feature>/approved` tag present in repository
 - [ ] `features/<feature>/reviews/library.lock` committed

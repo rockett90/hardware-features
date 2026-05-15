@@ -184,13 +184,15 @@ jobs:
           if [[ "$GATE" == "release" && -f "features/${FEATURE}/kicad/${FEATURE}.kicad_sch" ]]; then
             KICAD_IMAGE="ghcr.io/inti-cmnb/kicad10_auto_full@sha256:81621e501169e66dc051a65a0e575c0ab2854f69a121f1f9d97aad2b0d4c0257"
             mkdir -p "features/${FEATURE}/datasheet"
-            docker run --rm \
+            if ! docker run --rm \
               -v "$PWD:/repo" \
               -w "/repo" \
               "$KICAD_IMAGE" \
               kicad-cli sch export svg \
                 --output "/repo/features/${FEATURE}/datasheet/" \
-                "/repo/features/${FEATURE}/kicad/${FEATURE}.kicad_sch" 2>&1 || true
+                "/repo/features/${FEATURE}/kicad/${FEATURE}.kicad_sch"; then
+              echo "Warning: schematic SVG export failed for ${FEATURE}; continuing."
+            fi
             if [[ -f "features/${FEATURE}/datasheet/${FEATURE}.svg" ]]; then
               mv "features/${FEATURE}/datasheet/${FEATURE}.svg" "$SCH_SVG"
             fi

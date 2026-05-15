@@ -95,7 +95,7 @@ Sign-off branches are created automatically by running **Actions → Gate Sign-O
 2. **Design work** (`artifact/<feature>/...` PRs) — schematic and PCB changes, one feature per PR.
 3. **Use slash commands** during review: `/render`, `/kicad-diff`, `/ai-review`, `/erc`, `/drc`, `/datasheet`.
 4. **CDR sign-off** — run the **Gate Sign-Off** workflow from the Actions tab, select `cdr`, and let CI create the sign-off branch and PR automatically. Gate-check CI must pass before merge.
-5. **TRR sign-off** — run the **Gate Sign-Off** workflow from the Actions tab, select `trr`, and let CI create the sign-off branch and PR automatically. Gate-check CI must pass before merge; creates an rc pre-release automatically.
+5. **TRR sign-off** — run the **Gate Sign-Off** workflow from the Actions tab, select `trr`, and let CI create the sign-off branch and PR automatically. Gate-check CI must pass before merge; creates the `trr/<feature>/approved` tag.
 6. **Final Release sign-off** — run the **Gate Sign-Off** workflow from the Actions tab, select `release`, and let CI create the sign-off branch and PR automatically. Gate-check CI must pass before merge; creates the `release/<feature>/approved` tag. See [docs/how-to/release-signoff.md](docs/how-to/release-signoff.md).
 7. **Release** — merge the release-please Release PR; never close it manually. Manufacturing outputs are generated automatically from the `release/<feature>/approved` gate tag.
 

@@ -91,8 +91,8 @@ Work through the fix on the `finding/` branch. Follow the same commit and review
 | Severity | Action |
 |---|---|
 | `finding: minor` | No gate re-entry. Proceed to next stage. |
-| `finding: moderate` | Raise a re-TRR PR: `signoff/<feature>/trr-<N>` (e.g. `signoff/simple-amplifier/trr-1`) |
-| `finding: major` | Raise a re-CDR PR first: `signoff/<feature>/cdr-<N>`, then re-TRR |
+| `finding: moderate` | Re-TRR required — run **Actions → Gate Sign-Off → trr** |
+| `finding: major` | Re-CDR then re-TRR — run **Actions → Gate Sign-Off → cdr** then **→ trr** |
 
 For re-TRR and re-CDR, follow the same process as the original CDR/TRR sign-off — see [cdr-signoff.md](cdr-signoff.md) and [trr-signoff.md](trr-signoff.md).
 

@@ -30,8 +30,8 @@
 ## Gate re-entry (tick one)
 
 - [ ] `finding: minor` — no gate re-entry required
-- [ ] `finding: moderate` — re-TRR will be raised after this merges (`signoff/<feature>/trr-N`)
-- [ ] `finding: major` — re-CDR then re-TRR will be raised after this merges
+- [ ] `finding: moderate` — re-TRR required; run **Actions → Gate Sign-Off → trr** after this merges
+- [ ] `finding: major` — re-CDR then re-TRR required; run **Actions → Gate Sign-Off → cdr** then **→ trr** after this merges
 
 ## Sign-off
 

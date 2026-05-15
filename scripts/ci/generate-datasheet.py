@@ -236,12 +236,10 @@ def _read_changelog(path: str):
 def _get_gate_history(repo_root: str, feature: str) -> dict:
     """Read gate tags via git tag -l."""
     default = {
-        "pdr": False,
-        "pdr_tag": f"pdr/{feature}/approved",
         "cdr": False,
         "cdr_tag": f"cdr/{feature}/approved",
         "trr": False,
-        "trr_tag": f"{feature}-vX.Y.Z-rc.N",
+        "trr_tag": f"trr/{feature}/approved",
         "release": False,
         "release_tag": f"release/{feature}/approved",
     }
@@ -255,23 +253,15 @@ def _get_gate_history(repo_root: str, feature: str) -> dict:
         )
         tags = set(result.stdout.strip().split("\n"))
 
-        pdr_tag = f"pdr/{feature}/approved"
         cdr_tag = f"cdr/{feature}/approved"
+        trr_tag = f"trr/{feature}/approved"
         release_tag = f"release/{feature}/approved"
 
-        # Latest rc tag for TRR
-        rc_tags = sorted(
-            t for t in tags if t.startswith(f"{feature}-v") and "-rc." in t
-        )
-        rc_tag = rc_tags[-1] if rc_tags else None
-
         return {
-            "pdr": pdr_tag in tags,
-            "pdr_tag": pdr_tag,
             "cdr": cdr_tag in tags,
             "cdr_tag": cdr_tag,
-            "trr": rc_tag is not None,
-            "trr_tag": rc_tag if rc_tag else f"{feature}-vX.Y.Z-rc.N",
+            "trr": trr_tag in tags,
+            "trr_tag": trr_tag,
             "release": release_tag in tags,
             "release_tag": release_tag,
         }
@@ -437,7 +427,6 @@ def _generate_markdown(
     parts.append("\n## Gate History\n\n")
     gh = gate_history
     rows = [
-        ["PDR", f"`{gh['pdr_tag']}`", "✅ Cleared" if gh["pdr"] else "⏳ Pending"],
         ["CDR", f"`{gh['cdr_tag']}`", "✅ Cleared" if gh["cdr"] else "⏳ Pending"],
         ["TRR", f"`{gh['trr_tag']}`", "✅ Cleared" if gh["trr"] else "⏳ Pending"],
         [

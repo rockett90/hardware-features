@@ -135,6 +135,4 @@ Recorded via the `signoff/<feature>/release` PR.
 
 ## Second design cycle
 
-When a feature requires design changes after a completed release cycle, a second cycle begins with `signoff/<feature>/cdr-r2`. See [docs/how-to/second-design-cycle.md](../../docs/how-to/second-design-cycle.md) for the full process.
-
-Gate tags for cycle 2: `cdr/<feature>/r2/approved`, `trr/<feature>/r2/approved`, `release/<feature>/r2/approved`.
+When a feature requires design changes after a completed release cycle, a second cycle uses exactly the same process — run **Actions → Gate Sign-Off → cdr/trr/release** as normal. Gate tags (`cdr/<feature>/approved`, `trr/<feature>/approved`, `release/<feature>/approved`) are floating and move forward automatically when the new gate PR merges. See [docs/how-to/second-design-cycle.md](../../docs/how-to/second-design-cycle.md) for the full process.

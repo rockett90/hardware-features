@@ -1,11 +1,5 @@
 # How to perform a CDR sign-off
 
-> **Opening the CDR PR:** Use the following URL to open your PR with the CDR template pre-loaded (replace `<branch>` with your branch name):
-> ```
-> https://github.com/rockett90/hardware-features/compare/main...<branch>?template=cdr-signoff.md
-> ```
-> Do not open the PR from the GitHub branch page directly — it will load the default template instead of the CDR template.
->
 > Critical Design Review (CDR) — a formal gate in the hardware feature lifecycle that must be passed before a design moves to build.
 
 ---
@@ -25,42 +19,23 @@ A Critical Design Review is a formal checkpoint that confirms the design is comp
 
 ---
 
-## Branch naming
-
-```
-signoff/<feature>/cdr
-```
-
----
-
 ## Steps
 
-### 1. Create the sign-off branch
+### 1. Run the Gate Sign-Off workflow
 
-```bash
-git checkout main
-git pull
-git checkout -b signoff/<feature>/cdr
-```
+Go to **Actions → Gate Sign-Off → Run workflow**, enter your feature name, and select `cdr`. The workflow creates `signoff/<feature>/cdr`, commits the gate evidence file, and opens the CDR PR automatically.
 
-### 2. Verify gate documents are present
+### 2. Open the PR from the workflow summary link
 
-The `gate-check.yml` workflow validates that all required documents exist inside `features/<feature>/`. Required documents are defined in [`.github/guidelines/gate-criteria.md`](../../.github/guidelines/gate-criteria.md).
+When the workflow completes, open its summary page and click the PR link that it created. The PR title should be `chore(<feature>): CDR sign-off` and the CDR checklist is already filled into the PR body.
 
-> ⚠️ Warning: If any required document is missing, `gate-check.yml` will fail and block merge. The check runs automatically on push — fix any failures before requesting review.
-
-### 3. Open a PR
-
-PR title format:
-```
-chore(<feature>): CDR sign-off
-```
-
-Open the PR as a **draft** initially, then convert to ready-for-review once CI passes.
-
-### 4. Run `/render`
+### 3. Run `/render`
 
 Post `/render` as a PR comment. This generates current schematic SVGs that are stored as part of the review record.
+
+### 4. Tick the checklist
+
+Read the CDR checklist in the PR body and tick every item once the evidence is complete. If `gate-check.yml` fails, fix the missing evidence or update the checklist before requesting review.
 
 ### 5. Obtain required approvals
 
@@ -70,7 +45,7 @@ Obtain the required number of reviewer approvals per CODEOWNERS.
 
 Once CI passes and approvals are in place, merge the PR.
 
-On merge, `gate-tags.yml` automatically applies the git tag `<feature>/cdr-v1`.
+On merge, `gate-tags.yml` automatically creates the git tag `cdr/<feature>/approved`.
 
 ---
 

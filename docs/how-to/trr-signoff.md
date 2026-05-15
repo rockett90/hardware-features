@@ -19,53 +19,23 @@ A Test Readiness Review is a formal checkpoint that confirms the hardware is bui
 
 ---
 
-## Branch naming
-
-First TRR:
-```
-signoff/<feature>/trr
-```
-
-Re-TRR (if the first TRR failed and a re-review is required):
-```
-signoff/<feature>/trr-2
-signoff/<feature>/trr-3
-```
-(increment `N` for each re-TRR)
-
----
-
 ## Steps
 
-### 1. Create the sign-off branch
+### 1. Run the Gate Sign-Off workflow
 
-```bash
-git checkout main
-git pull
-git checkout -b signoff/<feature>/trr
-```
+Go to **Actions → Gate Sign-Off → Run workflow**, enter your feature name, and select `trr`. The workflow checks that `cdr/<feature>/approved` already exists before it creates `signoff/<feature>/trr`, commits the gate evidence file, and opens the TRR PR automatically.
 
-### 2. Verify gate documents are present
+### 2. Open the PR from the workflow summary link
 
-The `gate-check.yml` workflow validates that all required documents exist inside `features/<feature>/`. Required documents are defined in [`.github/guidelines/gate-criteria.md`](../../.github/guidelines/gate-criteria.md).
+When the workflow completes, open its summary page and click the PR link that it created. The PR title should be `chore(<feature>): TRR sign-off` and the TRR checklist is already filled into the PR body.
 
-> ⚠️ Warning: If any required document is missing, `gate-check.yml` will fail and block merge. Fix failures before requesting review.
-
-### 3. Open a PR
-
-PR title format:
-```
-chore(<feature>): TRR sign-off
-```
-
-For a re-TRR:
-```
-chore(<feature>): TRR-2 sign-off
-```
-
-### 4. Run `/render`
+### 3. Run `/render`
 
 Post `/render` as a PR comment to generate current schematic SVGs for the record.
+
+### 4. Tick the checklist
+
+Read the TRR checklist in the PR body and tick every item once the evidence is complete. If `gate-check.yml` fails, fix the missing evidence or update the checklist before requesting review.
 
 ### 5. Obtain required approvals
 
@@ -73,13 +43,9 @@ Obtain the required number of reviewer approvals per CODEOWNERS.
 
 ### 6. Merge
 
-On merge, `gate-tags.yml` automatically applies the git tag:
+Once CI passes and approvals are in place, merge the PR.
 
-| Branch | Tag applied |
-|---|---|
-| `signoff/<feature>/trr` | `trr/<feature>/approved` |
-| `signoff/<feature>/trr-2` | `trr/<feature>/approved` (force-updated) |
-| `signoff/<feature>/trr-r2` | `trr/<feature>/r2/approved` + floating tag updated |
+On merge, `gate-tags.yml` automatically creates the git tag `trr/<feature>/approved`.
 
 ---
 

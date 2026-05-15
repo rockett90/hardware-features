@@ -6,7 +6,7 @@ PATTERNS=(
   "^init/[a-z0-9][a-z0-9-]*$"
   "^artifact/[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9A-Z_-]*$"
   "^finding/[a-z0-9][a-z0-9-]*/[0-9]+-[a-z0-9][a-z0-9-]*$"
-  "^signoff/[a-z0-9][a-z0-9-]*/(cdr|cdr-[0-9]+|cdr-r[0-9]+|trr|trr-[0-9]+|trr-r[0-9]+|release|release-r[0-9]+)$"
+  "^signoff/[a-z0-9][a-z0-9-]*/(cdr|trr|release)$"
   "^library/[a-z0-9][a-z0-9-]*$"
   "^chore/[a-z0-9][a-z0-9-]*$"
   "^release-please--.*$"

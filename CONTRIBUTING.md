@@ -51,6 +51,7 @@ Preferences → Manage Symbol Libraries → add `library/symbols/` using `${KIPR
 > **Final Release** is recorded via the `signoff/<feature>/release` PR. This must be merged before treating manufacturing outputs as authorised for production.
 
 CI validates every PR branch. A non-matching branch fails "Validate branch name" and cannot merge until corrected.
+Use **Actions → Gate Sign-Off → Run workflow** to create sign-off branches and PRs.
 
 > **Sign-off branches are workflow-managed.** Do not create or rename `signoff/*` branches manually — use **Actions → Gate Sign-Off** and let CI create the branch and PR for you.
 

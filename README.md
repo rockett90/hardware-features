@@ -83,6 +83,7 @@ The dispatcher reacts with 👀 immediately on receipt, ✅ on success, ❌ on f
 | Tooling / docs | `chore/<desc>` |
 
 CI validates every PR branch name. A non-matching name fails the "Validate branch name" check and cannot merge until corrected.
+Sign-off branches are created automatically by running **Actions → Gate Sign-Off → Run workflow**.
 
 > **Sign-off branches:** `signoff/<feature>/cdr`, `signoff/<feature>/trr`, and `signoff/<feature>/release` are created by the **Actions → Gate Sign-Off** workflow. Do not create these branches manually.
 

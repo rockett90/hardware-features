@@ -28,18 +28,14 @@ jobs:
           GATE_FULL=$(echo "$REF" | sed 's|^signoff/||' | cut -d'/' -f2-)
           # Strip cycle suffix (-r2, -r3) then re-attempt suffix (-2, -3) to get base gate type
           GATE_TYPE=$(echo "$GATE_FULL" | sed 's|-r[0-9]*$||;s|-[0-9]*$||')
-          # Extract cycle number if present
-          CYCLE=$(echo "$GATE_FULL" | sed -n 's|.*-r\([0-9][0-9]*\)$|\1|p')
-          [[ -z "$CYCLE" ]] && CYCLE="1"
           echo "feature=$FEATURE" >> $GITHUB_OUTPUT
           echo "gate_full=$GATE_FULL" >> $GITHUB_OUTPUT
           echo "gate_type=$GATE_TYPE" >> $GITHUB_OUTPUT
-          echo "cycle=$CYCLE" >> $GITHUB_OUTPUT
 
       - name: Check if gate-evidence.md already exists
         id: check
         run: |
-          FILE="features/${{ steps.gate.outputs.feature }}/reviews/gate-evidence-${{ steps.gate.outputs.gate_full }}.md"
+          FILE="features/${{ steps.gate.outputs.feature }}/reviews/gate-evidence-${{ steps.gate.outputs.gate_type }}.md"
           if [[ -f "$FILE" ]]; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
@@ -52,55 +48,41 @@ jobs:
           FEATURE="${{ steps.gate.outputs.feature }}"
           GATE_TYPE="${{ steps.gate.outputs.gate_type }}"
           GATE_FULL="${{ steps.gate.outputs.gate_full }}"
-          CYCLE="${{ steps.gate.outputs.cycle }}"
           DATE=$(date +%Y-%m-%d)
           HEAD_SHA=$(git rev-parse HEAD)
 
           case "$GATE_TYPE" in
             cdr)
-              if [[ "$CYCLE" == "1" ]]; then
-                PREV_TAG=""; PREV_GATE="PDR (no tag)"
-              elif [[ "$CYCLE" == "2" ]]; then
-                PREV_TAG="release/${FEATURE}/approved"
-                PREV_GATE="Release cycle 1"
-              else
-                PREV_TAG="release/${FEATURE}/r$((CYCLE-1))/approved"
-                PREV_GATE="Release cycle $((CYCLE-1))"
-              fi
-              NEXT_GATE="CDR (cycle ${CYCLE})"
+              PREV_TAG=""
+              PREV_GATE="PDR (no tag)"
+              NEXT_GATE="CDR"
               ;;
             trr)
-              if [[ "$CYCLE" == "1" ]]; then
-                PREV_TAG="cdr/${FEATURE}/approved"
-              else
-                PREV_TAG="cdr/${FEATURE}/r${CYCLE}/approved"
-              fi
-              PREV_GATE="CDR (cycle ${CYCLE})"; NEXT_GATE="TRR (cycle ${CYCLE})"
+              PREV_TAG="cdr/${FEATURE}/approved"
+              PREV_GATE="CDR"
+              NEXT_GATE="TRR"
               ;;
             release)
-              if [[ "$CYCLE" == "1" ]]; then
-                PREV_TAG="trr/${FEATURE}/approved"
-              else
-                PREV_TAG="trr/${FEATURE}/r${CYCLE}/approved"
-              fi
-              PREV_GATE="TRR (cycle ${CYCLE})"; NEXT_GATE="Release (cycle ${CYCLE})"
+              PREV_TAG="trr/${FEATURE}/approved"
+              PREV_GATE="TRR"
+              NEXT_GATE="Release"
               ;;
             *)
-              PREV_TAG=""; PREV_GATE="unknown"; NEXT_GATE="$GATE_FULL"
+              PREV_TAG=""
+              PREV_GATE="unknown"
+              NEXT_GATE="$GATE_TYPE"
               ;;
           esac
 
-          PREV_SHA="tag not found"
-          PREV_DATE="unknown"
-          if [[ -n "$PREV_TAG" ]]; then
-            PREV_SHA=$(git rev-list -n 1 "refs/tags/${PREV_TAG}" 2>/dev/null || echo "tag not found")
-            if [[ "$PREV_SHA" != "tag not found" ]]; then
-              PREV_DATE=$(git log -1 --format="%ci" "$PREV_SHA" 2>/dev/null | cut -d' ' -f1 || echo "unknown")
-            fi
+          PREV_SHA=""
+          PREV_DATE=""
+          if [[ -n "$PREV_TAG" ]] && git rev-parse --verify --quiet "refs/tags/${PREV_TAG}" >/dev/null; then
+            PREV_SHA=$(git rev-list -n 1 "refs/tags/${PREV_TAG}")
+            PREV_DATE=$(git log -1 --format="%cs" "$PREV_SHA")
           fi
 
           mkdir -p "features/${FEATURE}/reviews"
-          OUT="features/${FEATURE}/reviews/gate-evidence-${GATE_FULL}.md"
+          OUT="features/${FEATURE}/reviews/gate-evidence-${GATE_TYPE}.md"
 
           echo "# Gate evidence -- ${NEXT_GATE} sign-off"              > "$OUT"
           echo ""                                                       >> "$OUT"

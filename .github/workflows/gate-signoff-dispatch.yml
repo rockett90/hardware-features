@@ -126,8 +126,8 @@ jobs:
           case "$GATE" in
             cdr)
               GATE_LABEL="CDR"
-              PREV_GATE="PDR"
-              PREV_TAG="pdr/${FEATURE}/approved"
+              PREV_GATE="PDR (no tag)"
+              PREV_TAG=""
               ;;
             trr)
               GATE_LABEL="TRR"
@@ -145,9 +145,9 @@ jobs:
               ;;
           esac
 
-          PREV_SHA="tag not found"
-          PREV_DATE="unknown"
-          if git rev-parse --verify --quiet "refs/tags/${PREV_TAG}" >/dev/null; then
+          PREV_SHA=""
+          PREV_DATE=""
+          if [[ -n "$PREV_TAG" ]] && git rev-parse --verify --quiet "refs/tags/${PREV_TAG}" >/dev/null; then
             PREV_SHA=$(git rev-list -n 1 "refs/tags/${PREV_TAG}")
             PREV_DATE=$(git log -1 --format="%cs" "$PREV_SHA")
           fi
@@ -164,9 +164,11 @@ jobs:
             printf "| Date created | %s |\n" "$CREATED_DATE"
             printf "| main SHA at branch creation | \`%s\` |\n" "$MAIN_SHA"
             printf "| Previous gate | %s |\n" "$PREV_GATE"
-            printf "| Previous gate tag | \`%s\` |\n" "$PREV_TAG"
-            printf "| Previous gate SHA | \`%s\` |\n" "$PREV_SHA"
-            printf "| Previous gate date | %s |\n" "$PREV_DATE"
+            if [[ -n "$PREV_TAG" ]]; then
+              printf "| Previous gate tag | \`%s\` |\n" "$PREV_TAG"
+              printf "| Previous gate SHA | \`%s\` |\n" "$PREV_SHA"
+              printf "| Previous gate date | %s |\n" "$PREV_DATE"
+            fi
             printf "\n> Created automatically by CI. Do not edit manually.\n"
           } > "$EVIDENCE_FILE"
 
@@ -246,16 +248,54 @@ jobs:
           FEATURE: ${{ inputs.feature }}
           GATE: ${{ inputs.gate }}
           PR_NUMBER: ${{ steps.create_pr.outputs.result }}
+          ACTOR: ${{ github.actor }}
         with:
           script: |
             const prNumber = Number(process.env.PR_NUMBER);
             const feature = process.env.FEATURE;
             const gate = process.env.GATE;
+            const actor = process.env.ACTOR;
+            const gateName = ({ cdr: 'CDR', trr: 'TRR', release: 'Release' })[gate] || gate.toUpperCase();
             const branch = `signoff/${feature}/${gate}`;
             const evidence = `features/${feature}/reviews/gate-evidence-${gate}.md`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: `## ✅\n\nThis sign-off PR was created automatically by CI.\n\n- Branch: \`${branch}\`\n- Gate evidence file: \`${evidence}\`\n\nReview the checklist in the PR description and complete sign-off normally.`,
+              body: [
+                `## ✅ ${gateName} Gate`,
+                '',
+                `The ${gateName} checklist is in the PR description above. Tick every item before requesting merge.`,
+                '',
+                '**CI enforcement:** `gate-check` will block merge while any `- [ ]` item remains unchecked in the PR description.',
+                '',
+                `> This PR was created automatically by the Gate Sign-Off workflow, triggered by @${actor}.`,
+                '',
+                `- Branch: \`${branch}\``,
+                `- Gate evidence file: \`${evidence}\``,
+              ].join('\n'),
             });
+
+      - name: Write job summary with PR link
+        uses: actions/github-script@v7
+        env:
+          FEATURE: ${{ inputs.feature }}
+          GATE: ${{ inputs.gate }}
+          PR_NUMBER: ${{ steps.create_pr.outputs.result }}
+        with:
+          script: |
+            const feature = process.env.FEATURE;
+            const gate = process.env.GATE;
+            const prNumber = Number(process.env.PR_NUMBER);
+            const gateName = ({ cdr: 'CDR', trr: 'TRR', release: 'Release' })[gate] || gate.toUpperCase();
+            const prUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/pull/${prNumber}`;
+            await core.summary
+              .addHeading('Gate Sign-Off Result', 2)
+              .addTable([
+                [{ data: 'Field', header: true }, { data: 'Value', header: true }],
+                ['Feature', `\`${feature}\``],
+                ['Gate', gateName],
+                ['PR', `[Open PR #${prNumber}](${prUrl})`],
+              ])
+              .addRaw('\nNext step: open the PR.\n')
+              .write();

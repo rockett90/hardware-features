@@ -6,8 +6,8 @@ After TRR has passed and the IVV team has completed testing. All findings must b
 
 ## Steps
 
-1. Create a branch `signoff/<feature>/release`.
-2. Open a PR — the release sign-off checklist auto-fills into the PR body within seconds.
+1. Go to **Actions → Gate Sign-Off → Run workflow**, enter your feature name, and select `release`. The workflow creates `signoff/<feature>/release`, commits the gate evidence file, and opens the Release PR automatically.
+2. Open the PR from the workflow summary link once the run completes. The release checklist is already filled into the PR body.
 3. Verify all gate tags exist in the repository:
    - `cdr/<feature>/approved`
    - `trr/<feature>/approved`
@@ -26,7 +26,3 @@ After TRR has passed and the IVV team has completed testing. All findings must b
 The `release/<feature>/approved` tag is the authorisation record for production manufacture.
 
 The release-please Release PR (opened automatically) creates the final `<feature>-vX.Y.Z` version tag and updates the CHANGELOG. No manufacturing outputs are re-generated at that point — they were generated when this gate PR merged.
-
-## Documentation-only releases
-
-A documentation-only change (datasheet correction, typo fix) does not require repeating PDR, CDR, TRR, or IV&V. See [docs/how-to/second-design-cycle.md](second-design-cycle.md) for the documentation-only release path.

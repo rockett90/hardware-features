@@ -155,23 +155,20 @@ jobs:
           git checkout -B "$BRANCH" main
           mkdir -p "features/${FEATURE}/reviews"
 
-          cat > "$EVIDENCE_FILE" <<EOF
-          # Gate evidence -- ${GATE_LABEL} sign-off
-
-          | Field | Value |
-          |---|---|
-          | Feature | \`${FEATURE}\` |
-          | Gate | ${GATE_LABEL} |
-          | Branch | \`${BRANCH}\` |
-          | Date created | ${CREATED_DATE} |
-          | main SHA at branch creation | \`${MAIN_SHA}\` |
-          | Previous gate | ${PREV_GATE} |
-          | Previous gate tag | \`${PREV_TAG}\` |
-          | Previous gate SHA | \`${PREV_SHA}\` |
-          | Previous gate date | ${PREV_DATE} |
-
-          > Created automatically by CI. Do not edit manually.
-          EOF
+          {
+            printf "# Gate evidence -- %s sign-off\n\n" "$GATE_LABEL"
+            printf "| Field | Value |\n|---|---|\n"
+            printf "| Feature | \`%s\` |\n" "$FEATURE"
+            printf "| Gate | %s |\n" "$GATE_LABEL"
+            printf "| Branch | \`%s\` |\n" "$BRANCH"
+            printf "| Date created | %s |\n" "$CREATED_DATE"
+            printf "| main SHA at branch creation | \`%s\` |\n" "$MAIN_SHA"
+            printf "| Previous gate | %s |\n" "$PREV_GATE"
+            printf "| Previous gate tag | \`%s\` |\n" "$PREV_TAG"
+            printf "| Previous gate SHA | \`%s\` |\n" "$PREV_SHA"
+            printf "| Previous gate date | %s |\n" "$PREV_DATE"
+            printf "\n> Created automatically by CI. Do not edit manually.\n"
+          } > "$EVIDENCE_FILE"
 
           if [[ "$GATE" == "trr" || "$GATE" == "release" ]]; then
             if [[ ! -f "$EXT_REF" ]]; then

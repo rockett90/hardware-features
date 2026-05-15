@@ -121,7 +121,7 @@ jobs:
           EXT_REF="features/${FEATURE}/reviews/external-references.md"
           STUB="scripts/ci/stubs/reviews/external-references.md"
           MAIN_SHA=$(git rev-parse HEAD)
-          CREATED_DATE=$(date -u +%Y-%m-%d)
+          CREATED_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
           case "$GATE" in
             cdr)
@@ -188,7 +188,7 @@ jobs:
               kicad-cli sch export svg \
                 --output "/repo/features/${FEATURE}/datasheet/" \
                 "/repo/features/${FEATURE}/kicad/${FEATURE}.kicad_sch"; then
-              echo "Warning: schematic SVG export failed for ${FEATURE}; continuing."
+              echo "Warning: schematic SVG export failed for ${FEATURE}. Continuing without datasheet schematic SVG."
             fi
             if [[ -f "features/${FEATURE}/datasheet/${FEATURE}.svg" ]]; then
               mv "features/${FEATURE}/datasheet/${FEATURE}.svg" "$SCH_SVG"
